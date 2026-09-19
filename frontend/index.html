@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Spot — UNO</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0a1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --cyan: #00d4ff;
+            --magenta: #ff006e;
+            --green: #00ff88;
+            --yellow: #ffd60a;
+            --orange: #ff6b35;
+            --text: #e0e0ff;
+            --text-dim: #8888aa;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ===== ANIMATED BACKGROUND ===== */
+        .bg-particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .bg-particles .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: floatOrb 15s ease-in-out infinite;
+        }
+        .bg-particles .orb:nth-child(1) {
+            width: 300px; height: 300px;
+            background: var(--cyan);
+            top: -100px; left: -100px;
+            animation-delay: 0s;
+        }
+        .bg-particles .orb:nth-child(2) {
+            width: 250px; height: 250px;
+            background: var(--magenta);
+            bottom: -80px; right: -80px;
+            animation-delay: -5s;
+        }
+        .bg-particles .orb:nth-child(3) {
+            width: 200px; height: 200px;
+            background: var(--green);
+            top: 50%; left: 50%;
+            animation-delay: -10s;
+        }
+        @keyframes floatOrb {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(50px, -30px) scale(1.1); }
+            50% { transform: translate(-30px, 50px) scale(0.9); }
+            75% { transform: translate(40px, 30px) scale(1.05); }
+        }
+
+        /* ===== SCREENS ===== */
+        .screen {
+            display: none;
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 20px;
+            flex-direction: column;
+            align-items: center;
+        }
+        .screen.active { display: flex; }
+
+        /* ===== HEADER ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 20px;
+        }
+        .header .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--cyan), var(--magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
+            letter-spacing: 3px;
+        }
+        .header .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-top: 5px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* ===== GLASS PANELS ===== */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+
+        /* ===== USER CARD ===== */
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .user-avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--cyan), var(--magenta));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        .user-info h2 {
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+        .user-info p {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        .btn:hover::before { left: 100%; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cyan), #0099cc);
+            color: white;
+            box-shadow: 0 4px 25px rgba(0, 212, 255, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 35px rgba(0, 212, 255, 0.5);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--magenta), #cc0055);
+            color: white;
+            box-shadow: 0 4px 25px rgba(255, 0, 110, 0.3);
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 35px rgba(255, 0, 110, 0.5);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, var(--green), #00cc66);
+            color: #0a0a1a;
+            box-shadow: 0 4px 25px rgba(0, 255, 136, 0.3);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid var(--glass-border);
+            color: var(--text);
+        }
+        .btn-outline:hover {
+            border-color: var(--cyan);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        /* ===== INPUT ===== */
+        .input-group { margin-bottom: 16px; }
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .input-field {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.05);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            text-align: center;
+            letter-spacing: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .input-field:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+        }
+        .input-field::placeholder {
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        /* ===== FLOATING CARDS (decoration) ===== */
+        .floating-cards {
+            position: relative;
+            height: 180px;
+            width: 100%;
+            max-width: 300px;
+            margin: 10px auto 20px;
+        }
+        .floating-card {
+            position: absolute;
+            width: 80px;
+            height: 120px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            animation: cardFloat 4s ease-in-out infinite;
+        }
+        .floating-card:nth-child(1) {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            left: 20%; top: 20px;
+            transform: rotate(-15deg);
+            animation-delay: 0s;
+        }
+        .floating-card:nth-child(2) {
+            background: linear-gradient(135deg, #44aaff, #0066cc);
+            left: 40%; top: 0px;
+            transform: rotate(5deg);
+            animation-delay: -1s;
+            z-index: 2;
+        }
+        .floating-card:nth-child(3) {
+            background: linear-gradient(135deg, #44ff88, #00aa44);
+            left: 60%; top: 30px;
+            transform: rotate(20deg);
+            animation-delay: -2s;
+        }
+        .floating-card:nth-child(4) {
+            background: linear-gradient(135deg, #ffdd44, #ccaa00);
+            left: 35%; top: 50px;
+            transform: rotate(-8deg);
+            animation-delay: -3s;
+            z-index: 1;
+        }
+        @keyframes cardFloat {
+            0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+            50% { transform: translateY(-12px) rotate(var(--r, 0deg)); }
+        }
+
+        /* ===== ROOM CODE DISPLAY ===== */
+        .room-code-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .room-code-display .label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        .room-code {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            letter-spacing: 12px;
+            background: linear-gradient(135deg, var(--cyan), var(--green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .room-code:hover { transform: scale(1.05); }
+
+        /* ===== PLAYERS LIST ===== */
+        .players-list {
+            list-style: none;
+            padding: 0;
+        }
+        .players-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+        .players-list li.current-turn {
+            border-color: var(--cyan);
+            background: rgba(0, 212, 255, 0.08);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+        }
+        .player-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+        }
+        .player-name { flex: 1; font-weight: 500; }
+        .player-cards-count {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            color: var(--cyan);
+        }
+
+        /* ===== GAME AREA ===== */
+        .game-area {
+            flex: 1;
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .game-top-bar .direction {
+            font-size: 1.5rem;
+            animation: spin 3s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .game-top-bar .turn-label {
+            font-size: 0.8rem;
+            color: var(--cyan);
+            font-weight: 600;
+        }
+
+        /* ===== DISCARD + DRAW PILE ===== */
+        .piles {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+            margin: 25px 0;
+        }
+        .pile {
+            text-align: center;
+        }
+        .pile-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .pile-card {
+            width: 85px;
+            height: 130px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .pile-card.draw-pile {
+            background: linear-gradient(135deg, var(--bg-card), #1e2d50);
+            border: 2px solid var(--glass-border);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .pile-card.draw-pile::after {
+            content: '🂠';
+            font-size: 2.5rem;
+        }
+        .pile-card.draw-pile:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.3);
+            border-color: var(--cyan);
+        }
+
+        .card-red { background: linear-gradient(135deg, #ff4444, #cc0000); }
+        .card-blue { background: linear-gradient(135deg, #4488ff, #0044cc); }
+        .card-green { background: linear-gradient(135deg, #44dd66, #009933); }
+        .card-yellow { background: linear-gradient(135deg, #ffcc00, #cc9900); }
+        .card-wild { background: linear-gradient(135deg, #8844ff, #ff4488, #44ff88, #ffcc00); }
+
+        /* ===== PLAYER HAND ===== */
+        .hand-area {
+            width: 100%;
+            padding: 15px 0;
+            margin-top: auto;
+        }
+        .hand-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .hand {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px;
+        }
+        .hand .card {
+            width: 60px;
+            height: 90px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: 800;
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .hand .card:hover {
+            transform: translateY(-15px) scale(1.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .hand .card.playable {
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+        .hand .card.not-playable {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ===== UNO BUTTON ===== */
+        .uno-btn {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--orange), #ff4400);
+            border: none;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.5);
+            transition: all 0.3s;
+            z-index: 50;
+            display: none;
+        }
+        .uno-btn:hover {
+            transform: scale(1.15);
+            box-shadow: 0 6px 30px rgba(255, 107, 53, 0.7);
+        }
+        .uno-btn.visible { display: flex; align-items: center; justify-content: center; }
+
+        /* ===== ACTION BUTTONS IN GAME ===== */
+        .game-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 15px;
+        }
+        .game-actions .btn { flex: 1; padding: 12px; font-size: 0.85rem; }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 24px;
+            color: var(--text);
+            font-size: 0.9rem;
+            z-index: 100;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ===== LOADING ===== */
+        .loader {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 15px;
+            padding: 40px;
+        }
+        .loader.active { display: flex; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--glass-border);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* ===== RESULT SCREEN ===== */
+        .result-icon { font-size: 4rem; margin-bottom: 15px; }
+        .result-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+        .result-subtitle {
+            color: var(--text-dim);
+            margin-bottom: 30px;
+        }
+
+        /* ===== CONFETTI ===== */
+        .confetti-piece {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            z-index: 200;
+            animation: confettiFall 3s ease-out forwards;
+        }
+        @keyframes confettiFall {
+            0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+        }
+
+        /* ===== BACK BUTTON ===== */
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10;
+            transition: color 0.3s;
+        }
+        .back-btn:hover { color: var(--text); }
+
+        /* ===== WAITING DOTS ===== */
+        .waiting-dots span {
+            animation: blink 1.5s infinite;
+        }
+        .waiting-dots span:nth-child(2) { animation-delay: 0.3s; }
+        .waiting-dots span:nth-child(3) { animation-delay: 0.6s; }
+        @keyframes blink { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        /* ===== ABOUT SECTION ===== */
+        .about-section { text-align: center; }
+        .about-section h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            color: var(--cyan);
+        }
+        .about-section p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .stat-box {
+            flex: 1;
+            text-align: center;
+            padding: 12px 8px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+        .stat-box .stat-val {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--cyan);
+        }
+        .stat-box .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Animated Background -->
+    <div class="bg-particles">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ===== HOME SCREEN ===== -->
+    <div id="screen-home" class="screen active">
+        <div class="header">
+            <div class="logo">GAME SPOT</div>
+            <div class="subtitle">UNO Multiplayer</div>
+        </div>
+
+        <div class="floating-cards">
+            <div class="floating-card" style="--r:-15deg">7</div>
+            <div class="floating-card" style="--r:5deg">+2</div>
+            <div class="floating-card" style="--r:20deg">⊘</div>
+            <div class="floating-card" style="--r:-8deg">↺</div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="user-card">
+                <div class="user-avatar" id="user-avatar">?</div>
+                <div class="user-info">
+                    <h2 id="user-name">O'yinchi</h2>
+                    <p id="user-status">Telegram Web App</p>
+                </div>
+            </div>
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">O'yinlar</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">G'alabalar</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val">—</div>
+                    <div class="stat-label">Daraja</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="width:100%; max-width:400px;">
+            <button class="btn btn-primary" onclick="showScreen('create-room')">
+                🎮 Xona Yaratish
+            </button>
+            <button class="btn btn-secondary" onclick="showScreen('join-room')">
+                🚪 Xonaga Qo'shilish
+            </button>
+            <button class="btn btn-outline" onclick="showScreen('about')">
+                ℹ️ Qanday O'ynash
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== ABOUT / HOW TO PLAY ===== -->
+    <div id="screen-about" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">UNO</div>
+            <div class="subtitle">Qoidalar</div>
+        </div>
+        <div class="glass-panel about-section">
+            <h3>🎴 UNO Nima?</h3>
+            <p>UNO — klassik karta o'yini. Maqsad — qo'lingizdagi barcha kartalarni birinchi bo'lib tashlash!</p>
+        </div>
+        <div class="glass-panel about-section">
+            <h3>📋 Asosiy Qoidalar</h3>
+            <p>
+                ✅ Rangi yoki raqami mos kartani tashlang<br>
+                🔄 Reverse — yo'nalishni o'zgartiradi<br>
+                🚫 Skip — keyingi o'yinchini o'tkazadi<br>
+                ➕ Draw 2 — keyingi o'yinchi 2ta karta oladi<br>
+                🌈 Wild — istalgan rangni tanlang<br>
+                🌈➕ Wild Draw 4 — rang tanlang + 4 karta<br>
+                📢 1ta karta qolsa UNO bosing!
+            </p>
+        </div>
+        <div style="width:100%; max-width:400px;">
+            <button class="btn btn-primary" onclick="showScreen('home')">⬅️ Orqaga</button>
+        </div>
+    </div>
+
+    <!-- ===== CREATE ROOM ===== -->
+    <div id="screen-create-room" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">XONA</div>
+            <div class="subtitle">Yangi xona yaratish</div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="input-group">
+                <label>Maksimal o'yinchilar soni</label>
+                <div style="display:flex; gap:10px; justify-content:center;">
+                    <button class="btn btn-outline" style="width:auto;padding:12px 20px;" onclick="setMaxPlayers(2)" id="mp-2">2</button>
+                    <button class="btn btn-outline" style="width:auto;padding:12px 20px;" onclick="setMaxPlayers(3)" id="mp-3">3</button>
+                    <button class="btn btn-primary" style="width:auto;padding:12px 20px;" onclick="setMaxPlayers(4)" id="mp-4">4</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="width:100%; max-width:400px;">
+            <button class="btn btn-success" onclick="createRoom()">
+                ✨ Xonani Yaratish
+            </button>
+        </div>
+
+        <div class="loader" id="create-loader">
+            <div class="spinner"></div>
+            <span>Xona yaratilmoqda...</span>
+        </div>
+    </div>
+
+    <!-- ===== JOIN ROOM ===== -->
+    <div id="screen-join-room" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">KIRISH</div>
+            <div class="subtitle">Xonaga qo'shilish</div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="input-group">
+                <label>Xona Kodi</label>
+                <input type="text" class="input-field" id="join-code-input"
+                       placeholder="ABC123" maxlength="6"
+                       oninput="this.value=this.value.toUpperCase()">
+            </div>
+        </div>
+
+        <div style="width:100%; max-width:400px;">
+            <button class="btn btn-success" onclick="joinRoom()">
+                🚀 Qo'shilish
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== LOBBY (waiting room) ===== -->
+    <div id="screen-lobby" class="screen">
+        <button class="back-btn" onclick="leaveLobby()">←</button>
+        <div class="header">
+            <div class="logo">LOBBY</div>
+            <div class="subtitle">O'yinchilar kutilmoqda</div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="room-code-display">
+                <div class="label">Xona Kodi</div>
+                <div class="room-code" id="lobby-code" onclick="copyRoomCode()">------</div>
+                <p style="font-size:0.75rem; color:var(--text-dim); margin-top:8px;">
+                    👆 Nusxa olish uchun bosing
+                </p>
+            </div>
+        </div>
+
+        <div class="glass-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span style="font-size:0.85rem; font-weight:600;">O'yinchilar</span>
+                <span style="font-size:0.8rem; color:var(--text-dim);" id="player-count">0/4</span>
+            </div>
+            <ul class="players-list" id="lobby-players"></ul>
+            <div class="waiting-dots" style="text-align:center; margin-top:10px; color:var(--text-dim); font-size:0.85rem;">
+                Kutilmoqda<span>.</span><span>.</span><span>.</span>
+            </div>
+        </div>
+
+        <div style="width:100%; max-width:400px;" id="start-game-area">
+            <button class="btn btn-success" id="start-game-btn" onclick="startGame()" style="display:none;">
+                🎮 O'yinni Boshlash
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== GAME SCREEN ===== -->
+    <div id="screen-game" class="screen">
+        <div class="game-area">
+            <div class="game-top-bar">
+                <span class="direction" id="game-direction">🔄</span>
+                <span class="turn-label" id="turn-label">Sizning navbatingiz</span>
+                <span style="font-size:0.85rem; color:var(--text-dim);" id="game-room-code">---</span>
+            </div>
+
+            <!-- Other Players -->
+            <div class="glass-panel" id="opponents-panel" style="padding:12px 15px;">
+                <ul class="players-list" id="game-players"></ul>
+            </div>
+
+            <!-- Piles -->
+            <div class="piles">
+                <div class="pile">
+                    <div class="pile-label">Tashlash</div>
+                    <div class="pile-card card-red" id="discard-pile">7</div>
+                </div>
+                <div class="pile">
+                    <div class="pile-label">Olish</div>
+                    <div class="pile-card draw-pile" id="draw-pile" onclick="drawCard()"></div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="game-actions">
+                <button class="btn btn-outline" onclick="drawCard()" style="font-size:0.85rem;">
+                    📥 Karta Olish
+                </button>
+                <button class="btn btn-outline" onclick="callUno()" style="font-size:0.85rem;">
+                    📢 UNO!
+                </button>
+            </div>
+
+            <!-- Player Hand -->
+            <div class="hand-area">
+                <div class="hand-label">Sizning Kartalaringiz</div>
+                <div class="hand" id="player-hand">
+                    <!-- Cards will be rendered here by JS -->
+                </div>
+            </div>
+        </div>
+
+        <button class="uno-btn" id="uno-float-btn" onclick="callUno()">UNO!</button>
+    </div>
+
+    <!-- ===== RESULT SCREEN ===== -->
+    <div id="screen-result" class="screen" style="justify-content:center; text-align:center;">
+        <div class="result-icon" id="result-icon">🏆</div>
+        <div class="result-title" id="result-title">Tabriklaymiz!</div>
+        <div class="result-subtitle" id="result-subtitle">Siz g'olib bo'ldingiz!</div>
+
+        <div style="width:100%; max-width:400px;">
+            <button class="btn btn-primary" onclick="showScreen('home')">
+                🏠 Bosh Sahifa
+            </button>
+            <button class="btn btn-secondary" onclick="showScreen('create-room')">
+                🔄 Yana O'ynash
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ===== Telegram Web App Integration =====
+        const tg = window.Telegram?.WebApp;
+        let tgUser = null;
+        let userId = 0;
+
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.setHeaderColor('#0a0a1a');
+            tg.setBackgroundColor('#0a0a1a');
+            tgUser = tg.initDataUnsafe?.user;
+            if (tgUser) {
+                userId = tgUser.id;
+                document.getElementById('user-name').textContent = tgUser.first_name || 'O\'yinchi';
+                document.getElementById('user-avatar').textContent = (tgUser.first_name || 'U')[0].toUpperCase();
+                document.getElementById('user-status').textContent = '@' + (tgUser.username || 'user');
+            }
+        }
+
+        // ===== Configuration =====
+        const API_BASE = window.location.origin.replace(':3000', ':8000');
+        let currentRoom = null;
+        let maxPlayers = 4;
+        let ws = null;
+        let isHost = false;
+
+        // ===== Screen Management =====
+        function showScreen(name) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const screen = document.getElementById('screen-' + name);
+            if (screen) screen.classList.add('active');
+
+            // Telegram back button
+            if (tg && name !== 'home') {
+                tg.BackButton.show();
+                tg.BackButton.onClick(() => showScreen('home'));
+            } else if (tg) {
+                tg.BackButton.hide();
+            }
+        }
+
+        // ===== Toast Notification =====
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // ===== Max Players =====
+        function setMaxPlayers(n) {
+            maxPlayers = n;
+            [2,3,4].forEach(v => {
+                const btn = document.getElementById('mp-' + v);
+                btn.className = v === n ? 'btn btn-primary' : 'btn btn-outline';
+                btn.style.width = 'auto';
+                btn.style.padding = '12px 20px';
+            });
+        }
+
+        // ===== Room Creation =====
+        async function createRoom() {
+            const loader = document.getElementById('create-loader');
+            loader.classList.add('active');
+            try {
+                const resp = await fetch(API_BASE + '/rooms/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ host_id: userId || 1, max_players: maxPlayers })
+                });
+                if (!resp.ok) throw new Error('Server xatosi');
+                const data = await resp.json();
+                currentRoom = data.code || data.room_code;
+                isHost = true;
+                showLobby(currentRoom, [{ id: userId, name: tgUser?.first_name || 'Siz' }]);
+                showScreen('lobby');
+                showToast('✅ Xona yaratildi!');
+            } catch (e) {
+                showToast('❌ Xato: ' + e.message);
+            } finally {
+                loader.classList.remove('active');
+            }
+        }
+
+        // ===== Join Room =====
+        async function joinRoom() {
+            const code = document.getElementById('join-code-input').value.trim();
+            if (code.length < 4) {
+                showToast('⚠️ Xona kodini kiriting');
+                return;
+            }
+            try {
+                const resp = await fetch(API_BASE + '/rooms/join/' + code, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId || 2 })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || 'Xona topilmadi');
+                }
+                const data = await resp.json();
+                currentRoom = code;
+                isHost = false;
+                showLobby(code, data.players || []);
+                showScreen('lobby');
+                showToast('✅ Xonaga qo\'shildingiz!');
+            } catch (e) {
+                showToast('❌ ' + e.message);
+            }
+        }
+
+        // ===== Lobby =====
+        function showLobby(code, players) {
+            document.getElementById('lobby-code').textContent = code;
+            updateLobbyPlayers(players);
+            if (isHost) {
+                document.getElementById('start-game-btn').style.display = 'flex';
+            }
+            connectWebSocket(code);
+        }
+
+        function updateLobbyPlayers(players) {
+            const list = document.getElementById('lobby-players');
+            const arr = Array.isArray(players) ? players : [];
+            list.innerHTML = arr.map((p, i) => `
+                <li>
+                    <span class="player-dot"></span>
+                    <span class="player-name">${p.name || 'O\\'yinchi ' + (i+1)} ${i === 0 ? '👑' : ''}</span>
+                </li>
+            `).join('');
+            document.getElementById('player-count').textContent = arr.length + '/' + maxPlayers;
+        }
+
+        function copyRoomCode() {
+            const code = document.getElementById('lobby-code').textContent;
+            navigator.clipboard?.writeText(code);
+            showToast('📋 Kod nusxalandi: ' + code);
+        }
+
+        function leaveLobby() {
+            if (ws) ws.close();
+            currentRoom = null;
+            showScreen('home');
+        }
+
+        // ===== WebSocket =====
+        function connectWebSocket(code) {
+            const wsUrl = API_BASE.replace('http', 'ws') + '/ws/' + code;
+            ws = new WebSocket(wsUrl);
+            ws.onopen = () => console.log('WS connected');
+            ws.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    handleGameMessage(data);
+                } catch (err) {
+                    console.error('WS parse error:', err);
+                }
+            };
+            ws.onclose = () => console.log('WS disconnected');
+        }
+
+        function handleGameMessage(data) {
+            if (data.type === 'player_joined') {
+                updateLobbyPlayers(data.players);
+                showToast('👤 ' + (data.player_name || 'O\'yinchi') + ' qo\'shildi');
+            }
+            if (data.type === 'game_start') {
+                showScreen('game');
+                renderGameState(data.state);
+            }
+            if (data.type === 'game_update') {
+                renderGameState(data.state);
+            }
+            if (data.type === 'game_over') {
+                showResult(data.winner);
+            }
+        }
+
+        // ===== Game =====
+        function startGame() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'start_game' }));
+            }
+            // Demo: show game screen with sample data
+            showScreen('game');
+            document.getElementById('game-room-code').textContent = currentRoom || 'DEMO';
+            renderDemoHand();
+        }
+
+        const CARD_COLORS = { RED: 'card-red', BLUE: 'card-blue', GREEN: 'card-green', YELLOW: 'card-yellow', WILD: 'card-wild' };
+
+        function renderDemoHand() {
+            const demoCards = [
+                { color: 'RED', value: '3' }, { color: 'BLUE', value: '7' },
+                { color: 'GREEN', value: '5' }, { color: 'YELLOW', value: '2' },
+                { color: 'RED', value: '+2' }, { color: 'WILD', value: '🌈' },
+                { color: 'BLUE', value: '9' }
+            ];
+            renderHand(demoCards);
+        }
+
+        function renderHand(cards) {
+            const hand = document.getElementById('player-hand');
+            hand.innerHTML = cards.map((c, i) => `
+                <div class="card ${CARD_COLORS[c.color] || 'card-wild'} playable"
+                     onclick="playCard(${i})" title="${c.color} ${c.value}">
+                    ${c.value}
+                </div>
+            `).join('');
+        }
+
+        function renderGameState(state) {
+            if (!state) return;
+            if (state.hand) renderHand(state.hand);
+            if (state.discard_top) {
+                const dp = document.getElementById('discard-pile');
+                dp.className = 'pile-card ' + (CARD_COLORS[state.discard_top.color] || 'card-wild');
+                dp.textContent = state.discard_top.value;
+            }
+            if (state.direction) {
+                document.getElementById('game-direction').textContent = state.direction === 1 ? '🔄' : '🔃';
+            }
+            if (state.current_player_id !== undefined) {
+                const isMyTurn = state.current_player_id === userId;
+                document.getElementById('turn-label').textContent = isMyTurn ? 'Sizning navbatingiz!' : 'Kutmoqda...';
+            }
+        }
+
+        function playCard(index) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'play_card', card_index: index }));
+            }
+            showToast('🃏 Karta tashlandi');
+        }
+
+        function drawCard() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'draw_card' }));
+            }
+            showToast('📥 Karta olindi');
+        }
+
+        function callUno() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'call_uno' }));
+            }
+            showToast('📢 UNO!');
+            if (tg) tg.HapticFeedback?.impactOccurred('heavy');
+        }
+
+        // ===== Result =====
+        function showResult(winner) {
+            showScreen('result');
+            const isWinner = winner?.id === userId;
+            document.getElementById('result-icon').textContent = isWinner ? '🏆' : '😢';
+            document.getElementById('result-title').textContent = isWinner ? 'Tabriklaymiz!' : 'Keyingi safar!';
+            document.getElementById('result-subtitle').textContent = isWinner ?
+                'Siz g\'olib bo\'ldingiz!' : (winner?.name || 'Raqib') + ' g\'olib bo\'ldi';
+            if (isWinner) spawnConfetti();
+        }
+
+        function spawnConfetti() {
+            const colors = ['#ff006e', '#00d4ff', '#00ff88', '#ffd60a', '#ff6b35', '#8844ff'];
+            for (let i = 0; i < 60; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + 'vw';
+                piece.style.top = '-10px';
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+                piece.style.animationDelay = Math.random() * 1 + 's';
+                document.body.appendChild(piece);
+                setTimeout(() => piece.remove(), 5000);
+            }
+        }
+    </script>
+</body>
+</html>

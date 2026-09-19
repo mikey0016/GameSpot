@@ -1,0 +1,9 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.5
+SQLAlchemy==2.0.35
+asyncpg==0.29.0
+aiosqlite==0.20.0
+pydantic==2.8.2
+python-telegram-bot[async]==21.5
+python-dotenv==1.0.1
+itsdangerous==2.2.0
