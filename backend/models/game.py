@@ -4,7 +4,7 @@
 Tracks deck state, current turn, direction, and winner.
 """
 
-from sqlalchemy import Column, String, Integer, JSON, DateTime, Enum, Boolean
+from sqlalchemy import Column, String, Integer, BigInteger, JSON, DateTime, Enum, Boolean
 from sqlalchemy.orm import declarative_base
 import enum
 from datetime import datetime

@@ -9,6 +9,7 @@ so that init_db can import and create tables.
 from .user import Base as UserBase
 from .room import Base as RoomBase
 from .game import Base as GameBase
+from .social import Base as SocialBase
 
 # Provide a list for convenience
-MODEL_BASES = [UserBase, RoomBase, GameBase]
+MODEL_BASES = [UserBase, RoomBase, GameBase, SocialBase]

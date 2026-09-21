@@ -19,9 +19,10 @@ async def init_db():
     Each model module defines its own declarative Base; we import them
     and call ``metadata.create_all`` on the async engine.
     """
-    from .models import UserBase, RoomBase, GameBase
+    from .models import UserBase, RoomBase, GameBase, SocialBase
     async with engine.begin() as conn:
         await conn.run_sync(UserBase.metadata.create_all)
         await conn.run_sync(RoomBase.metadata.create_all)
         await conn.run_sync(GameBase.metadata.create_all)
+        await conn.run_sync(SocialBase.metadata.create_all)
 

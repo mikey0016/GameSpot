@@ -66,6 +66,10 @@ class GameState:
     def _current_player(self) -> PlayerState:
         return self.players[self.player_order[self.current_idx]]
 
+    def current_player(self) -> PlayerState:
+        """Public accessor used by the WebSocket layer."""
+        return self._current_player()
+
     def _next_index(self) -> int:
         step = 1 if self.direction == Direction.CLOCKWISE else -1
         return (self.current_idx + step) % len(self.player_order)

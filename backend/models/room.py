@@ -4,8 +4,9 @@
 A room can host 2‑4 players and tracks its status.
 """
 
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Enum, JSON
+from sqlalchemy import Column, String, Integer, BigInteger, Boolean, DateTime, ForeignKey, Enum, JSON
 from sqlalchemy.orm import relationship, declarative_base
+from .mutable import JSONList
 import enum
 from datetime import datetime
 
@@ -26,7 +27,8 @@ class Room(Base):
     status = Column(Enum(RoomStatus), default=RoomStatus.WAITING)
     max_players = Column(Integer, default=4)
     # JSON list of player telegram ids for quick lookup
-    player_ids = Column(JSON, default=list)
+    # MutableList wrapper so appends are actually persisted
+    player_ids = Column(JSONList, default=list)
     # optional game instance reference
     game_id = Column(String, nullable=True, index=True)
 

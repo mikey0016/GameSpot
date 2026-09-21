@@ -1,0 +1,52 @@
+# backend/models/social.py
+
+"""Models for social features: online presence, invites, chat, game history."""
+
+from sqlalchemy import Column, BigInteger, String, Integer, DateTime, JSON
+from sqlalchemy.orm import declarative_base
+from .mutable import JSONList, JSONDict
+from datetime import datetime
+
+Base = declarative_base()
+
+
+class OnlineUser(Base):
+    __tablename__ = "online_users"
+
+    id = Column(BigInteger, primary_key=True, index=True)  # Telegram user_id
+    username = Column(String, nullable=True, index=True)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    last_online = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Stats (updated when a game result is recorded)
+    games_played = Column(Integer, default=0)
+    wins = Column(Integer, default=0)
+    losses = Column(Integer, default=0)
+    xp = Column(Integer, default=0)
+    level = Column(Integer, default=1)
+
+    # Pending/processed in-app invites stored as JSON list
+    invites = Column(JSONList, default=list)
+
+
+class GameRecord(Base):
+    __tablename__ = "game_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    room_code = Column(String, nullable=False, index=True)
+    winner_id = Column(BigInteger, nullable=True, index=True)
+    winner_name = Column(String, nullable=True)
+    players = Column(JSONList, default=list)  # [{id, name}]
+    finished_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    room = Column(String, default="global", index=True)  # "global" for now
+    user_id = Column(BigInteger, nullable=False)
+    name = Column(String, nullable=True)
+    text = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

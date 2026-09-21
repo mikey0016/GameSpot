@@ -32,6 +32,8 @@
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         /* ===== ANIMATED BACKGROUND ===== */
@@ -75,165 +77,178 @@
             75% { transform: translate(40px, 30px) scale(1.05); }
         }
 
-        /* ===== SCREENS ===== */
+        /* ===== SCREENS (compact) ===== */
         .screen {
             display: none;
             position: relative;
             z-index: 1;
             min-height: 100vh;
-            padding: 20px;
+            padding: 12px 12px 24px;
             flex-direction: column;
             align-items: center;
         }
         .screen.active { display: flex; }
 
-        /* ===== HEADER ===== */
+        /* ===== HEADER (compact) ===== */
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            padding-top: 20px;
+            margin-bottom: 14px;
+            padding-top: 6px;
         }
         .header .logo {
             font-family: 'Orbitron', sans-serif;
-            font-size: 2.2rem;
+            font-size: 1.6rem;
             font-weight: 900;
             background: linear-gradient(135deg, var(--cyan), var(--magenta));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-shadow: none;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
         }
         .header .subtitle {
-            font-size: 0.85rem;
+            font-size: 0.7rem;
             color: var(--text-dim);
-            margin-top: 5px;
+            margin-top: 3px;
             letter-spacing: 2px;
             text-transform: uppercase;
         }
 
-        /* ===== GLASS PANELS ===== */
+        /* ===== GLASS PANELS (compact) ===== */
         .glass-panel {
             background: var(--glass);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 25px;
+            border-radius: 16px;
+            padding: 16px;
             width: 100%;
             max-width: 400px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .panel-head .muted { color: var(--text-dim); font-weight: 400; }
 
-        /* ===== USER CARD ===== */
+        /* ===== USER CARD (compact) ===== */
         .user-card {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
+            gap: 12px;
         }
         .user-avatar {
-            width: 55px;
-            height: 55px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--cyan), var(--magenta));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.15rem;
             font-weight: 700;
             color: white;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 16px rgba(0, 212, 255, 0.3);
+            flex-shrink: 0;
         }
-        .user-info h2 {
-            font-size: 1.15rem;
-            font-weight: 600;
-        }
-        .user-info p {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-        }
+        .user-info h2 { font-size: 1rem; font-weight: 600; }
+        .user-info p { font-size: 0.72rem; color: var(--text-dim); }
 
-        /* ===== BUTTONS ===== */
+        /* ===== BUTTONS (compact) ===== */
         .btn {
             width: 100%;
-            padding: 16px 24px;
+            padding: 13px 18px;
             border: none;
-            border-radius: 14px;
+            border-radius: 12px;
             font-family: 'Inter', sans-serif;
-            font-size: 1rem;
+            font-size: 0.92rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 9px;
             position: relative;
             overflow: hidden;
         }
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.5s ease;
-        }
-        .btn:hover::before { left: 100%; }
-
         .btn-primary {
             background: linear-gradient(135deg, var(--cyan), #0099cc);
             color: white;
-            box-shadow: 0 4px 25px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
         }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 35px rgba(0, 212, 255, 0.5);
-        }
+        .btn-primary:hover { transform: translateY(-2px); }
         .btn-secondary {
             background: linear-gradient(135deg, var(--magenta), #cc0055);
             color: white;
-            box-shadow: 0 4px 25px rgba(255, 0, 110, 0.3);
+            box-shadow: 0 4px 20px rgba(255, 0, 110, 0.3);
         }
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 35px rgba(255, 0, 110, 0.5);
-        }
+        .btn-secondary:hover { transform: translateY(-2px); }
         .btn-success {
             background: linear-gradient(135deg, var(--green), #00cc66);
             color: #0a0a1a;
-            box-shadow: 0 4px 25px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
         }
         .btn-outline {
             background: transparent;
             border: 1.5px solid var(--glass-border);
             color: var(--text);
         }
-        .btn-outline:hover {
-            border-color: var(--cyan);
-            background: rgba(0, 212, 255, 0.05);
+        .btn-outline:hover { border-color: var(--cyan); }
+        .btn-invite {
+            background: linear-gradient(135deg, #8844ff, #6633cc);
+            color: white;
+            box-shadow: 0 4px 20px rgba(136, 68, 255, 0.3);
         }
+        .btn-invite:hover { transform: translateY(-2px); }
+        .invite-hint {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-top: 2px;
+        }
+        .mp-btn { width: auto; padding: 10px 18px; margin-bottom: 0; }
+
+        /* ===== KICK / HOST ===== */
+        .kick-btn {
+            background: none;
+            border: none;
+            color: var(--magenta);
+            font-size: 0.95rem;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .kick-btn:hover { background: rgba(255, 0, 110, 0.15); }
+        .host-badge { font-size: 0.75rem; margin-left: 2px; }
+        .you-badge { color: var(--cyan); font-size: 0.7rem; }
 
         /* ===== INPUT ===== */
-        .input-group { margin-bottom: 16px; }
+        .input-group { margin-bottom: 10px; }
         .input-group label {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.72rem;
             color: var(--text-dim);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         .input-field {
             width: 100%;
-            padding: 14px 18px;
+            padding: 12px 16px;
             background: rgba(255,255,255,0.05);
             border: 1.5px solid var(--glass-border);
             border-radius: 12px;
             color: var(--text);
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             text-align: center;
             letter-spacing: 8px;
             outline: none;
@@ -245,123 +260,144 @@
         }
         .input-field::placeholder {
             letter-spacing: 2px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-dim);
         }
 
-        /* ===== FLOATING CARDS (decoration) ===== */
+        /* ===== FLOATING CARDS (compact decoration) ===== */
         .floating-cards {
             position: relative;
-            height: 180px;
+            height: 110px;
             width: 100%;
-            max-width: 300px;
-            margin: 10px auto 20px;
+            max-width: 230px;
+            margin: 2px auto 8px;
         }
         .floating-card {
             position: absolute;
-            width: 80px;
-            height: 120px;
-            border-radius: 12px;
+            width: 58px;
+            height: 86px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.4rem;
             font-weight: 900;
             font-family: 'Orbitron', sans-serif;
             color: white;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
             animation: cardFloat 4s ease-in-out infinite;
         }
         .floating-card:nth-child(1) {
             background: linear-gradient(135deg, #ff4444, #cc0000);
-            left: 20%; top: 20px;
-            transform: rotate(-15deg);
+            left: 16%; top: 16px;
             animation-delay: 0s;
         }
         .floating-card:nth-child(2) {
             background: linear-gradient(135deg, #44aaff, #0066cc);
-            left: 40%; top: 0px;
-            transform: rotate(5deg);
+            left: 38%; top: 0px;
             animation-delay: -1s;
             z-index: 2;
         }
         .floating-card:nth-child(3) {
             background: linear-gradient(135deg, #44ff88, #00aa44);
-            left: 60%; top: 30px;
-            transform: rotate(20deg);
+            left: 58%; top: 22px;
             animation-delay: -2s;
         }
         .floating-card:nth-child(4) {
             background: linear-gradient(135deg, #ffdd44, #ccaa00);
-            left: 35%; top: 50px;
-            transform: rotate(-8deg);
+            left: 36%; top: 36px;
             animation-delay: -3s;
             z-index: 1;
         }
         @keyframes cardFloat {
             0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
-            50% { transform: translateY(-12px) rotate(var(--r, 0deg)); }
+            50% { transform: translateY(-10px) rotate(var(--r, 0deg)); }
         }
 
-        /* ===== ROOM CODE DISPLAY ===== */
-        .room-code-display {
-            text-align: center;
-            margin: 20px 0;
+        /* ===== LOBBY CODE ===== */
+        .lobby-code-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
         }
-        .room-code-display .label {
-            font-size: 0.8rem;
+        .lobby-code-row .label {
+            font-size: 0.62rem;
             color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 10px;
+            margin-bottom: 2px;
         }
         .room-code {
             font-family: 'Orbitron', sans-serif;
-            font-size: 2.5rem;
+            font-size: 1.9rem;
             font-weight: 900;
-            letter-spacing: 12px;
+            letter-spacing: 8px;
             background: linear-gradient(135deg, var(--cyan), var(--green));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            padding: 10px;
+            padding: 2px 0;
             cursor: pointer;
             transition: transform 0.2s;
         }
-        .room-code:hover { transform: scale(1.05); }
-
-        /* ===== PLAYERS LIST ===== */
-        .players-list {
-            list-style: none;
-            padding: 0;
+        .room-code:active { transform: scale(0.97); }
+        .icon-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-size: 1.15rem;
+            padding: 10px 13px;
+            cursor: pointer;
+            flex-shrink: 0;
         }
-        .players-list li {
+        .icon-btn:active { transform: scale(0.95); }
+
+        /* ===== LOBBY SLOTS ===== */
+        .slots {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        .slot {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 15px;
+            gap: 10px;
+            padding: 10px 12px;
             border-radius: 12px;
-            margin-bottom: 8px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid transparent;
-            transition: all 0.3s;
+            font-size: 0.88rem;
+            min-height: 42px;
         }
-        .players-list li.current-turn {
-            border-color: var(--cyan);
-            background: rgba(0, 212, 255, 0.08);
-            box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+        .slot.filled {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--glass-border);
         }
-        .player-dot {
-            width: 10px; height: 10px;
+        .slot.me { border-color: rgba(0, 212, 255, 0.45); }
+        .slot.empty {
+            border: 1.5px dashed rgba(255,255,255,0.14);
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            justify-content: center;
+            opacity: 0.7;
+        }
+        .slot-dot {
+            width: 8px; height: 8px;
             border-radius: 50%;
             background: var(--green);
-            box-shadow: 0 0 8px var(--green);
+            box-shadow: 0 0 6px var(--green);
+            flex-shrink: 0;
         }
-        .player-name { flex: 1; font-weight: 500; }
-        .player-cards-count {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.85rem;
-            color: var(--cyan);
+        .slot-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lobby-status {
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            margin-top: 10px;
         }
+        .lobby-status.ready { color: var(--green); }
+        .waiting-dots span { animation: blink 1.5s infinite; }
+        .waiting-dots span:nth-child(2) { animation-delay: 0.3s; }
+        .waiting-dots span:nth-child(3) { animation-delay: 0.6s; }
+        @keyframes blink { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
 
         /* ===== GAME AREA ===== */
         .game-area {
@@ -372,60 +408,103 @@
             flex-direction: column;
             align-items: center;
         }
-
         .game-top-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+            gap: 8px;
         }
-        .game-top-bar .direction {
-            font-size: 1.5rem;
-            animation: spin 3s linear infinite;
+        .game-code-chip {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.68rem;
+            letter-spacing: 2px;
+            color: var(--text-dim);
         }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        .direction { font-size: 1.2rem; }
+        .turn-banner {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 999px;
+            text-align: center;
+            transition: all 0.3s;
+            max-width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        .game-top-bar .turn-label {
-            font-size: 0.8rem;
-            color: var(--cyan);
-            font-weight: 600;
+        .turn-banner.my {
+            background: rgba(0, 255, 136, 0.12);
+            color: var(--green);
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            box-shadow: 0 0 14px rgba(0, 255, 136, 0.15);
+        }
+        .turn-banner.wait {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-dim);
+            border: 1px solid var(--glass-border);
         }
 
-        /* ===== DISCARD + DRAW PILE ===== */
+        /* Opponent chips (compact) */
+        .opp-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--glass-border);
+            font-size: 0.75rem;
+            transition: all 0.3s;
+        }
+        .chip.current {
+            border-color: var(--cyan);
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.25);
+        }
+        .chip-name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chip-count { font-family: 'Orbitron', sans-serif; color: var(--cyan); }
+
+        /* ===== PILES ===== */
         .piles {
             display: flex;
-            gap: 30px;
-            align-items: center;
+            gap: 26px;
+            align-items: flex-start;
             justify-content: center;
-            margin: 25px 0;
+            margin: 10px 0;
         }
-        .pile {
-            text-align: center;
-        }
+        .pile { text-align: center; }
         .pile-label {
-            font-size: 0.7rem;
+            font-size: 0.62rem;
             color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .pile-card {
-            width: 85px;
-            height: 130px;
-            border-radius: 14px;
+            width: 78px;
+            height: 116px;
+            border-radius: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.2rem;
+            font-size: 2rem;
             font-weight: 900;
             font-family: 'Orbitron', sans-serif;
             color: white;
             cursor: pointer;
             transition: all 0.3s;
             position: relative;
+            margin: 0 auto;
         }
         .pile-card.draw-pile {
             background: linear-gradient(135deg, var(--bg-card), #1e2d50);
@@ -434,13 +513,25 @@
         }
         .pile-card.draw-pile::after {
             content: '🂠';
-            font-size: 2.5rem;
+            font-size: 2.2rem;
         }
-        .pile-card.draw-pile:hover {
+        .pile-card.draw-pile:active {
             transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.3);
             border-color: var(--cyan);
         }
+        .pile-sub { font-size: 0.68rem; color: var(--text-dim); margin-top: 6px; }
+        .chosen-color-dot {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            margin: 8px auto 0;
+            display: none;
+            border: 2px solid rgba(255,255,255,0.6);
+        }
+        .chosen-color-dot.show { display: block; }
+        .cc-red { background: #ff4444; }
+        .cc-yellow { background: #ffcc00; }
+        .cc-green { background: #44dd66; }
+        .cc-blue { background: #4488ff; }
 
         .card-red { background: linear-gradient(135deg, #ff4444, #cc0000); }
         .card-blue { background: linear-gradient(135deg, #4488ff, #0044cc); }
@@ -448,35 +539,43 @@
         .card-yellow { background: linear-gradient(135deg, #ffcc00, #cc9900); }
         .card-wild { background: linear-gradient(135deg, #8844ff, #ff4488, #44ff88, #ffcc00); }
 
+        /* ===== GAME HINT ===== */
+        .game-hint {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-align: center;
+            min-height: 1.3em;
+            margin: 2px 0 8px;
+        }
+
         /* ===== PLAYER HAND ===== */
         .hand-area {
             width: 100%;
-            padding: 15px 0;
             margin-top: auto;
         }
         .hand-label {
-            font-size: 0.75rem;
+            font-size: 0.68rem;
             color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 1px;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
         }
         .hand {
             display: flex;
             justify-content: center;
-            flex-wrap: wrap;
-            gap: 6px;
-            padding: 10px;
+            padding: 10px 0 12px;
+            height: 130px;
         }
         .hand .card {
             width: 60px;
             height: 90px;
+            flex: 0 0 auto;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             font-weight: 800;
             font-family: 'Orbitron', sans-serif;
             color: white;
@@ -484,33 +583,99 @@
             transition: all 0.2s;
             box-shadow: 0 3px 10px rgba(0,0,0,0.3);
             position: relative;
+            border: 2px solid rgba(0,0,0,0.25);
         }
-        .hand .card:hover {
-            transform: translateY(-15px) scale(1.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        /* Overlap cards so the whole hand always fits on one row on any phone */
+        .hand .card:not(:first-child) {
+            margin-left: clamp(-34px, calc(14.4vw - 80px), -8px);
+        }
+        .hand .card:active {
+            transform: translateY(-12px) scale(1.08);
             z-index: 10;
         }
         .hand .card.playable {
-            border: 2px solid rgba(255,255,255,0.4);
+            border-color: rgba(255,255,255,0.5);
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3), 0 0 10px rgba(0, 212, 255, 0.3);
         }
         .hand .card.not-playable {
-            opacity: 0.5;
-            cursor: not-allowed;
+            opacity: 0.45;
+            filter: grayscale(0.3);
+        }
+        @media (hover: hover) {
+            .hand .card.playable:hover {
+                transform: translateY(-16px) scale(1.1);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                z-index: 10;
+            }
+        }
+
+        /* ===== COLOR PICKER (wild) ===== */
+        .color-picker {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 90;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-picker.open { display: flex; }
+        .cp-box {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        .cp-box h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95rem;
+            margin-bottom: 14px;
+        }
+        .cp-colors {
+            display: grid;
+            grid-template-columns: repeat(2, 64px);
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .cp-color {
+            width: 64px; height: 92px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.35);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cp-color:active { transform: scale(0.93); }
+        .cp-red { background: linear-gradient(135deg, #ff4444, #cc0000); }
+        .cp-blue { background: linear-gradient(135deg, #4488ff, #0044cc); }
+        .cp-green { background: linear-gradient(135deg, #44dd66, #009933); }
+        .cp-yellow { background: linear-gradient(135deg, #ffcc00, #cc9900); }
+        .cp-cancel {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 6px 10px;
         }
 
         /* ===== UNO BUTTON ===== */
         .uno-btn {
             position: fixed;
-            bottom: 100px;
-            right: 20px;
-            width: 70px;
-            height: 70px;
+            bottom: calc(24px + env(safe-area-inset-bottom));
+            right: 16px;
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--orange), #ff4400);
             border: none;
             color: white;
             font-family: 'Orbitron', sans-serif;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 900;
             cursor: pointer;
             box-shadow: 0 4px 20px rgba(255, 107, 53, 0.5);
@@ -518,39 +683,144 @@
             z-index: 50;
             display: none;
         }
-        .uno-btn:hover {
-            transform: scale(1.15);
-            box-shadow: 0 6px 30px rgba(255, 107, 53, 0.7);
+        .uno-btn:active { transform: scale(1.12); }
+        .uno-btn.visible { display: flex; align-items: center; justify-content: center; animation: unoPulse 1.2s infinite; }
+        @keyframes unoPulse {
+            0%, 100% { box-shadow: 0 4px 20px rgba(255, 107, 53, 0.5); }
+            50% { box-shadow: 0 4px 30px rgba(255, 107, 53, 0.9); }
         }
-        .uno-btn.visible { display: flex; align-items: center; justify-content: center; }
-
-        /* ===== ACTION BUTTONS IN GAME ===== */
-        .game-actions {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-            max-width: 400px;
-            margin-top: 15px;
-        }
-        .game-actions .btn { flex: 1; padding: 12px; font-size: 0.85rem; }
 
         /* ===== TOAST ===== */
         .toast {
             position: fixed;
-            top: 20px;
+            top: 16px;
             left: 50%;
             transform: translateX(-50%) translateY(-100px);
             background: var(--bg-card);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
-            padding: 12px 24px;
+            padding: 10px 20px;
             color: var(--text);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             z-index: 100;
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            max-width: 90vw;
+            text-align: center;
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ===== REACTIONS ===== */
+        .reaction-bar {
+            display: flex; gap: 8px; width: 100%; max-width: 400px;
+            justify-content: center; margin-bottom: 8px;
+        }
+        .react-btn {
+            width: 44px; height: 44px; border: none; border-radius: 50%;
+            background: rgba(255,255,255,0.07); font-size: 1.25rem;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .react-btn:active { transform: scale(1.25); background: rgba(255,255,255,0.18); }
+        .float-emoji {
+            position: fixed; bottom: 90px; font-size: 2rem; z-index: 90;
+            pointer-events: none; animation: floatUp 2.2s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(0) scale(0.6); }
+            15% { opacity: 1; transform: translateY(-30px) scale(1.3); }
+            100% { opacity: 0; transform: translateY(-260px) scale(1); }
+        }
+
+        .uno-badge {
+            font-size: 0.6rem; font-weight: 800; color: #0a0a1a;
+            background: var(--yellow); border-radius: 6px; padding: 1px 5px;
+        }
+
+        /* ===== NEW SCREENS (profile, leaderboard, history, chat) ===== */
+        .menu-row { display: flex; gap: 9px; width: 100%; max-width: 400px; }
+        .menu-row .btn { flex: 1; }
+
+        .lb-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 10px; border-radius: 12px;
+            background: rgba(255,255,255,0.04); margin-bottom: 7px;
+        }
+        .lb-row.me { border: 1px solid var(--cyan); }
+        .lb-rank {
+            width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.78rem; font-weight: 700; font-family: 'Orbitron';
+            background: rgba(255,255,255,0.08); color: var(--text-dim);
+        }
+        .lb-rank.r1 { background: linear-gradient(135deg, #ffd60a, #ff9500); color: #1a1a2e; }
+        .lb-rank.r2 { background: linear-gradient(135deg, #c0c0c0, #8e8e8e); color: #1a1a2e; }
+        .lb-rank.r3 { background: linear-gradient(135deg, #cd7f32, #a0522d); color: #fff; }
+        .lb-name { flex: 1; font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lb-stats { font-size: 0.72rem; color: var(--text-dim); white-space: nowrap; }
+        .lb-wins { color: var(--green); font-weight: 700; }
+
+        .hist-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 12px;
+            background: rgba(255,255,255,0.04); margin-bottom: 7px;
+        }
+        .hist-icon { font-size: 1.2rem; flex-shrink: 0; }
+        .hist-info { flex: 1; min-width: 0; }
+        .hist-title { font-size: 0.82rem; font-weight: 600; }
+        .hist-sub { font-size: 0.7rem; color: var(--text-dim); }
+        .hist-res { font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+        .hist-res.win { color: var(--green); }
+        .hist-res.loss { color: var(--magenta); }
+
+        .chat-box {
+            height: 300px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 7px;
+            padding: 4px 2px; margin-bottom: 10px;
+        }
+        .chat-msg { max-width: 85%; align-self: flex-start; }
+        .chat-msg.mine { align-self: flex-end; }
+        .chat-bubble {
+            padding: 8px 12px; border-radius: 14px;
+            background: rgba(255,255,255,0.07); font-size: 0.82rem;
+            word-break: break-word;
+        }
+        .chat-msg.mine .chat-bubble { background: linear-gradient(135deg, #0099cc, #0077aa); }
+        .chat-meta { font-size: 0.65rem; color: var(--text-dim); margin: 0 6px 2px; }
+        .chat-meta .cname { color: var(--cyan); font-weight: 600; }
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input-row .input-field { margin: 0; }
+        .chat-send {
+            width: 46px; height: 46px; flex-shrink: 0; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, var(--cyan), #0099cc); color: white;
+            font-size: 1.1rem; cursor: pointer;
+        }
+
+        .online-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 10px; border-radius: 12px;
+            background: rgba(255,255,255,0.04); margin-bottom: 7px;
+        }
+        .online-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); flex-shrink: 0; }
+        .online-name { flex: 1; font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .online-row .kick-btn { color: var(--cyan); }
+
+        .invite-chip {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 12px; margin-bottom: 7px;
+            background: linear-gradient(135deg, rgba(136,68,255,0.25), rgba(136,68,255,0.1));
+            border: 1px solid rgba(136,68,255,0.4);
+        }
+        .invite-chip .ic { font-size: 1.3rem; }
+        .invite-chip .info { flex: 1; min-width: 0; }
+        .invite-chip .t { font-size: 0.82rem; font-weight: 600; }
+        .invite-chip .s { font-size: 0.7rem; color: var(--text-dim); }
+        .invite-actions { display: flex; gap: 6px; }
+        .invite-yes, .invite-no {
+            border: none; border-radius: 10px; padding: 7px 13px;
+            font-weight: 700; font-size: 0.78rem; cursor: pointer;
+        }
+        .invite-yes { background: var(--green); color: #0a0a1a; }
+        .invite-no { background: rgba(255,255,255,0.1); color: var(--text); }
 
         /* ===== LOADING ===== */
         .loader {
@@ -558,30 +828,31 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            gap: 15px;
-            padding: 40px;
+            gap: 12px;
+            padding: 24px;
         }
         .loader.active { display: flex; }
         .spinner {
-            width: 40px; height: 40px;
+            width: 34px; height: 34px;
             border: 3px solid var(--glass-border);
             border-top-color: var(--cyan);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
 
-        /* ===== RESULT SCREEN ===== */
-        .result-icon { font-size: 4rem; margin-bottom: 15px; }
+        /* ===== RESULT ===== */
+        .result-icon { font-size: 3.6rem; margin-bottom: 12px; }
         .result-title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 900;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
-        .result-subtitle {
-            color: var(--text-dim);
-            margin-bottom: 30px;
-        }
+        .result-subtitle { color: var(--text-dim); margin-bottom: 24px; }
 
         /* ===== CONFETTI ===== */
         .confetti-piece {
@@ -599,65 +870,60 @@
         /* ===== BACK BUTTON ===== */
         .back-btn {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 14px;
+            left: 14px;
             background: none;
             border: none;
             color: var(--text-dim);
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             cursor: pointer;
             z-index: 10;
             transition: color 0.3s;
         }
         .back-btn:hover { color: var(--text); }
 
-        /* ===== WAITING DOTS ===== */
-        .waiting-dots span {
-            animation: blink 1.5s infinite;
-        }
-        .waiting-dots span:nth-child(2) { animation-delay: 0.3s; }
-        .waiting-dots span:nth-child(3) { animation-delay: 0.6s; }
-        @keyframes blink { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
-
-        /* ===== ABOUT SECTION ===== */
+        /* ===== ABOUT ===== */
         .about-section { text-align: center; }
         .about-section h3 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1rem;
-            margin-bottom: 10px;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
             color: var(--cyan);
         }
         .about-section p {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-dim);
-            line-height: 1.6;
+            line-height: 1.7;
+            text-align: left;
         }
+        .about-section p.center { text-align: center; }
 
+        /* ===== STATS ===== */
         .stats-row {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: 12px;
         }
         .stat-box {
             flex: 1;
             text-align: center;
-            padding: 12px 8px;
+            padding: 9px 6px;
             background: rgba(255,255,255,0.03);
-            border-radius: 12px;
+            border-radius: 10px;
             border: 1px solid var(--glass-border);
         }
         .stat-box .stat-val {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.3rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--cyan);
         }
         .stat-box .stat-label {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-top: 4px;
+            margin-top: 3px;
         }
     </style>
 </head>
@@ -684,7 +950,7 @@
             <div class="floating-card" style="--r:-15deg">7</div>
             <div class="floating-card" style="--r:5deg">+2</div>
             <div class="floating-card" style="--r:20deg">⊘</div>
-            <div class="floating-card" style="--r:-8deg">↺</div>
+            <div class="floating-card" style="--r:-8deg">⇄</div>
         </div>
 
         <div class="glass-panel">
@@ -697,27 +963,47 @@
             </div>
             <div class="stats-row">
                 <div class="stat-box">
-                    <div class="stat-val">0</div>
+                    <div class="stat-val" id="stat-games">0</div>
                     <div class="stat-label">O'yinlar</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-val">0</div>
+                    <div class="stat-val" id="stat-wins">0</div>
                     <div class="stat-label">G'alabalar</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-val">—</div>
+                    <div class="stat-val" id="stat-level">1</div>
                     <div class="stat-label">Daraja</div>
                 </div>
             </div>
         </div>
 
         <div style="width:100%; max-width:400px;">
+            <div id="invites-home" style="display:none;"></div>
             <button class="btn btn-primary" onclick="showScreen('create-room')">
                 🎮 Xona Yaratish
             </button>
             <button class="btn btn-secondary" onclick="showScreen('join-room')">
                 🚪 Xonaga Qo'shilish
             </button>
+            <button class="btn btn-outline" onclick="showScreen('global-chat')">
+                💬 Global Chat
+            </button>
+            <div class="menu-row">
+                <button class="btn btn-outline" onclick="showScreen('profile')">
+                    👤 Profil
+                </button>
+                <button class="btn btn-outline" onclick="showScreen('leaderboard')">
+                    🏆 Leaderboard
+                </button>
+            </div>
+            <div class="menu-row">
+                <button class="btn btn-outline" onclick="showScreen('online')">
+                    🟢 Onlayn
+                </button>
+                <button class="btn btn-outline" onclick="showScreen('history')">
+                    📜 Tarix
+                </button>
+            </div>
             <button class="btn btn-outline" onclick="showScreen('about')">
                 ℹ️ Qanday O'ynash
             </button>
@@ -732,19 +1018,20 @@
             <div class="subtitle">Qoidalar</div>
         </div>
         <div class="glass-panel about-section">
-            <h3>🎴 UNO Nima?</h3>
-            <p>UNO — klassik karta o'yini. Maqsad — qo'lingizdagi barcha kartalarni birinchi bo'lib tashlash!</p>
+            <h3>🎴 Maqsad</h3>
+            <p class="center">Qo'lingizdagi barcha kartalarni birinchi bo'lib tashlang!</p>
         </div>
         <div class="glass-panel about-section">
-            <h3>📋 Asosiy Qoidalar</h3>
+            <h3>📋 Qoidalar</h3>
             <p>
-                ✅ Rangi yoki raqami mos kartani tashlang<br>
-                🔄 Reverse — yo'nalishni o'zgartiradi<br>
-                🚫 Skip — keyingi o'yinchini o'tkazadi<br>
-                ➕ Draw 2 — keyingi o'yinchi 2ta karta oladi<br>
-                🌈 Wild — istalgan rangni tanlang<br>
-                🌈➕ Wild Draw 4 — rang tanlang + 4 karta<br>
-                📢 1ta karta qolsa UNO bosing!
+                ✅ Yonidagi karta bilan <b>rangi</b> yoki <b>raqami</b> mos kartani bosing<br>
+                ⬇️ Mos karta bo'lmasa — deckdan 1 ta oling<br>
+                ⊘ <b>Skip</b> — keyingi o'yinchi navbati o'tadi<br>
+                ⇄ <b>Reverse</b> — yo'nalish teskari bo'ladi<br>
+                +2 — keyingi o'yinchi 2 ta karta oladi<br>
+                🌈 <b>Wild</b> — yangi rang tanlaysiz<br>
+                +4 — rang tanlang, raqib 4 ta oladi<br>
+                📢 2 ta karta qolganda <b>UNO</b> tugmasini bosing!
             </p>
         </div>
         <div style="width:100%; max-width:400px;">
@@ -762,11 +1049,11 @@
 
         <div class="glass-panel">
             <div class="input-group">
-                <label>Maksimal o'yinchilar soni</label>
+                <label>Maksimal o'yinchilar</label>
                 <div style="display:flex; gap:10px; justify-content:center;">
-                    <button class="btn btn-outline" style="width:auto;padding:12px 20px;" onclick="setMaxPlayers(2)" id="mp-2">2</button>
-                    <button class="btn btn-outline" style="width:auto;padding:12px 20px;" onclick="setMaxPlayers(3)" id="mp-3">3</button>
-                    <button class="btn btn-primary" style="width:auto;padding:12px 20px;" onclick="setMaxPlayers(4)" id="mp-4">4</button>
+                    <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(2)" id="mp-2">2</button>
+                    <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(3)" id="mp-3">3</button>
+                    <button class="btn btn-primary mp-btn" onclick="setMaxPlayers(4)" id="mp-4">4</button>
                 </div>
             </div>
         </div>
@@ -793,7 +1080,7 @@
 
         <div class="glass-panel">
             <div class="input-group">
-                <label>Xona Kodi</label>
+                <label>Xona kodi (6 belgi)</label>
                 <input type="text" class="input-field" id="join-code-input"
                        placeholder="ABC123" maxlength="6"
                        oninput="this.value=this.value.toUpperCase()">
@@ -804,41 +1091,56 @@
             <button class="btn btn-success" onclick="joinRoom()">
                 🚀 Qo'shilish
             </button>
+            <div class="invite-hint">Do'stingiz yuborgan kodni kiriting</div>
         </div>
     </div>
 
     <!-- ===== LOBBY (waiting room) ===== -->
     <div id="screen-lobby" class="screen">
-        <button class="back-btn" onclick="leaveLobby()">←</button>
+        <button class="back-btn" onclick="leaveRoom()">←</button>
         <div class="header">
             <div class="logo">LOBBY</div>
             <div class="subtitle">O'yinchilar kutilmoqda</div>
         </div>
 
         <div class="glass-panel">
-            <div class="room-code-display">
-                <div class="label">Xona Kodi</div>
-                <div class="room-code" id="lobby-code" onclick="copyRoomCode()">------</div>
-                <p style="font-size:0.75rem; color:var(--text-dim); margin-top:8px;">
-                    👆 Nusxa olish uchun bosing
-                </p>
+            <div class="lobby-code-row">
+                <div>
+                    <div class="label">Xona kodi</div>
+                    <div class="room-code" id="lobby-code" onclick="copyRoomCode()">------</div>
+                </div>
+                <button class="icon-btn" onclick="copyRoomCode()" title="Nusxa olish">📋</button>
             </div>
+            <p class="invite-hint">Kodni nusxalab do'stlaringizga yuboring yoki pastdagi tugma bilan taklif qiling</p>
         </div>
 
         <div class="glass-panel">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <span style="font-size:0.85rem; font-weight:600;">O'yinchilar</span>
-                <span style="font-size:0.8rem; color:var(--text-dim);" id="player-count">0/4</span>
+            <div class="panel-head">
+                <span>O'yinchilar</span>
+                <span class="muted" id="player-count">1/4</span>
             </div>
-            <ul class="players-list" id="lobby-players"></ul>
-            <div class="waiting-dots" style="text-align:center; margin-top:10px; color:var(--text-dim); font-size:0.85rem;">
-                Kutilmoqda<span>.</span><span>.</span><span>.</span>
+            <div class="slots" id="lobby-slots"></div>
+            <div class="lobby-status" id="lobby-status">⏳ Kamida 2 o'yinchi kerak</div>
+        </div>
+
+        <!-- Lobby chat -->
+        <div class="glass-panel">
+            <div class="panel-head"><span>💬 Lobby Chat</span></div>
+            <div class="chat-box" id="lobby-chat-box" style="height:170px;"></div>
+            <div class="chat-input-row">
+                <input type="text" class="input-field" id="lobby-chat-input"
+                       placeholder="Xabar yozing..." maxlength="300"
+                       onkeydown="if(event.key==='Enter')sendLobbyChat()">
+                <button class="chat-send" onclick="sendLobbyChat()">➤</button>
             </div>
         </div>
 
         <div style="width:100%; max-width:400px;" id="start-game-area">
             <button class="btn btn-success" id="start-game-btn" onclick="startGame()" style="display:none;">
                 🎮 O'yinni Boshlash
+            </button>
+            <button class="btn btn-invite" id="invite-btn" onclick="inviteFriend()">
+                🔗 Do'stni Taklif Qilish
             </button>
         </div>
     </div>
@@ -847,48 +1149,176 @@
     <div id="screen-game" class="screen">
         <div class="game-area">
             <div class="game-top-bar">
+                <span class="game-code-chip" id="game-room-code">---</span>
+                <span class="turn-banner wait" id="turn-label">Navbat...</span>
                 <span class="direction" id="game-direction">🔄</span>
-                <span class="turn-label" id="turn-label">Sizning navbatingiz</span>
-                <span style="font-size:0.85rem; color:var(--text-dim);" id="game-room-code">---</span>
             </div>
 
-            <!-- Other Players -->
-            <div class="glass-panel" id="opponents-panel" style="padding:12px 15px;">
-                <ul class="players-list" id="game-players"></ul>
-            </div>
+            <!-- Opponents as compact chips -->
+            <div class="opp-chips" id="game-players"></div>
 
             <!-- Piles -->
             <div class="piles">
                 <div class="pile">
-                    <div class="pile-label">Tashlash</div>
+                    <div class="pile-label">Yonidagi karta</div>
                     <div class="pile-card card-red" id="discard-pile">7</div>
+                    <div class="chosen-color-dot" id="chosen-color"></div>
                 </div>
                 <div class="pile">
-                    <div class="pile-label">Olish</div>
+                    <div class="pile-label">Deck — bosing</div>
                     <div class="pile-card draw-pile" id="draw-pile" onclick="drawCard()"></div>
+                    <div class="pile-sub" id="deck-count"></div>
                 </div>
             </div>
 
+            <div class="game-hint" id="game-hint">Rangi yoki raqami mos kartani bosing</div>
+
             <!-- Actions -->
-            <div class="game-actions">
-                <button class="btn btn-outline" onclick="drawCard()" style="font-size:0.85rem;">
-                    📥 Karta Olish
+            <div class="game-actions" style="display:flex; gap:10px; width:100%; max-width:400px; margin-bottom:8px;">
+                <button class="btn btn-outline" onclick="drawCard()" style="flex:1; font-size:0.8rem; padding:11px;">
+                    📥 Karta ol
                 </button>
-                <button class="btn btn-outline" onclick="callUno()" style="font-size:0.85rem;">
+                <button class="btn btn-outline" onclick="callUno()" style="flex:1; font-size:0.8rem; padding:11px;">
                     📢 UNO!
                 </button>
             </div>
 
+            <!-- Reactions -->
+            <div class="reaction-bar">
+                <button class="react-btn" onclick="sendReaction('👍')">👍</button>
+                <button class="react-btn" onclick="sendReaction('😂')">😂</button>
+                <button class="react-btn" onclick="sendReaction('😮')">😮</button>
+                <button class="react-btn" onclick="sendReaction('😢')">😢</button>
+                <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
+                <button class="react-btn" onclick="sendReaction('🎉')">🎉</button>
+            </div>
+
             <!-- Player Hand -->
             <div class="hand-area">
-                <div class="hand-label">Sizning Kartalaringiz</div>
-                <div class="hand" id="player-hand">
-                    <!-- Cards will be rendered here by JS -->
+                <div class="hand-label"><span id="hand-count">0</span> ta karta qoldi — hammasini tashlang!</div>
+                <div class="hand" id="player-hand"></div>
+            </div>
+        </div>
+
+        <!-- Wild color picker -->
+        <div class="color-picker" id="color-picker">
+            <div class="cp-box">
+                <h3>🌈 Rangni tanlang</h3>
+                <div class="cp-colors">
+                    <button class="cp-color cp-red" onclick="pickWildColor('red')"></button>
+                    <button class="cp-color cp-blue" onclick="pickWildColor('blue')"></button>
+                    <button class="cp-color cp-green" onclick="pickWildColor('green')"></button>
+                    <button class="cp-color cp-yellow" onclick="pickWildColor('yellow')"></button>
                 </div>
+                <button class="cp-cancel" onclick="cancelWild()">Bekor qilish</button>
             </div>
         </div>
 
         <button class="uno-btn" id="uno-float-btn" onclick="callUno()">UNO!</button>
+    </div>
+
+    <!-- ===== PROFILE SCREEN ===== -->
+    <div id="screen-profile" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">PROFIL</div>
+            <div class="subtitle">Statistika va ma'lumot</div>
+        </div>
+
+        <div class="glass-panel">
+            <div class="user-card">
+                <div class="user-avatar" id="pf-avatar">?</div>
+                <div class="user-info">
+                    <h2 id="pf-name">O'yinchi</h2>
+                    <p id="pf-username">@user</p>
+                </div>
+            </div>
+            <div class="stats-row" style="margin-top:12px;">
+                <div class="stat-box">
+                    <div class="stat-val" id="pf-games">0</div>
+                    <div class="stat-label">O'yinlar</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="pf-level">1</div>
+                    <div class="stat-label">Daraja</div>
+                </div>
+                <div class="stat-box">
+                    <div class="lb-rank" style="width:34px;height:34px;margin:0 auto 6px;" id="pf-lb">?</div>
+                    <div class="stat-label">O'rin</div>
+                </div>
+            </div>
+            <div class="stats-row" style="margin-top:10px;">
+                <div class="stat-box">
+                    <div class="stat-val" id="pf-wins">0</div>
+                    <div class="stat-label">G'alaba</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="pf-losses">0</div>
+                    <div class="stat-label">Mag'lubiyat</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="pf-xp">0</div>
+                    <div class="stat-label">XP</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="width:100%; max-width:400px;">
+            <button class="btn btn-outline" onclick="showScreen('history')">📜 O'yin tarixi</button>
+        </div>
+    </div>
+
+    <!-- ===== LEADERBOARD SCREEN ===== -->
+    <div id="screen-leaderboard" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">TOP 20</div>
+            <div class="subtitle">Eng kuchli o'yinchilar</div>
+        </div>
+        <div class="glass-panel" id="leaderboard-list">
+            <p class="invite-hint">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <!-- ===== HISTORY SCREEN ===== -->
+    <div id="screen-history" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">TARIX</div>
+            <div class="subtitle">Oxirgi o'yinlaringiz</div>
+        </div>
+        <div class="glass-panel" id="history-list">
+            <p class="invite-hint">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <!-- ===== GLOBAL CHAT SCREEN ===== -->
+    <div id="screen-global-chat" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">CHAT</div>
+            <div class="subtitle">Global — hamma bilan</div>
+        </div>
+        <div class="glass-panel">
+            <div class="chat-box" id="global-chat-box"></div>
+            <div class="chat-input-row">
+                <input type="text" class="input-field" id="global-chat-input"
+                       placeholder="Xabar yozing..." maxlength="300">
+                <button class="chat-send" onclick="sendGlobalChat()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ONLINE PLAYERS SCREEN ===== -->
+    <div id="screen-online" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">ONLAYN</div>
+            <div class="subtitle">Hozir turgan o'yinchilar</div>
+        </div>
+        <div class="glass-panel" id="online-list">
+            <p class="invite-hint">Yuklanmoqda...</p>
+        </div>
     </div>
 
     <!-- ===== RESULT SCREEN ===== -->
@@ -928,11 +1358,24 @@
         }
 
         // ===== Configuration =====
-        const API_BASE = window.location.origin.replace(':3000', ':8000');
+        // Nginx proxies /rooms, /ws and /config to the backend (same origin).
+        // For local dev on :3000 without proxy, fall back to :8000.
+        const API_BASE = (['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port === '3000')
+            ? window.location.origin.replace(':3000', ':8000')
+            : window.location.origin;
         let currentRoom = null;
         let maxPlayers = 4;
         let ws = null;
-        let isHost = false;
+        let pollTimer = null;
+        let backHandler = null;
+        let lobbyHostId = null;
+
+        // Game state kept client-side for clear rendering
+        let myHand = [];
+        let topCard = null;
+        let myTurn = false;
+        let pendingWildIndex = -1;
+        let lastPlayers = [];
 
         // ===== Screen Management =====
         function showScreen(name) {
@@ -940,12 +1383,28 @@
             const screen = document.getElementById('screen-' + name);
             if (screen) screen.classList.add('active');
 
-            // Telegram back button
-            if (tg && name !== 'home') {
-                tg.BackButton.show();
-                tg.BackButton.onClick(() => showScreen('home'));
-            } else if (tg) {
-                tg.BackButton.hide();
+            // Per-screen data loaders (social features)
+            if (name === 'profile') loadProfile();
+            if (name === 'leaderboard') loadLeaderboard();
+            if (name === 'history') loadHistory();
+            if (name === 'online') loadOnline();
+            if (name === 'global-chat') { loadGlobalChatHistory(); connectGlobalChat(); }
+
+            // Telegram back button (remove previous handler to avoid stacking)
+            if (tg) {
+                if (backHandler) { tg.BackButton.offClick(backHandler); backHandler = null; }
+                if (name === 'lobby') {
+                    tg.BackButton.show();
+                    backHandler = leaveRoom;
+                    tg.BackButton.onClick(backHandler);
+                } else if (name !== 'home') {
+                    tg.BackButton.show();
+                    backHandler = () => showScreen('home');
+                    tg.BackButton.onClick(backHandler);
+                } else {
+                    tg.BackButton.hide();
+                    stopPolling();
+                }
             }
         }
 
@@ -954,7 +1413,37 @@
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
+            setTimeout(() => t.classList.remove('show'), 2600);
+        }
+
+        // ===== Clipboard with fallback (Telegram WebView often blocks async clipboard) =====
+        function copyText(text) {
+            return new Promise((resolve) => {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text)
+                        .then(() => resolve(true))
+                        .catch(() => resolve(fallbackCopy(text)));
+                } else {
+                    resolve(fallbackCopy(text));
+                }
+            });
+        }
+
+        function fallbackCopy(text) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                const ok = document.execCommand('copy');
+                ta.remove();
+                return ok;
+            } catch (e) {
+                return false;
+            }
         }
 
         // ===== Max Players =====
@@ -962,9 +1451,7 @@
             maxPlayers = n;
             [2,3,4].forEach(v => {
                 const btn = document.getElementById('mp-' + v);
-                btn.className = v === n ? 'btn btn-primary' : 'btn btn-outline';
-                btn.style.width = 'auto';
-                btn.style.padding = '12px 20px';
+                btn.className = v === n ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
             });
         }
 
@@ -981,10 +1468,11 @@
                 if (!resp.ok) throw new Error('Server xatosi');
                 const data = await resp.json();
                 currentRoom = data.code || data.room_code;
-                isHost = true;
-                showLobby(currentRoom, [{ id: userId, name: tgUser?.first_name || 'Siz' }]);
+                maxPlayers = data.max_players || maxPlayers;
+                lobbyHostId = data.host_id ?? userId;
+                showLobby(currentRoom, [{ id: userId, name: tgUser?.first_name || 'Siz' }], data.host_id);
                 showScreen('lobby');
-                showToast('✅ Xona yaratildi!');
+                showToast('✅ Xona yaratildi! Do\'stlaringizni taklif qiling');
             } catch (e) {
                 showToast('❌ Xato: ' + e.message);
             } finally {
@@ -1006,13 +1494,15 @@
                     body: JSON.stringify({ user_id: userId || 2 })
                 });
                 if (!resp.ok) {
-                    const err = await resp.json();
-                    throw new Error(err.detail || 'Xona topilmadi');
+                    let detail = 'Xona topilmadi';
+                    try { detail = (await resp.json()).detail || detail; } catch (_) {}
+                    throw new Error(detail);
                 }
                 const data = await resp.json();
                 currentRoom = code;
-                isHost = false;
-                showLobby(code, data.players || []);
+                maxPlayers = data.max_players || maxPlayers;
+                lobbyHostId = data.host_id;
+                showLobby(code, data.players || [], data.host_id);
                 showScreen('lobby');
                 showToast('✅ Xonaga qo\'shildingiz!');
             } catch (e) {
@@ -1021,36 +1511,197 @@
         }
 
         // ===== Lobby =====
-        function showLobby(code, players) {
+        function showLobby(code, players, hostId) {
             document.getElementById('lobby-code').textContent = code;
-            updateLobbyPlayers(players);
-            if (isHost) {
-                document.getElementById('start-game-btn').style.display = 'flex';
-            }
+            document.getElementById('lobby-chat-box').innerHTML = '';
+            updateLobbyPlayers(players, hostId);
+            updateStartButton();
             connectWebSocket(code);
+            // REST polling: refresh lobby, detect kicks/leaves/closure
+            stopPolling();
+            pollTimer = setInterval(async () => {
+                try {
+                    const resp = await fetch(API_BASE + '/rooms/' + code);
+                    if (resp.status === 404) {
+                        stopPolling();
+                        showToast('🚪 Xona yopildi');
+                        leaveLobby();
+                        return;
+                    }
+                    if (!resp.ok) return;
+                    const room = await resp.json();
+                    // If I am no longer in the player list -> I was kicked
+                    // players may be [{id, name}] objects or plain ids
+                    const inRoom = Array.isArray(room.players) && room.players.some(p => (typeof p === 'object' ? p.id : p) === userId);
+                    if (Array.isArray(room.players) && userId && !inRoom) {
+                        stopPolling();
+                        showToast('🚫 Siz xonadan haydaldingiz');
+                        leaveLobby();
+                        return;
+                    }
+                    const prevCount = document.querySelectorAll('#lobby-slots .slot.filled').length;
+                    const prevHost = lobbyHostId;
+                    updateLobbyPlayers(room.players, room.host_id);
+                    updateStartButton();
+                    if (room.players && room.players.length > prevCount) {
+                        showToast('👤 Yangi o\'yinchi qo\'shildi!');
+                    }
+                    if (room.host_id !== prevHost) {
+                        showToast(isHostUser() ? '👑 Siz yangi host bo\'ldingiz!' : '👑 Host o\'zgardi');
+                    }
+                } catch (e) { /* backend unreachable - retry next tick */ }
+            }, 2000);
         }
 
-        function updateLobbyPlayers(players) {
-            const list = document.getElementById('lobby-players');
+        function updateStartButton() {
+            const btn = document.getElementById('start-game-btn');
+            btn.style.display = isHostUser() ? 'flex' : 'none';
+        }
+
+        function stopPolling() {
+            if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        }
+
+        function isHostUser() {
+            return lobbyHostId !== null && userId === lobbyHostId;
+        }
+
+        // Player slots: filled + empty placeholders, kick button for host
+        function updateLobbyPlayers(players, hostId) {
+            const slots = document.getElementById('lobby-slots');
             const arr = Array.isArray(players) ? players : [];
-            list.innerHTML = arr.map((p, i) => `
-                <li>
-                    <span class="player-dot"></span>
-                    <span class="player-name">${p.name || 'O\\'yinchi ' + (i+1)} ${i === 0 ? '👑' : ''}</span>
-                </li>
-            `).join('');
+            lobbyHostId = (hostId !== undefined) ? hostId : lobbyHostId;
+            let html = '';
+            const total = Math.max(maxPlayers, arr.length);
+            for (let i = 0; i < total; i++) {
+                const p = arr[i];
+                if (p !== undefined) {
+                    const id = typeof p === 'object' ? p.id : p;
+                    const name = typeof p === 'object' ? (p.name || 'O\'yinchi ' + (i+1)) : ('O\'yinchi ' + (i+1));
+                    const isHost = id === lobbyHostId;
+                    const canKick = isHostUser() && !isHost && id !== userId;
+                    html += `
+                    <div class="slot filled ${id === userId ? 'me' : ''}">
+                        <span class="slot-dot"></span>
+                        <span class="slot-name">${name}${isHost ? ' <span class="host-badge">👑</span>' : ''}${id === userId ? ' <span class="you-badge">siz</span>' : ''}</span>
+                        ${canKick ? `<button class="kick-btn" title="Haydash" onclick="kickPlayer(${id})">✕</button>` : ''}
+                    </div>`;
+                } else {
+                    html += `<div class="slot empty">＋ bo'sh o'rin</div>`;
+                }
+            }
+            slots.innerHTML = html;
             document.getElementById('player-count').textContent = arr.length + '/' + maxPlayers;
+            const st = document.getElementById('lobby-status');
+            if (arr.length < 2) {
+                st.textContent = '⏳ Boshlash uchun kamida 2 o\'yinchi kerak';
+                st.classList.remove('ready');
+            } else if (isHostUser()) {
+                st.textContent = '✅ Hammasi tayyor! O\'yinni boshlashingiz mumkin';
+                st.classList.add('ready');
+            } else {
+                st.textContent = '✅ Tayyor! Host boshlashini kuting';
+                st.classList.add('ready');
+            }
+        }
+
+        async function kickPlayer(targetId) {
+            if (!currentRoom) return;
+            if (!confirm('Bu o\'yinchini xonadan haydamoqchimisiz?')) return;
+            try {
+                const resp = await fetch(API_BASE + '/rooms/kick/' + currentRoom, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ host_id: userId, target_id: targetId })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.detail || 'Haydash amalga oshmadi');
+                }
+                showToast('✅ O\'yinchi haydaldi');
+                if (tg) tg.HapticFeedback?.notificationOccurred('success');
+            } catch (e) {
+                showToast('❌ ' + e.message);
+            }
+        }
+
+        async function leaveRoom() {
+            if (currentRoom) {
+                try {
+                    await fetch(API_BASE + '/rooms/leave/' + currentRoom, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId })
+                    });
+                } catch (e) { /* best effort */ }
+            }
+            leaveLobby();
         }
 
         function copyRoomCode() {
             const code = document.getElementById('lobby-code').textContent;
-            navigator.clipboard?.writeText(code);
-            showToast('📋 Kod nusxalandi: ' + code);
+            copyText(code).then(ok => {
+                showToast(ok ? '📋 Kod nusxalandi: ' + code : '📋 Kod: ' + code);
+            });
+        }
+
+        // ===== Invite / Deep-link =====
+        let botUsername = null;
+        (async () => {
+            try {
+                const resp = await fetch(API_BASE + '/config');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    botUsername = data.bot_username || null;
+                }
+            } catch (e) { /* fallback to URL-based link below */ }
+        })();
+
+        function inviteLink() {
+            if (botUsername) {
+                return 'https://t.me/' + botUsername + '?startapp=' + currentRoom;
+            }
+            return window.location.origin + window.location.pathname + '#room=' + currentRoom;
+        }
+
+        async function inviteFriend() {
+            const link = inviteLink();
+            const text = '🎮 UNO o\'ynaymik! Xona kodi: ' + currentRoom + '\n👇 Havola orqali kir:';
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Game Spot — UNO', text: text, url: link });
+                    return;
+                } catch (e) { /* cancelled -> copy instead */ }
+            }
+            const ok = await copyText(text + ' ' + link);
+            showToast(ok ? '📋 Taklif nusxalandi — do\'stingizga yuboring!' : '📋 Kod: ' + currentRoom);
+            if (tg) tg.HapticFeedback?.impactOccurred('light');
+        }
+
+        function pendingInviteCode() {
+            const sp = tg?.initDataUnsafe?.start_param;
+            if (sp) return sp.toUpperCase();
+            const m = window.location.hash.match(/room=([A-Za-z0-9]+)/);
+            return m ? m[1].toUpperCase() : null;
+        }
+
+        async function autoJoinFromInvite() {
+            const code = pendingInviteCode();
+            if (!code) return;
+            document.getElementById('join-code-input').value = code;
+            showToast('🔗 Taklif: ' + code + ' xonasiga kirilmoqda...');
+            await joinRoom();
         }
 
         function leaveLobby() {
-            if (ws) ws.close();
+            stopPolling();
+            if (ws) { try { ws.close(); } catch (e) {} }
+            ws = null;
             currentRoom = null;
+            lobbyHostId = null;
+            myHand = [];
+            topCard = null;
+            myTurn = false;
             showScreen('home');
         }
 
@@ -1058,7 +1709,11 @@
         function connectWebSocket(code) {
             const wsUrl = API_BASE.replace('http', 'ws') + '/ws/' + code;
             ws = new WebSocket(wsUrl);
-            ws.onopen = () => console.log('WS connected');
+            ws.onopen = () => {
+                console.log('WS connected');
+                // Identify ourselves so the server can send personalized game state
+                ws.send(JSON.stringify({ action: 'hello', user_id: userId, name: myName() }));
+            };
             ws.onmessage = (e) => {
                 try {
                     const data = JSON.parse(e.data);
@@ -1072,15 +1727,48 @@
 
         function handleGameMessage(data) {
             if (data.type === 'player_joined') {
-                updateLobbyPlayers(data.players);
-                showToast('👤 ' + (data.player_name || 'O\'yinchi') + ' qo\'shildi');
+                if (data.room) {
+                    updateLobbyPlayers(data.room.players, data.room.host_id);
+                    updateStartButton();
+                }
+                showToast('👤 Yangi o\'yinchi qo\'shildi');
+            }
+            if (data.type === 'player_kicked' && data.room) {
+                updateLobbyPlayers(data.room.players, data.room.host_id);
+                updateStartButton();
+                if (data.kicked === userId) {
+                    showToast('🚫 Siz xonadan haydaldingiz');
+                    leaveLobby();
+                } else {
+                    showToast('👋 O\'yinchi haydaldi');
+                }
+            }
+            if (data.type === 'room_left' && data.room) {
+                updateLobbyPlayers(data.room.players, data.room.host_id);
+                updateStartButton();
+                if (data.room.host_id === userId) showToast('👑 Siz yangi host bo\'ldingiz!');
+            }
+            if (data.type === 'chat' && data.room !== 'global') {
+                appendChatMsg('lobby-chat-box', data);
+            }
+            if (data.type === 'room_closed') {
+                showToast('🚪 Xona yopildi');
+                leaveLobby();
             }
             if (data.type === 'game_start') {
+                stopPolling();
                 showScreen('game');
+                if (currentRoom) document.getElementById('game-room-code').textContent = currentRoom;
+                document.getElementById('game-hint').textContent = '⏳ Kartalar tarqatilmoqda...';
+            }
+            if (data.type === 'game_state') {
                 renderGameState(data.state);
             }
-            if (data.type === 'game_update') {
-                renderGameState(data.state);
+            if (data.type === 'reaction') {
+                spawnReaction(data);
+            }
+            if (data.type === 'error') {
+                showToast('⚠️ ' + (data.message || 'Xato'));
             }
             if (data.type === 'game_over') {
                 showResult(data.winner);
@@ -1091,72 +1779,183 @@
         function startGame() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ action: 'start_game' }));
+                showToast('🎮 O\'yin boshlanmoqda...');
+            } else {
+                showToast('⏳ Ulanish kutilmoqda — bir soniya kuting');
             }
-            // Demo: show game screen with sample data
-            showScreen('game');
-            document.getElementById('game-room-code').textContent = currentRoom || 'DEMO';
-            renderDemoHand();
         }
 
         const CARD_COLORS = { RED: 'card-red', BLUE: 'card-blue', GREEN: 'card-green', YELLOW: 'card-yellow', WILD: 'card-wild' };
+        const CARD_ICONS = { skip: '⊘', reverse: '⇄', draw_two: '+2', wild: '🌈', wild_draw_four: '+4' };
 
-        function renderDemoHand() {
-            const demoCards = [
-                { color: 'RED', value: '3' }, { color: 'BLUE', value: '7' },
-                { color: 'GREEN', value: '5' }, { color: 'YELLOW', value: '2' },
-                { color: 'RED', value: '+2' }, { color: 'WILD', value: '🌈' },
-                { color: 'BLUE', value: '9' }
-            ];
-            renderHand(demoCards);
+        function cardLabel(value) {
+            return CARD_ICONS[value] !== undefined ? CARD_ICONS[value] : value;
+        }
+
+        // Can this card be placed on the current top card?
+        function cardMatches(card) {
+            if (!topCard) return true;
+            if ((card.color || '').toLowerCase() === 'wild') return true;
+            const topColor = (topCard.chosen_color || topCard.color || '').toLowerCase();
+            const cardColor = (card.color || '').toLowerCase();
+            const topVal = (topCard.value || '').toString().toLowerCase();
+            const cardVal = (card.value || '').toString().toLowerCase();
+            return cardColor === topColor || cardVal === topVal;
         }
 
         function renderHand(cards) {
+            if (cards) myHand = cards;
             const hand = document.getElementById('player-hand');
-            hand.innerHTML = cards.map((c, i) => `
-                <div class="card ${CARD_COLORS[c.color] || 'card-wild'} playable"
+            document.getElementById('hand-count').textContent = myHand.length;
+            // UNO button shows when exactly 2 cards left and it's my turn
+            document.getElementById('uno-float-btn').classList.toggle('visible', myHand.length === 2 && myTurn);
+            hand.innerHTML = myHand.map((c, i) => {
+                const ok = myTurn && cardMatches(c);
+                return `<div class="card ${CARD_COLORS[(c.color || '').toUpperCase()] || 'card-wild'} ${ok ? 'playable' : 'not-playable'}"
                      onclick="playCard(${i})" title="${c.color} ${c.value}">
-                    ${c.value}
-                </div>
-            `).join('');
+                    ${cardLabel(c.value)}
+                </div>`;
+            }).join('');
         }
 
         function renderGameState(state) {
             if (!state) return;
-            if (state.hand) renderHand(state.hand);
-            if (state.discard_top) {
-                const dp = document.getElementById('discard-pile');
-                dp.className = 'pile-card ' + (CARD_COLORS[state.discard_top.color] || 'card-wild');
-                dp.textContent = state.discard_top.value;
-            }
-            if (state.direction) {
-                document.getElementById('game-direction').textContent = state.direction === 1 ? '🔄' : '🔃';
-            }
+
+            // My hand comes personalized from the server
+            const hand = state.hand;
+
+            // Turn first (so renderHand can mark playable cards)
             if (state.current_player_id !== undefined) {
-                const isMyTurn = state.current_player_id === userId;
-                document.getElementById('turn-label').textContent = isMyTurn ? 'Sizning navbatingiz!' : 'Kutmoqda...';
+                myTurn = state.current_player_id === userId;
             }
+            const tl = document.getElementById('turn-label');
+            if (myTurn) {
+                tl.textContent = '🟢 SIZNING NAVBATINGIZ';
+                tl.className = 'turn-banner my';
+            } else {
+                const cur = Array.isArray(state.players)
+                    ? state.players.find(p => p.user_id === state.current_player_id)
+                    : null;
+                tl.textContent = '⏳ Navbat: ' + (cur ? (cur.username || "O'yinchi") : '...');
+                tl.className = 'turn-banner wait';
+            }
+
+            // Top card
+            const top = state.top_card;
+            if (top) {
+                topCard = top;
+                const dp = document.getElementById('discard-pile');
+                dp.className = 'pile-card ' + (CARD_COLORS[(top.color || '').toUpperCase()] || 'card-wild');
+                dp.textContent = cardLabel(top.value);
+                const cc = document.getElementById('chosen-color');
+                if (top.chosen_color) {
+                    cc.className = 'chosen-color-dot show cc-' + top.chosen_color;
+                } else {
+                    cc.className = 'chosen-color-dot';
+                }
+            }
+
+            // Direction
+            if (state.direction) {
+                document.getElementById('game-direction').textContent =
+                    state.direction === 'clockwise' ? '🔄' : '🔃';
+            }
+
+            // Deck counter
+            if (state.deck_remaining !== undefined) {
+                document.getElementById('deck-count').textContent = '🂠 ' + state.deck_remaining;
+            }
+
+            // Opponent chips (server sends hand_count, not full hands)
+            if (Array.isArray(state.players)) {
+                lastPlayers = state.players;
+                const list = document.getElementById('game-players');
+                list.innerHTML = state.players
+                    .filter(p => p.user_id !== userId)
+                    .map(p => `
+                    <div class="chip ${p.user_id === state.current_player_id ? 'current' : ''}">
+                        <span class="chip-name">${p.username || "O'yinchi"}</span>
+                        <span class="chip-count">🂠 ${p.hand_count ?? '?'}</span>
+                        ${p.called_uno ? '<span class="uno-badge">UNO!</span>' : ''}
+                    </div>
+                `).join('');
+            }
+
+            // Hand (re-renders playable marks and UNO button)
+            if (hand) renderHand(hand);
+
+            // Hint
+            document.getElementById('game-hint').textContent = myTurn
+                ? '✅ Yorug\' kartalardan birini bosing'
+                : '⏳ Raqib harakatini kuting...';
         }
 
         function playCard(index) {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ action: 'play_card', card_index: index }));
+            if (!myTurn) {
+                showToast('⏳ Hali navbatingiz kelmadi');
+                return;
             }
-            showToast('🃏 Karta tashlandi');
+            const card = myHand[index];
+            if (!card) return;
+            if (!cardMatches(card)) {
+                showToast('🚫 Bu karta tushmaydi — rangi yoki raqami mos kerak');
+                if (tg) tg.HapticFeedback?.notificationOccurred('error');
+                return;
+            }
+            // Wild cards require a color choice
+            if ((card.color || '').toLowerCase() === 'wild') {
+                pendingWildIndex = index;
+                document.getElementById('color-picker').classList.add('open');
+                return;
+            }
+            sendPlay(index, null);
+        }
+
+        function sendPlay(index, chosenColor) {
+            const card = myHand[index];
+            if (!card) return;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: 'play_card',
+                    card: { color: (card.color || '').toLowerCase(), value: (card.value || '').toString().toLowerCase() },
+                    chosen_color: chosenColor
+                }));
+            }
+            if (tg) tg.HapticFeedback?.impactOccurred('medium');
+        }
+
+        function pickWildColor(color) {
+            const idx = pendingWildIndex;
+            pendingWildIndex = -1;
+            document.getElementById('color-picker').classList.remove('open');
+            if (idx >= 0) sendPlay(idx, color);
+        }
+
+        function cancelWild() {
+            pendingWildIndex = -1;
+            document.getElementById('color-picker').classList.remove('open');
         }
 
         function drawCard() {
+            if (!myTurn) {
+                showToast('⏳ Hali navbatingiz kelmadi');
+                return;
+            }
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ action: 'draw_card' }));
+            } else {
+                showToast('⏳ Ulanish kutilmoqda');
             }
-            showToast('📥 Karta olindi');
         }
 
         function callUno() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ action: 'call_uno' }));
+                showToast('📢 UNO!');
+                if (tg) tg.HapticFeedback?.impactOccurred('heavy');
+            } else {
+                showToast('⏳ Ulanish kutilmoqda');
             }
-            showToast('📢 UNO!');
-            if (tg) tg.HapticFeedback?.impactOccurred('heavy');
         }
 
         // ===== Result =====
@@ -1168,6 +1967,23 @@
             document.getElementById('result-subtitle').textContent = isWinner ?
                 'Siz g\'olib bo\'ldingiz!' : (winner?.name || 'Raqib') + ' g\'olib bo\'ldi';
             if (isWinner) spawnConfetti();
+            recordGameResult(winner);
+        }
+
+        // Record finished game -> history + leaderboard stats
+        async function recordGameResult(winner) {
+            try {
+                await fetch(API_BASE + '/games/result', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        room_code: currentRoom || 'unknown',
+                        winner_id: winner?.id ?? null,
+                        winner_name: winner?.name || winner?.username || null,
+                        players: (lastPlayers || []).map(p => ({ id: p.user_id, name: p.username || 'O\'yinchi' }))
+                    })
+                });
+            } catch (e) { /* best effort */ }
         }
 
         function spawnConfetti() {
@@ -1184,6 +2000,318 @@
                 document.body.appendChild(piece);
                 setTimeout(() => piece.remove(), 5000);
             }
+        }
+
+        // ===== Auto-join from invite link (Telegram startapp / #room=) =====
+        autoJoinFromInvite();
+
+        // ==================== SOCIAL FEATURES ====================
+        // (profil, leaderboard, tarix, chatlar, onlayn, in-app invite)
+
+        function myName() {
+            return tgUser?.first_name || 'O\'yinchi ' + (userId % 1000);
+        }
+
+        // ---------- Profile ----------
+        async function loadProfile() {
+            try {
+                const resp = await fetch(API_BASE + '/users/' + (userId || 1));
+                if (!resp.ok) return;
+                const p = await resp.json();
+                document.getElementById('pf-name').textContent = p.first_name || myName();
+                document.getElementById('pf-username').textContent = p.username ? '@' + p.username : (tgUser?.username ? '@' + tgUser.username : 'Telegram ID: ' + userId);
+                document.getElementById('pf-avatar').textContent = (p.first_name || myName())[0].toUpperCase();
+                document.getElementById('pf-games').textContent = p.games_played ?? 0;
+                document.getElementById('pf-wins').textContent = p.wins ?? 0;
+                document.getElementById('pf-losses').textContent = p.losses ?? 0;
+                document.getElementById('pf-xp').textContent = p.xp ?? 0;
+                document.getElementById('pf-level').textContent = p.level ?? 1;
+                document.getElementById('stat-games').textContent = p.games_played ?? 0;
+                document.getElementById('stat-wins').textContent = p.wins ?? 0;
+                document.getElementById('stat-level').textContent = p.level ?? 1;
+                const lb = await fetch(API_BASE + '/leaderboard');
+                if (lb.ok) {
+                    const data = await lb.json();
+                    const idx = data.leaderboard.findIndex(r => r.id === userId);
+                    document.getElementById('pf-lb').textContent = idx >= 0 ? ('#' + (idx + 1)) : '-';
+                }
+            } catch (e) { /* offline */ }
+        }
+
+        // ---------- Leaderboard ----------
+        async function loadLeaderboard() {
+            const box = document.getElementById('leaderboard-list');
+            try {
+                const resp = await fetch(API_BASE + '/leaderboard');
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                const rows = data.leaderboard || [];
+                if (!rows.length) {
+                    box.innerHTML = '<p class="invite-hint">Hali natija yo\'q — birinchi bo\'lib g\'alaba qozoning! 🏆</p>';
+                    return;
+                }
+                box.innerHTML = rows.map(r => `
+                    <div class="lb-row ${r.id === userId ? 'me' : ''}">
+                        <div class="lb-rank r${r.rank}">${r.rank}</div>
+                        <div class="lb-name">${esc(r.name)}${r.id === userId ? ' <span class="you-badge">siz</span>' : ''}</div>
+                        <div class="lb-stats"><span class="lb-wins">${r.wins}</span> g'alaba · ${r.games} o'yin · Lvl ${r.level}</div>
+                    </div>`).join('');
+            } catch (e) {
+                box.innerHTML = '<p class="invite-hint">Yuklab bo\'lmadi — internetni tekshiring</p>';
+            }
+        }
+
+        // ---------- History ----------
+        async function loadHistory() {
+            const box = document.getElementById('history-list');
+            try {
+                const resp = await fetch(API_BASE + '/users/' + (userId || 1) + '/history');
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                const rows = data.history || [];
+                if (!rows.length) {
+                    box.innerHTML = '<p class="invite-hint">Hali o\'yin o\'ynamadingiz</p>';
+                    return;
+                }
+                box.innerHTML = rows.map(r => {
+                    const win = r.winner_id === userId;
+                    const when = r.finished_at ? new Date(r.finished_at).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+                    return `
+                    <div class="hist-row">
+                        <div class="hist-icon">${win ? '🏆' : '🎮'}</div>
+                        <div class="hist-info">
+                            <div class="hist-title">Xona ${esc(r.room_code)}</div>
+                            <div class="hist-sub">${esc(r.winner_name || '—')} g'olib · ${when}</div>
+                        </div>
+                        <div class="hist-res ${win ? 'win' : 'loss'}">${win ? 'G\'ALABA' : 'MAG\'LUBIYAT'}</div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                box.innerHTML = '<p class="invite-hint">Yuklab bo\'lmadi</p>';
+            }
+        }
+
+        // ---------- Online players + in-app invite ----------
+        async function loadOnline() {
+            const box = document.getElementById('online-list');
+            try {
+                const resp = await fetch(API_BASE + '/users/online');
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                const users = (data.users || []).filter(u => u.id !== userId);
+                if (!users.length) {
+                    box.innerHTML = '<p class="invite-hint">Hozircha boshqa o\'yinchi onlayn emas</p>';
+                    return;
+                }
+                box.innerHTML = users.map(u => {
+                    const name = u.first_name || u.username || 'O\'yinchi';
+                    return `
+                    <div class="online-row">
+                        <span class="online-dot"></span>
+                        <div class="online-name">${esc(name)}${u.username ? ' <span style="color:var(--text-dim);font-weight:400;">@' + esc(u.username) + '</span>' : ''}</div>
+                        ${currentRoom ? `<button class="kick-btn" title="O\'yinga taklif qilish" onclick="sendInvite(${u.id}, '${esc(name).replace(/'/g, "\\'")}')">📩</button>` : ''}
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                box.innerHTML = '<p class="invite-hint">Yuklab bo\'lmadi</p>';
+            }
+        }
+
+        async function sendInvite(toId, toName) {
+            if (!currentRoom) {
+                showToast('⚠️ Avval xona yarating yoki lobbyda bo\'ling');
+                return;
+            }
+            try {
+                const resp = await fetch(API_BASE + '/invites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from_id: userId, from_name: myName(), to_id: toId, room_code: currentRoom })
+                });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Yuborilmadi');
+                showToast('📩 Taklif yuborildi: ' + toName);
+                if (tg) tg.HapticFeedback?.notificationOccurred('success');
+            } catch (e) {
+                showToast('❌ ' + e.message);
+            }
+        }
+
+        function renderInvites(invites) {
+            const box = document.getElementById('invites-home');
+            const pending = (invites || []).filter(i => i.status === 'pending');
+            if (!pending.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+            box.style.display = 'block';
+            box.innerHTML = pending.map(i => `
+                <div class="invite-chip">
+                    <div class="ic">📩</div>
+                    <div class="info">
+                        <div class="t">${esc(i.from_name)} sizni o\'yinga taklif qildi</div>
+                        <div class="s">Xona: ${esc(i.room_code)}</div>
+                    </div>
+                    <div class="invite-actions">
+                        <button class="invite-yes" onclick="acceptInvite('${i.id}', '${esc(i.room_code)}')">✓</button>
+                        <button class="invite-no" onclick="declineInvite('${i.id}')">✕</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        async function acceptInvite(inviteId, roomCode) {
+            try {
+                await fetch(API_BASE + '/invites/' + inviteId + '/accept', { method: 'POST' });
+            } catch (e) { /* join anyway */ }
+            document.getElementById('join-code-input').value = roomCode;
+            await joinRoom();
+        }
+
+        async function declineInvite(inviteId) {
+            try { await fetch(API_BASE + '/invites/' + inviteId + '/decline', { method: 'POST' }); } catch (e) {}
+            renderInvites(pendingInvites.filter(i => String(i.id) !== String(inviteId)));
+        }
+
+        // Heartbeat: keep online + poll pending invites (2x/daqiqada)
+        let pendingInvites = [];
+        async function heartbeat() {
+            if (!userId) return;
+            try {
+                const resp = await fetch(API_BASE + '/users/heartbeat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId, username: tgUser?.username, first_name: tgUser?.first_name, last_name: tgUser?.last_name })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    pendingInvites = data.invites || [];
+                    renderInvites(pendingInvites);
+                }
+            } catch (e) {}
+        }
+        async function registerMe() {
+            try {
+                await fetch(API_BASE + '/users/me', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId || 1, username: tgUser?.username, first_name: tgUser?.first_name, last_name: tgUser?.last_name })
+                });
+            } catch (e) {}
+            heartbeat();
+            loadProfile();
+            setInterval(heartbeat, 30000);
+        }
+        if (userId) registerMe();
+
+        // ---------- Global chat ----------
+        let globalWs = null;
+        function connectGlobalChat() {
+            if (globalWs && (globalWs.readyState === WebSocket.OPEN || globalWs.readyState === WebSocket.CONNECTING)) return;
+            globalWs = new WebSocket(API_BASE.replace('http', 'ws') + '/ws/global');
+            globalWs.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'chat' && data.room === 'global') {
+                        appendChatMsg('global-chat-box', data);
+                        // Toast faqat chat ekrani ochiq bo'lmasa
+                        if (!document.getElementById('screen-global-chat').classList.contains('active') && data.user_id !== userId) {
+                            showToast('💬 ' + (data.name || 'O\'yinchi') + ': ' + data.text.slice(0, 40));
+                        }
+                    }
+                    if (data.type === 'invite' && data.invite && data.invite.to_id === userId) {
+                        pendingInvites = (pendingInvites || []).concat([data.invite]);
+                        renderInvites(pendingInvites);
+                        showToast('📩 ' + data.invite.from_name + ' sizni o\'yinga taklif qildi!');
+                        if (tg) tg.HapticFeedback?.notificationOccurred('warning');
+                    }
+                    if (data.type === 'invite_accepted' && data.from_id === userId) {
+                        showToast('✅ Taklifingiz qabul qilindi!');
+                    }
+                    if (data.type === 'invite_declined' && data.from_id === userId) {
+                        showToast('😕 Taklifingiz rad etildi');
+                    }
+                } catch (err) {}
+            };
+            globalWs.onclose = () => setTimeout(connectGlobalChat, 5000);
+        }
+
+        async function loadGlobalChatHistory() {
+            try {
+                const resp = await fetch(API_BASE + '/chat/global');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const box = document.getElementById('global-chat-box');
+                box.innerHTML = '';
+                (data.messages || []).forEach(m => appendChatMsg('global-chat-box', { ...m, room: 'global' }, true));
+            } catch (e) {}
+        }
+
+        function appendChatMsg(boxId, m, quiet) {
+            const box = document.getElementById(boxId);
+            if (!box) return;
+            const mine = m.user_id === userId;
+            const div = document.createElement('div');
+            div.className = 'chat-msg' + (mine ? ' mine' : '');
+            const time = m.ts ? new Date(m.ts).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '';
+            div.innerHTML = `
+                ${mine ? '' : `<div class="chat-meta"><span class="cname">${esc(m.name || 'O\'yinchi')}</span> · ${time}</div>`}
+                <div class="chat-bubble">${esc(m.text)}</div>`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+            if (!quiet) { if (tg) tg.HapticFeedback?.impactOccurred('light'); }
+        }
+
+        async function sendGlobalChat() {
+            const input = document.getElementById('global-chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            if (globalWs && globalWs.readyState === WebSocket.OPEN) {
+                globalWs.send(JSON.stringify({ action: 'chat', user_id: userId, name: myName(), text }));
+            } else {
+                try {
+                    await fetch(API_BASE + '/chat/global', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, name: myName(), text })
+                    });
+                } catch (e) { showToast('❌ Yuborilmadi'); }
+            }
+        }
+
+        // ---------- Lobby chat ----------
+        function sendLobbyChat() {
+            const input = document.getElementById('lobby-chat-input');
+            const text = input.value.trim();
+            if (!text || !ws || ws.readyState !== WebSocket.OPEN) {
+                if (!ws || ws.readyState !== WebSocket.OPEN) showToast('⏳ Ulanish kutilmoqda...');
+                input.value = '';
+                return;
+            }
+            ws.send(JSON.stringify({ action: 'chat', user_id: userId, name: myName(), text }));
+            input.value = '';
+        }
+
+        // ---------- Reactions ----------
+        function sendReaction(emoji) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'react', emoji }));
+            }
+            spawnReaction({ emoji, name: myName(), user_id: userId });
+            if (tg) tg.HapticFeedback?.impactOccurred('light');
+        }
+
+        function spawnReaction(data) {
+            const el = document.createElement('div');
+            el.className = 'float-emoji';
+            el.textContent = data.emoji || '👍';
+            el.style.left = (10 + Math.random() * 80) + 'vw';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 2400);
+            if (data.user_id !== userId) {
+                showToast((data.name || "O'yinchi") + ' ' + (data.emoji || ''));
+            }
+        }
+
+        // ---------- escape helper ----------
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         }
     </script>
 </body>
