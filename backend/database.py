@@ -53,6 +53,9 @@ async def init_db():
             await conn.execute(text(
                 "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS game_id VARCHAR"
             ))
+            await conn.execute(text(
+                "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS password VARCHAR(24)"
+            ))
             # Backfill: old rows have NULL player_ids; seed with host id so they stay joinable
             await conn.execute(text(
                 "UPDATE rooms SET player_ids = json_build_array(host_id) WHERE player_ids IS NULL"

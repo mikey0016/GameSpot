@@ -31,6 +31,8 @@ class Room(Base):
     player_ids = Column(JSONList, default=list)
     # optional game instance reference
     game_id = Column(String, nullable=True, index=True)
+    # Optional join password (plaintext is fine for a casual game lobby)
+    password = Column(String(24), nullable=True)
 
     def __repr__(self):
         return f"<Room {self.id} status={self.status}>"

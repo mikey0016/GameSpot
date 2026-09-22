@@ -273,10 +273,7 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                 await manager.broadcast(room_code, {"type": "game_update"})
                 await _send_personalized_state(room_code, state)
                 if state.winner_id:
-                    await manager.broadcast(room_code, {
-                        "type": "game_over", "winner": await _user_info(state.winner_id)
-                    })
-                    games.pop(room_code, None)
+                    await _finish_game(room_code, state)
                 continue
 
             if action == "draw_card" and user_id is not None:
@@ -290,6 +287,40 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                         "type": "error", "message": str(e)
                     })
                     continue
+                await manager.broadcast(room_code, {"type": "game_update"})
+                await _send_personalized_state(room_code, state)
+                continue
+
+            # Drawn card is playable -> player throws it immediately (draw-then-play)
+            if action == "play_drawn" and user_id is not None:
+                state = games.get(room_code)
+                if not state or not state.drew_playable:
+                    continue
+                try:
+                    from .game.cards import Card, Color
+                    player = state._find_player(user_id)
+                    card = player.hand[-1]
+                    card = Card(color=card.color, value=card.value)
+                    chosen = Color(data["chosen_color"]) if data.get("chosen_color") else None
+                    state.play_card(user_id, card, chosen)
+                except (ValueError, KeyError) as e:
+                    await manager.send_to_user(room_code, user_id, {
+                        "type": "error", "message": str(e)
+                    })
+                    continue
+                await manager.broadcast(room_code, {"type": "game_update"})
+                await _send_personalized_state(room_code, state)
+                if state.winner_id:
+                    await _finish_game(room_code, state)
+                continue
+
+            # Keep (drawn) card: end the drawing player's turn
+            if action == "keep_card" and user_id is not None:
+                state = games.get(room_code)
+                if not state or not state.drew_playable:
+                    continue
+                state.drew_playable = False
+                state._advance_turn()
                 await manager.broadcast(room_code, {"type": "game_update"})
                 await _send_personalized_state(room_code, state)
                 continue
@@ -315,14 +346,14 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                 })
                 continue
 
-            # --- lobby chat message -> relay to everyone in the room ---
+            # --- in-game chat (works in lobby AND during the game) ---
             if action == "chat":
                 text = str(data.get("text", ""))[:300]
                 if text.strip():
                     async with async_session_maker() as db:
                         meta = await _chat_meta(db, user_id)
                     if meta["blocked"]:
-                        continue  # blocked users cannot chat
+                        continue
                     await manager.broadcast(room_code, {
                         "type": "chat",
                         "room": room_code,
@@ -347,6 +378,49 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
 # In-memory UNO games: room_code -> GameState
 # (single-process deployment; restart clears running games)
 games: dict[str, GameState] = {}
+
+# Rooms whose game_over has already been recorded (double-count guard)
+_finished_rooms: set[str] = set()
+
+
+async def _finish_game(room_code: str, state: GameState):
+    """Record the finished game exactly once, with placements from finish_order."""
+    if room_code in _finished_rooms:
+        return
+    _finished_rooms.add(room_code)
+    games.pop(room_code, None)
+
+    # Placements: 1st = winner, then finish_order (UNO players), others by hand size
+    remaining = [p for p in state.players if p.user_id not in state.finish_order]
+    remaining.sort(key=lambda p: len(p.hand))
+    placement_ids = state.finish_order + [p.user_id for p in remaining]
+    standings = []
+    for i, uid in enumerate(placement_ids):
+        info = await _user_info(uid)
+        standings.append({
+            "place": i + 1,
+            "user_id": uid,
+            "name": info["name"],
+            "cards_left": next((len(p.hand) for p in state.players if p.user_id == uid), 0),
+        })
+    winner = standings[0] if standings else None
+    await manager.broadcast(room_code, {
+        "type": "game_over",
+        "winner": winner,
+        "standings": standings,
+    })
+    # DB: one GameRecord per game, stats updated server-side once
+    try:
+        from .api.social import record_result_server
+        await record_result_server(
+            room_code=room_code,
+            winner_id=winner["user_id"] if winner else None,
+            winner_name=winner["name"] if winner else None,
+            players=[{"id": s["user_id"], "name": s["name"], "place": s["place"]} for s in standings],
+        )
+    except Exception:
+        import logging, traceback
+        logging.getLogger("uvicorn.error").error("record_result_server failed: %s", traceback.format_exc())
 
 
 async def _user_info(user_id: int) -> dict:

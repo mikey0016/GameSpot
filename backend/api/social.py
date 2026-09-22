@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, func
 from datetime import datetime, timedelta
 
-from ..models.social import OnlineUser, GameRecord, ChatMessage
+from ..models.social import OnlineUser, GameRecord, ChatMessage, Friendship
 from ..database import async_session_maker
 
 router = APIRouter(tags=["social"])
@@ -27,8 +27,8 @@ router = APIRouter(tags=["social"])
 ONLINE_WINDOW = timedelta(seconds=60)
 
 # ----- Role hierarchy: lower number = more power -----
-ROLE_RANK = {"owner": 0, "admin": 1, "deputy": 2, None: 3}
-VALID_ROLES = ("owner", "admin", "deputy", "player")
+ROLE_RANK = {"main_owner": -1, "owner": 0, "admin": 1, "deputy": 2, None: 3}
+VALID_ROLES = ("main_owner", "owner", "admin", "deputy", "player")
 
 
 def _can_manage(actor: OnlineUser | None, target: OnlineUser | None) -> bool:
@@ -284,6 +284,124 @@ async def leaderboard(session=Depends(get_session)):
         }
 
 
+# ---------- Friends ----------
+
+def _friend_public(u: OnlineUser | None) -> dict:
+    if not u:
+        return {}
+    online = bool(u.last_online and u.last_online >= datetime.utcnow() - ONLINE_WINDOW)
+    return {
+        "id": u.id,
+        "name": _display_name(u),
+        "username": u.username,
+        "role": u.role,
+        "blocked": bool(u.blocked),
+        "online": online,
+        "level": u.level,
+        "wins": u.wins,
+    }
+
+
+class FriendReqIn(BaseModel):
+    from_id: int
+    to_id: int
+
+
+class FriendActionIn(BaseModel):
+    user_id: int
+    friend_id: int
+
+
+@router.get("/friends/{user_id}")
+async def list_friends(user_id: int, session=Depends(get_session)):
+    """Accepted friends + incoming pending requests."""
+    async with session() as db:
+        rows = (await db.execute(
+            select(Friendship).where(
+                (Friendship.user_id == user_id) | (Friendship.friend_id == user_id)
+            )
+        )).scalars().all()
+        friends, incoming = [], []
+        for r in rows:
+            other_id = r.friend_id if r.user_id == user_id else r.user_id
+            other = await db.get(OnlineUser, other_id)
+            if r.status == "accepted":
+                friends.append(_friend_public(other))
+            elif r.status == "pending" and r.friend_id == user_id:
+                incoming.append({**_friend_public(other), "request_id": r.id})
+        return {"friends": friends, "incoming": incoming}
+
+
+@router.post("/friends")
+async def add_friend(req: FriendReqIn, session=Depends(get_session)):
+    """Send a friend request (target must exist; no duplicates)."""
+    if req.from_id == req.to_id:
+        raise HTTPException(400, "O'zingizni do'st qo'sha olmaysiz")
+    async with session() as db:
+        target = await db.get(OnlineUser, req.to_id)
+        if not target:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        existing = (await db.execute(
+            select(Friendship).where(
+                ((Friendship.user_id == req.from_id) & (Friendship.friend_id == req.to_id)) |
+                ((Friendship.user_id == req.to_id) & (Friendship.friend_id == req.from_id))
+            )
+        )).scalars().first()
+        if existing:
+            if existing.status == "accepted":
+                return {"ok": True, "already": True}
+            # They already asked us -> auto-accept
+            if existing.user_id == req.to_id:
+                existing.status = "accepted"
+                await db.commit()
+                return {"ok": True, "auto_accepted": True}
+            return {"ok": True, "pending": True}
+        fr = Friendship(user_id=req.from_id, friend_id=req.to_id, status="pending")
+        db.add(fr)
+        await db.commit()
+        await _broadcast({
+            "type": "friend_request",
+            "from_id": req.from_id,
+            "from_name": (await db.get(OnlineUser, req.from_id)).first_name or "O'yinchi",
+            "to_id": req.to_id,
+        })
+        return {"ok": True}
+
+
+@router.post("/friends/accept")
+async def accept_friend(req: FriendActionIn, session=Depends(get_session)):
+    async with session() as db:
+        fr = (await db.execute(
+            select(Friendship).where(
+                Friendship.user_id == req.friend_id,
+                Friendship.friend_id == req.user_id,
+                Friendship.status == "pending",
+            )
+        )).scalars().first()
+        if not fr:
+            raise HTTPException(404, "So'rov topilmadi")
+        fr.status = "accepted"
+        await db.commit()
+        await _broadcast({"type": "friend_accepted", "user_id": req.user_id, "friend_id": req.friend_id})
+        return {"ok": True}
+
+
+@router.post("/friends/remove")
+async def remove_friend(req: FriendActionIn, session=Depends(get_session)):
+    async with session() as db:
+        fr = (await db.execute(
+            select(Friendship).where(
+                ((Friendship.user_id == req.user_id) & (Friendship.friend_id == req.friend_id)) |
+                ((Friendship.user_id == req.friend_id) & (Friendship.friend_id == req.user_id))
+            )
+        )).scalars().first()
+        if not fr:
+            raise HTTPException(404, "Do'stlik topilmadi")
+        await db.delete(fr)
+        await db.commit()
+        return {"ok": True}
+
+
 # ---------- Invites ----------
 
 @router.post("/invites")
@@ -294,6 +412,16 @@ async def send_invite(req: InviteIn, session=Depends(get_session)):
         target = await db.get(OnlineUser, req.to_id)
         if not target:
             raise HTTPException(404, "Foydalanuvchi onlayn emas")
+        # Invite faqat do'stlarga: both users must have an accepted friendship
+        friendship = (await db.execute(
+            select(Friendship).where(
+                ((Friendship.user_id == req.from_id) & (Friendship.friend_id == req.to_id)) |
+                ((Friendship.user_id == req.to_id) & (Friendship.friend_id == req.from_id)),
+                Friendship.status == "accepted",
+            )
+        )).scalars().first()
+        if not friendship:
+            raise HTTPException(403, "Faqat do'stlaringizga taklif yubora olasiz")
         invite = {
             "id": f"{req.to_id}-{int(datetime.utcnow().timestamp() * 1000)}",
             "from_id": req.from_id,
@@ -405,12 +533,56 @@ async def global_chat_history(session=Depends(get_session)):
         }
 
 
-# ---------- Game results ----------
+# ---------- Game results (server-side) ----------
+
+async def record_result_server(room_code: str, winner_id: int | None, winner_name: str | None, players: list):
+    """Called by the WS layer exactly once per finished game.
+    players: [{id, name, place}] — place 1 = winner.
+    XP: 1st +25, 2nd +12, 3rd +7, others +3.
+    """
+    xp_by_place = {1: 25, 2: 12, 3: 7}
+    async with async_session_maker() as db:
+        rec = GameRecord(
+            room_code=room_code,
+            winner_id=winner_id,
+            winner_name=winner_name,
+            players=players,
+        )
+        db.add(rec)
+        for p in players:
+            pid = p.get("id")
+            if pid is None:
+                continue
+            u = await db.get(OnlineUser, pid)
+            if not u:
+                u = OnlineUser(id=pid, first_name=p.get("name"))
+                db.add(u)
+            elif p.get("name"):
+                u.first_name = u.first_name or p.get("name")
+            u.games_played = (u.games_played or 0) + 1
+            place = p.get("place") or 99
+            if place == 1:
+                u.wins = (u.wins or 0) + 1
+            else:
+                u.losses = (u.losses or 0) + 1
+            u.xp = (u.xp or 0) + xp_by_place.get(place, 3)
+            u.level = 1 + (u.xp or 0) // 50
+        await db.commit()
+
+
+# ---------- Game results (client fallback, idempotent per room) ----------
 
 @router.post("/games/result")
 async def record_game_result(req: GameResultIn, session=Depends(get_session)):
-    """Called by the client when a game finishes; updates stats + history."""
+    """Client fallback when WS game_over was missed (idempotent per room_code)."""
     async with session() as db:
+        # Dedup: skip if this room already has a record
+        existing = (await db.execute(
+            select(GameRecord).where(GameRecord.room_code == req.room_code)
+            .order_by(GameRecord.finished_at.desc())
+        )).scalars().first()
+        if existing:
+            return {"ok": True, "duplicate": True}
         rec = GameRecord(
             room_code=req.room_code,
             winner_id=req.winner_id,
@@ -447,7 +619,7 @@ async def record_game_result(req: GameResultIn, session=Depends(get_session)):
 
 async def _require_owner(user_id: int, db) -> OnlineUser:
     u = await db.get(OnlineUser, user_id)
-    if not u or u.role != "owner":
+    if not u or u.role not in ("main_owner", "owner"):
         raise HTTPException(403, "Faqat owner uchun")
     return u
 
@@ -493,9 +665,10 @@ async def owner_check(user_id: int, session=Depends(get_session)):
     async with session() as db:
         u = await db.get(OnlineUser, user_id)
         return {
-            "is_owner": bool(u and u.role == "owner"),
-            "is_admin": bool(u and u.role in ("owner", "admin")),
-            "is_moderator": bool(u and u.role in ("owner", "admin", "deputy")),
+            "is_owner": bool(u and u.role in ("main_owner", "owner")),
+            "is_admin": bool(u and u.role in ("main_owner", "owner", "admin")),
+            "is_moderator": bool(u and u.role in ("main_owner", "owner", "admin", "deputy")),
+            "is_main_owner": bool(u and u.role == "main_owner"),
             "role": (u.role if u else None),
         }
 
@@ -712,9 +885,11 @@ async def owner_set_role(user_id: int, req: RoleIn, session=Depends(get_session)
             raise HTTPException(400, "O'z rolingizni o'zgartira olmaysiz")
         if u.role == "owner" and role != "owner":
             raise HTTPException(400, "Ownerni pasaytirish mumkin emas")
-        # Granting admin/owner is owner-only; deputy may be granted by owner/admin
-        if role in ("owner", "admin") and actor.role != "owner":
-            raise HTTPException(403, "Faqat owner admin/owner bergan o'rnatadi")
+        # Granting admin/owner: only main_owner/owner; main_owner can only be granted by main_owner
+        if role in ("owner", "admin") and actor.role not in ("main_owner", "owner"):
+            raise HTTPException(403, "Faqat owner admin/owner o'rnatadi")
+        if role == "main_owner" and actor.role != "main_owner":
+            raise HTTPException(403, "Faqat main_owner main_owner o'rnatadi")
         u.role = None if role == "player" else role
         await db.commit()
         await _broadcast_stats_update(db, user_id)
@@ -874,16 +1049,23 @@ async def owner_edit_stats(user_id: int, req: StatsIn, session=Depends(get_sessi
 
 async def _require_admin(user_id: int, db) -> OnlineUser:
     u = await db.get(OnlineUser, user_id)
-    if not u or u.role not in ("owner", "admin"):
-        raise HTTPException(403, "Faqat owner/admin uchun")
+    if not u or u.role not in ("main_owner", "owner", "admin"):
+        raise HTTPException(403, "Faqat main_owner/owner/admin uchun")
     return u
 
 
 async def _require_moderator(user_id: int, db) -> OnlineUser:
-    """owner > admin > deputy — all three may use moderation endpoints."""
+    """main_owner > owner > admin > deputy — all four may use moderation endpoints."""
     u = await db.get(OnlineUser, user_id)
-    if not u or u.role not in ("owner", "admin", "deputy"):
-        raise HTTPException(403, "Faqat owner/admin/deputy uchun")
+    if not u or u.role not in ("main_owner", "owner", "admin", "deputy"):
+        raise HTTPException(403, "Faqat moderator rollar uchun")
+    return u
+
+
+async def _require_main_owner(user_id: int, db) -> OnlineUser:
+    u = await db.get(OnlineUser, user_id)
+    if not u or u.role != "main_owner":
+        raise HTTPException(403, "Faqat main_owner uchun")
     return u
 
 

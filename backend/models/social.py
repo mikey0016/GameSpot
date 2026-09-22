@@ -19,7 +19,7 @@ class OnlineUser(Base):
     last_name = Column(String, nullable=True)
     # In-app nickname (user can change it; preferred over Telegram names)
     nickname = Column(String(24), nullable=True)
-    # "owner" | "admin" | "deputy" | None(player) — tag shown next to the name
+    # "main_owner" | "owner" | "admin" | "deputy" | None(player)
     role = Column(String(16), nullable=True)
     # 1 = blocked: cannot chat, invite or join rooms
     blocked = Column(Integer, default=0, nullable=False)
@@ -60,3 +60,14 @@ class ChatMessage(Base):
     name = Column(String, nullable=True)
     text = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class Friendship(Base):
+    __tablename__ = "friendships"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, nullable=False, index=True)      # who sent the request
+    friend_id = Column(BigInteger, nullable=False, index=True)    # who receives it
+    # "pending" | "accepted"
+    status = Column(String(16), default="pending", nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

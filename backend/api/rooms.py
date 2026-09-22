@@ -39,9 +39,11 @@ def _generate_code(length: int = 6) -> str:
 class CreateRoomRequest(BaseModel):
     host_id: int
     max_players: int = 4
+    password: str | None = None  # bo'sh bo'lsa ochiq xona
 
 class JoinRoomRequest(BaseModel):
     user_id: int
+    password: str | None = None
 
 class KickRequest(BaseModel):
     host_id: int
@@ -56,6 +58,7 @@ class RoomResponse(BaseModel):
     status: str
     players: list  # [{id, name}] - enriched with names when available
     max_players: int
+    has_password: bool = False
 
 
 async def _enrich_players(db, player_ids: list) -> list:
@@ -89,6 +92,7 @@ async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
             max_players=req.max_players,
             status=RoomStatus.WAITING,
             player_ids=[req.host_id],
+            password=(req.password or None),
         )
         db.add(room)
         await db.commit()
@@ -99,6 +103,7 @@ async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
             status=room.status.value,
             players=await _enrich_players(db, room.player_ids),
             max_players=room.max_players,
+            has_password=bool(room.password),
         )
 
 @router.post("/join/{code}", response_model=RoomResponse)
@@ -111,6 +116,9 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
             raise HTTPException(status_code=400, detail="Room is full")
         if req.user_id in room.player_ids:
             raise HTTPException(status_code=400, detail="User already in room")
+        # Parolli xona: parol to'g'ri bo'lishi shart (host va bot taklifi bundan mustasno emas)
+        if room.password and (req.password or "") != room.password:
+            raise HTTPException(status_code=403, detail="Noto'g'ri parol")
         # Blocked users may not join rooms
         from ..models.social import OnlineUser
         bu = await db.get(OnlineUser, req.user_id)
@@ -133,6 +141,7 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
             status=room.status.value,
             players=enriched,
             max_players=room.max_players,
+            has_password=bool(room.password),
         )
 
 @router.post("/leave/{code}", response_model=RoomResponse)
@@ -154,6 +163,7 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
                 status=room.status.value,
                 players=await _enrich_players(db, room.player_ids),
                 max_players=room.max_players,
+            has_password=bool(room.password),
             )
 
         was_host = room.host_id == req.user_id
@@ -183,6 +193,7 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
             status=room.status.value,
             players=enriched,
             max_players=room.max_players,
+            has_password=bool(room.password),
         )
 
 @router.post("/kick/{code}", response_model=RoomResponse)
@@ -214,6 +225,7 @@ async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
             status=room.status.value,
             players=enriched,
             max_players=room.max_players,
+            has_password=bool(room.password),
         )
 
 @router.get("/open", response_model=list[RoomResponse])
@@ -241,6 +253,7 @@ async def open_rooms(session=Depends(get_session)):
                 status=r.status.value,
                 players=await _enrich_players(db, r.player_ids),
                 max_players=r.max_players,
+                has_password=bool(r.password),
             ))
         return out
 
@@ -257,4 +270,5 @@ async def get_room(code: str, session=Depends(get_session)):
             status=room.status.value,
             players=await _enrich_players(db, room.player_ids),
             max_players=room.max_players,
+            has_password=bool(room.password),
         )
