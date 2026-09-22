@@ -995,6 +995,85 @@
         .block-overlay .bo-title { font-family: 'Orbitron'; font-size: 1.3rem; font-weight: 900; color: #ff6b6b; margin-bottom: 8px; }
         .block-overlay .bo-reason { color: var(--text); font-size: 0.9rem; margin-bottom: 6px; }
         .block-overlay .bo-until { color: var(--text-dim); font-size: 0.78rem; }
+
+        /* ===== OWNER PANEL v2 ===== */
+        .mhead {
+            display: flex; align-items: center; gap: 12px;
+            background: linear-gradient(135deg, rgba(255,214,10,0.12), rgba(255,0,110,0.10));
+            border: 1px solid rgba(255,214,10,0.35); border-radius: 18px;
+            padding: 12px 14px; margin-bottom: 12px; position: relative;
+        }
+        .mhead .mh-role { font-family: 'Orbitron'; font-weight: 900; letter-spacing: 1px; font-size: 1.05rem; }
+        .mhead .mh-sub { font-size: 0.68rem; color: var(--text-dim); margin-top: 2px; }
+        .mhead-tabs { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+        .mtab {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+            color: var(--text-dim); border-radius: 10px; padding: 7px 10px;
+            font-size: 0.7rem; font-weight: 700; cursor: pointer; font-family: 'Orbitron'; letter-spacing: 0.4px;
+        }
+        .mtab.active { background: linear-gradient(135deg, var(--yellow), var(--orange)); color: #14141f; border-color: transparent; box-shadow: 0 4px 16px rgba(255,214,10,0.35); }
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .stat-grid .stat-box { margin: 0; }
+        .osearch-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .osearch {
+            flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+            border-radius: 12px; padding: 9px 12px; color: var(--text); font-size: 0.85rem; outline: none;
+        }
+        .osearch:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(0,212,255,0.15); }
+        .ucard {
+            background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
+            border-radius: 14px; padding: 10px 12px; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 10px; cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .ucard:active { background: rgba(255,255,255,0.09); }
+        .ucard.sel { border-color: var(--yellow); box-shadow: 0 0 14px rgba(255,214,10,0.15); }
+        .ucard .uc-main { flex: 1; min-width: 0; }
+        .ucard .uc-name { font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .ucard .uc-meta { font-size: 0.68rem; color: var(--text-dim); margin-top: 3px; }
+        .udetail { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .ud-hero {
+            display: flex; align-items: center; gap: 12px;
+            background: linear-gradient(135deg, rgba(0,212,255,0.10), rgba(255,0,110,0.08));
+            border: 1px solid var(--glass-border); border-radius: 16px; padding: 14px; margin-bottom: 10px;
+        }
+        .ud-ava {
+            width: 52px; height: 52px; border-radius: 50%; flex: none;
+            background: linear-gradient(135deg, var(--cyan), var(--magenta));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; font-weight: 900; color: #101020; font-family: 'Orbitron';
+        }
+        .ud-name { font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .ud-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 3px; }
+        .ud-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+        .ud-stat { background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px 4px; text-align: center; }
+        .ud-stat b { display: block; font-size: 0.95rem; }
+        .ud-stat span { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .ud-sec { margin: 10px 0 4px; font-family: 'Orbitron'; font-size: 0.68rem; letter-spacing: 1px; color: var(--text-dim); }
+        .uactions { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ubtn {
+            background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border);
+            color: var(--text); border-radius: 10px; padding: 8px 11px; font-size: 0.72rem; font-weight: 700;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: transform 0.1s, filter 0.15s;
+        }
+        .ubtn:active { transform: scale(0.95); }
+        .ubtn.danger { color: #ff6b6b; border-color: rgba(255,107,107,0.4); }
+        .ubtn.gold { color: var(--yellow); border-color: rgba(255,214,10,0.4); }
+        .ubtn.blue { color: var(--cyan); border-color: rgba(0,212,255,0.4); }
+        .ubtn.ghost { color: var(--text-dim); }
+        .ulog-row {
+            border-left: 3px solid var(--cyan); background: rgba(255,255,255,0.03);
+            border-radius: 8px; padding: 7px 10px; margin-bottom: 6px; font-size: 0.72rem;
+        }
+        .ulog-row .lt { color: var(--text-dim); font-size: 0.62rem; margin-top: 2px; }
+        .owss-row {
+            display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.04);
+            border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px 10px; margin-bottom: 6px; font-size: 0.72rem;
+        }
+        .owss-row .live { color: var(--green); font-weight: 800; animation: pulse 1.2s infinite; }
+        @keyframes pulse { 50% { opacity: 0.4; } }
+        .oempty { color: var(--text-dim); font-size: 0.75rem; text-align: center; padding: 16px 8px; }
     </style>
 </head>
 <body>
@@ -1008,6 +1087,16 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
+
+    <!-- ===== USER DETAIL MODAL (owner panel) ===== -->
+    <div id="user-detail-overlay" class="block-overlay" onclick="if(event.target===this)closeUserDetail()">
+        <div style="width:100%; max-width:380px; max-height:82vh; overflow-y:auto; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
+            <div id="user-detail-body"></div>
+            <button class="ubtn ghost" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeUserDetail()">✕ Yopish</button>
+        </div>
+    </div>
+
+
 
     <!-- ===== BLOCKED OVERLAY ===== -->
     <div id="block-overlay" class="block-overlay">
@@ -1218,14 +1307,31 @@
             <div class="subtitle">Boshqaruv paneli</div>
         </div>
 
+        <div class="mhead">
+            <div>
+                <div class="mh-role">💎 MAIN OWNER</div>
+                <div class="mh-sub">Boshqaruv paneli v2 — to'liq imkoniyatlar</div>
+            </div>
+            <div class="mhead-tabs">
+                <button class="mtab active" id="otab-users" onclick="ownerTab('users')">👥 Userlar</button>
+                <button class="mtab" id="otab-rooms" onclick="ownerTab('rooms')">🚪 Xonalar</button>
+                <button class="mtab" id="otab-chat" onclick="ownerTab('chat')">💬 Chat</button>
+                <button class="mtab" id="otab-games" onclick="ownerTab('games')">🎮 O'yinlar</button>
+                <button class="mtab" id="otab-log" onclick="ownerTab('log')">📜 Log</button>
+            </div>
+        </div>
+
         <div class="glass-panel">
-            <div class="panel-head"><span>📊 Statistika</span></div>
-            <div class="stats-row">
+            <div class="panel-head"><span>📊 Statistika</span>
+                <span>
+                    <button class="icon-btn" style="font-size:0.85rem; padding:6px 10px;" onclick="ownerCleanup()">🧹 Tozalash</button>
+                    <button class="icon-btn" style="font-size:0.85rem; padding:6px 10px;" onclick="ownerLoadPanel()">🔄</button>
+                </span>
+            </div>
+            <div class="stat-grid">
                 <div class="stat-box"><div class="stat-val" id="ow-users">0</div><div class="stat-label">Userlar</div></div>
                 <div class="stat-box"><div class="stat-val" id="ow-online">0</div><div class="stat-label">Onlayn</div></div>
                 <div class="stat-box"><div class="stat-val" id="ow-games">0</div><div class="stat-label">O'yinlar</div></div>
-            </div>
-            <div class="stats-row">
                 <div class="stat-box"><div class="stat-val" id="ow-rooms">0</div><div class="stat-label">Xonalar</div></div>
                 <div class="stat-box"><div class="stat-val" id="ow-rooms-open">0</div><div class="stat-label">Ochiq</div></div>
                 <div class="stat-box"><div class="stat-val" id="ow-msgs">0</div><div class="stat-label">Xabarlar</div></div>
@@ -1243,15 +1349,9 @@
         </div>
 
         <div class="glass-panel">
-            <div class="otabs">
-                <button class="otab active" id="otab-users" onclick="ownerTab('users')">👥 Userlar</button>
-                <button class="otab" id="otab-rooms" onclick="ownerTab('rooms')">🚪 Xonalar</button>
-                <button class="otab" id="otab-chat" onclick="ownerTab('chat')">💬 Chat</button>
-                <button class="otab" id="otab-games" onclick="ownerTab('games')">🎮 O'yinlar</button>
-            </div>
-
             <div id="owner-tab-users">
                 <div class="panel-head"><span>Userlar boshqaruvi</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="ownerLoadUsers()">🔄</button></div>
+                <div class="osearch-row"><input class="osearch" id="owner-user-search" placeholder="🔍 Ism, ID yoki @username..." oninput="renderOwnerUsers()"></div>
                 <div id="owner-users-list"><p class="invite-hint">Yuklanmoqda...</p></div>
             </div>
 
@@ -1272,7 +1372,15 @@
 
             <div id="owner-tab-games" style="display:none">
                 <div class="panel-head"><span>O'yinlar tarixi</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="ownerLoadGames()">🔄</button></div>
+                <div class="ud-sec">🔴 LIVE ULANISHLAR</div>
+                <div id="owner-ws-list"><div class="oempty">Yuklanmoqda...</div></div>
+                <div class="ud-sec">📜 O'YINLAR</div>
                 <div id="owner-games-list"><p class="invite-hint">Yuklanmoqda...</p></div>
+            </div>
+
+            <div id="owner-tab-log" style="display:none">
+                <div class="panel-head"><span>Moderatsiya logi</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="ownerLoadLog()">🔄</button></div>
+                <div id="owner-log-list"><p class="invite-hint">Yuklanmoqda...</p></div>
             </div>
         </div>
     </div>
@@ -2181,6 +2289,13 @@
             if (data.type === 'error') {
                 showToast('⚠️ ' + (data.message || 'Xato'));
             }
+            if (data.type === 'owner_kick') {
+                showToast('👢 ' + (data.reason || "Admin sizni chiqardi"));
+                currentRoom = null;
+                stopPolling();
+                try { ws.close(); } catch (e) {}
+                showScreen('home');
+            }
             if (data.type === 'game_over') {
                 showResult(data.winner, data.standings);
             }
@@ -3030,6 +3145,17 @@
                     if (data.type === 'stats_update' && data.user_id) {
                         applyStatsUpdate(data);
                     }
+                    if (data.type === 'toast' && data.name) {
+                        if (data.user_id !== userId) showToast((data.name || "O'yinchi") + ' ' + (data.emoji || ''));
+                    }
+                    if (data.type === 'user_deleted' && data.user_id === userId) {
+                        // bu o'zimni o'chirish — server yo'l qo'ymaydi, lekin xavfsizlik uchun
+                        location.reload();
+                    }
+                    if (data.type === 'room_deleted' && data.code && data.code === currentRoom) {
+                        showToast('🚪 Xona moderator tomonidan yopildi');
+                        leaveLobby();
+                    }
                     if (data.type === 'user_blocked' && data.user_id === userId) {
                         setBlockedState(data.blocked, data.reason, data.until);
                         if (data.blocked) showToast('🚫 Siz bloklandingiz!');
@@ -3177,6 +3303,7 @@
         let amOwner = false;
         let amAdmin = false;
         let amModerator = false; // owner yoki admin yoki deputy
+        let amMainOwner = false; // 💎 — hamma ustidan amal qilish huquqi
 
         async function checkOwner() {
             if (!userId) return;
@@ -3187,6 +3314,7 @@
                 amOwner = !!d.is_owner;
                 amAdmin = !!d.is_admin;
                 amModerator = !!d.is_moderator || amAdmin || amOwner;
+                amMainOwner = !!d.is_main_owner;
                 const amDeputy = !!d.is_moderator && !d.is_admin && !d.is_owner;
                 document.getElementById('owner-panel-btn').style.display = amOwner ? 'flex' : 'none';
                 document.getElementById('admin-panel-btn').style.display = (amAdmin && !amOwner) ? 'flex' : 'none';
@@ -3211,60 +3339,211 @@
             ownerLoadUsers();
         }
 
+        let ownerUsers = [];
+        let ownerSelectedId = null;
+
         async function ownerLoadUsers() {
             const box = document.getElementById('owner-users-list');
             try {
                 const resp = await fetch(API_BASE + '/owner/users?owner_id=' + userId);
                 if (!resp.ok) throw new Error();
                 const data = await resp.json();
-                const users = data.users || [];
-                if (!users.length) { box.innerHTML = '<p class="invite-hint">User yo\'q</p>'; return; }
-                box.innerHTML = users.map(u => {
-                    const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
-                    usersCache[u.id] = { ...(usersCache[u.id] || {}), ...u, id: u.id };
-                    const selfEdit = u.id === userId;  // owner o'zini ham tahrirlashi mumkin
-                    const editable = u.id !== userId && u.role !== 'owner';
-                    return `
-                    <div class="urow">
-                        <div class="online-row" style="border:none;padding:0;">
-                            <span class="online-dot" style="background:${online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${online ? '0 0 8px var(--green)' : 'none'};"></span>
-                            <div class="online-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}
-                                <div class="ustats">${u.games ?? 0} o'yin · ${u.wins ?? 0} g'alaba · ${u.losses ?? 0} mag'lubiyat · ${u.xp ?? 0} XP · Lvl ${u.level ?? 1}</div>
-                            </div>
-                            ${u.id !== userId ? `<button class="kick-btn" title="O'chirish" onclick="ownerDeleteUser(${u.id}, '${esc(u.name).replace(/'/g, "\\'")}')">🗑</button>` : ''}
-                        </div>
-                        ${selfEdit ? `
-                        <div class="uact">
-                            <span style="font-size:0.7rem; color:var(--yellow); align-self:center;">O'zingiz:</span>
-                            <button class="icon-btn" onclick="ownerAddXp(${u.id}, true)">➕ XP</button>
-                            <button class="icon-btn" onclick="ownerSetLevel(${u.id}, true)">🎚 Lvl</button>
-                            <button class="icon-btn" onclick="ownerEditStats(${u.id}, true)">📊 Statistika</button>
-                        </div>` : ''}
-                        ${editable ? `
-                        <div class="uact">
-                            <button class="icon-btn ${u.blocked ? 'gold' : 'danger'}" onclick="ownerToggleBlock(${u.id}, ${u.blocked ? 'false' : 'true'})">${u.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>
-                            <button class="icon-btn" onclick="ownerAddXp(${u.id})">➕ XP</button>
-                            <button class="icon-btn" onclick="ownerSetLevel(${u.id})">🎚 Lvl</button>
-                            <button class="icon-btn" onclick="ownerSetRole(${u.id})">🛡 Rol</button>
-                            <button class="icon-btn" onclick="ownerEditStats(${u.id})">📊 Statistika</button>
-                            <button class="icon-btn" onclick="ownerResetStats(${u.id}, '${esc(u.name).replace(/'/g, "\\'")}')">♻️ Reset</button>
-                        </div>` : ''}
-                    </div>`;
-                }).join('');
+                ownerUsers = data.users || [];
+                ownerUsers.forEach(u => { usersCache[u.id] = { ...(usersCache[u.id] || {}), ...u, id: u.id }; });
+                renderOwnerUsers();
             } catch (e) {
                 box.innerHTML = '<p class="invite-hint">Yuklab bo\'lmadi</p>';
             }
         }
 
-        // ---------- Owner panel: tabs + rooms/chat/games ----------
+        function _ouCanManage(u) {
+            // Frontend taxminiy guard: main_owner hamma ustidan, owner pastdagi rollar
+            if (u.id === userId) return false;
+            if (amMainOwner) return true;
+            if (u.role === 'main_owner' || u.role === 'owner') return false;
+            if (amOwner) return true;
+            return false;
+        }
+
+        function renderOwnerUsers() {
+            const box = document.getElementById('owner-users-list');
+            const q = (document.getElementById('owner-user-search')?.value || '').toLowerCase().trim();
+            const list = q
+                ? ownerUsers.filter(u => String(u.id).includes(q) || (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q.replace('@', '')))
+                : ownerUsers;
+            if (!list.length) { box.innerHTML = '<div class="oempty">' + (q ? 'Hech narsa topilmadi' : 'User yo\'q') + '</div>'; return; }
+            box.innerHTML = list.map(u => {
+                const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
+                const manage = _ouCanManage(u);
+                return `
+                <div class="ucard ${ownerSelectedId === u.id ? 'sel' : ''}" onclick="openUserDetail(${u.id})">
+                    <span class="online-dot" style="background:${online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${online ? '0 0 8px var(--green)' : 'none'};"></span>
+                    <div class="uc-main">
+                        <div class="uc-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}</div>
+                        <div class="uc-meta">${u.username ? '@' + esc(u.username) + ' · ' : ''}ID ${u.id} · ${u.games ?? 0} o'yin · ${u.wins ?? 0} g'alaba · ${u.xp ?? 0} XP · Lvl ${u.level ?? 1}</div>
+                    </div>
+                    ${manage ? '<span class="ubtn ghost" style="pointer-events:none;">⚙️</span>' : ''}
+                </div>`;
+            }).join('');
+        }
+
+        async function openUserDetail(id) {
+            ownerSelectedId = id;
+            renderOwnerUsers();
+            const body = document.getElementById('user-detail-body');
+            document.getElementById('user-detail-overlay').classList.add('show');
+            body.innerHTML = '<div class="oempty">Yuklanmoqda...</div>';
+            try {
+                const resp = await fetch(API_BASE + '/owner/users/' + id + '/detail?owner_id=' + userId);
+                if (!resp.ok) throw new Error('Yuklab bo\'lmadi');
+                const d = await resp.json();
+                usersCache[id] = { ...(usersCache[id] || {}), ...d, id };
+                const manage = _ouCanManage(d);
+                const winrate = d.games_played ? Math.round(d.wins * 100 / d.games_played) : 0;
+                const friendsHtml = (d.friends || []).length
+                    ? d.friends.map(f => `<span class="ubtn ghost" style="pointer-events:none;">${f.online ? '🟢' : '⚪'} ${esc(f.name)}</span>`).join(' ')
+                    : '<span class="oempty" style="padding:4px;">Do\'stlari yo\'q</span>';
+                const gamesHtml = (d.games || []).length
+                    ? d.games.map(g => {
+                        const medal = g.place === 1 ? '🥇' : g.place === 2 ? '🥈' : g.place === 3 ? '🥉' : (g.place + "-o\'rin");
+                        return `<div class="ulog-row" style="border-left-color:${g.won ? 'var(--green)' : 'var(--magenta)'};">
+                            <b>${medal} ${esc(g.room_code)}</b> — ${g.won ? "g'aliba" : "mag'lubiyat"}
+                            <div class="lt">${(g.players || []).map(p => esc(p)).join(', ')} · ${g.finished_at ? new Date(g.finished_at).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                        </div>`;
+                    }).join('')
+                    : '<div class="oempty" style="padding:4px;">Hali o\'yin yo\'q</div>';
+                body.innerHTML = `
+                    <div class="ud-hero">
+                        <div class="ud-ava">${esc((d.name || '?')[0].toUpperCase())}</div>
+                        <div style="flex:1; min-width:0;">
+                            <div class="ud-name">${esc(d.name)} ${roleTag(d.role, d.blocked)}</div>
+                            <div class="ud-sub">${d.username ? '@' + esc(d.username) + ' · ' : ''}ID ${d.id} ${d.nickname ? ' · 📛 ' + esc(d.nickname) : ''}</div>
+                            <div class="ud-sub" style="color:${d.online ? 'var(--green)' : 'var(--text-dim)'};">● ${d.online ? 'Onlayn' : ('Oxirgi: ' + (d.last_online ? new Date(d.last_online).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '?'))}</div>
+                        </div>
+                    </div>
+                    ${d.blocked ? `<div class="ulog-row" style="border-left-color:#ff6b6b;">🚫 BLOKLANGAN${d.block_reason ? ' — ' + esc(d.block_reason) : ''}<div class="lt">${d.blocked_until ? 'Muddat: ' + new Date(d.blocked_until).toLocaleString('uz-UZ') : 'Doimiy'}</div></div>` : ''}
+                    <div class="ud-stats">
+                        <div class="ud-stat"><b>${d.games_played ?? 0}</b><span>O'yin</span></div>
+                        <div class="ud-stat"><b>${d.wins ?? 0}</b><span>G'alaba</span></div>
+                        <div class="ud-stat"><b>${d.losses ?? 0}</b><span>Mag'.</span></div>
+                        <div class="ud-stat"><b>${winrate}%</b><span>Winrate</span></div>
+                    </div>
+                    <div class="ud-stats">
+                        <div class="ud-stat"><b>${d.xp ?? 0}</b><span>XP</span></div>
+                        <div class="ud-stat"><b>${d.level ?? 1}</b><span>Level</span></div>
+                        <div class="ud-stat"><b>${(d.friends || []).length}</b><span>Do'st</span></div>
+                        <div class="ud-stat"><b>${(d.games || []).length}</b><span>Ox. o'yin</span></div>
+                    </div>
+                    ${manage ? `
+                    <div class="ud-sec">⚙️ AMALLAR</div>
+                    <div class="uactions">
+                        <button class="ubtn ${d.blocked ? 'gold' : 'danger'}" onclick="ownerToggleBlock(${d.id}, ${d.blocked ? 'false' : 'true'})">${d.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>
+                        <button class="ubtn blue" onclick="ownerAddXp(${d.id})">➕ XP</button>
+                        <button class="ubtn blue" onclick="ownerSetLevel(${d.id})">🎚 Lvl</button>
+                        <button class="ubtn blue" onclick="ownerSetRole(${d.id})">🛡 Rol</button>
+                        <button class="ubtn" onclick="ownerEditStats(${d.id})">📊 Statistika</button>
+                        <button class="ubtn" onclick="ownerResetStats(${d.id}, '${esc(d.name).replace(/'/g, "\\'")}')">♻️ Reset</button>
+                        ${d.nickname ? `<button class="ubtn ghost" onclick="ownerResetNickname(${d.id})">📛 Nick o'chirish</button>` : ''}
+                        <button class="ubtn gold" onclick="ownerKickUser(${d.id}, '${esc(d.name).replace(/'/g, "\\'")}')">👢 Chiqarish</button>
+                        <button class="ubtn danger" onclick="ownerDeleteUser(${d.id}, '${esc(d.name).replace(/'/g, "\\'")}')">🗑 O'chirish</button>
+                    </div>` : `<div class="ud-sec">⚙️ AMALLAR</div><div class="oempty" style="padding:4px;">Bu user ustida amal qilish huquqi yo'q (o'zingiz yoki undan yuqori rol)</div>`}
+                    <div class="ud-sec">🤝 DO'STLARI</div>
+                    <div class="uactions">${friendsHtml}</div>
+                    <div class="ud-sec">🎮 OXIRGI O'YINLAR</div>
+                    ${gamesHtml}
+                `;
+            } catch (e) {
+                body.innerHTML = '<div class="oempty">' + esc(e.message) + '</div>';
+            }
+        }
+
+        function closeUserDetail() {
+            document.getElementById('user-detail-overlay').classList.remove('show');
+            ownerSelectedId = null;
+            renderOwnerUsers();
+        }
+
+        async function ownerResetNickname(id) {
+            if (!_ownerActionGuard(id)) return;
+            if (!confirm('Nickname o\'chirilsinmi? User Telegram ismiga qaytadi.')) return;
+            await _ownerPost('/owner/users/' + id + '/reset-nickname', { owner_id: userId }, "Nickname o'chirildi");
+        }
+
+        async function ownerKickUser(id, name) {
+            if (!_ownerActionGuard(id)) return;
+            const reason = prompt(name + " qaysi xona/o'yindan chiqarilsin?\nXona kodi yozing (bo'sh = hamma joydan):", '');
+            if (reason === null) return;
+            const code = reason.trim();
+            if (!code) {
+                if (!confirm(name + " HAMMA xona va o'yindan chiqariladi. Davom etamizmi?")) return;
+            }
+            await _ownerPost('/owner/users/' + id + '/disconnect', { owner_id: userId, room_code: code, reason: code ? undefined : "Admin tomonidan chiqarildingiz" }, 'Chiqarildi');
+            openUserDetail(id);
+        }
+
+        // ---------- Owner panel: tabs + rooms/chat/games/log ----------
         function ownerTab(name) {
-            ['users', 'rooms', 'chat', 'games'].forEach(t => {
-                document.getElementById('owner-tab-' + t).style.display = (t === name) ? 'block' : 'none';
-                document.getElementById('otab-' + t).classList.toggle('active', t === name);
+            ['users', 'rooms', 'chat', 'games', 'log'].forEach(t => {
+                const el = document.getElementById('owner-tab-' + t);
+                if (el) el.style.display = (t === name) ? 'block' : 'none';
+                const tab1 = document.getElementById('otab-' + t);
+                const tab2 = document.getElementById('otab-' + t + '2');
+                if (tab1) tab1.classList.toggle('active', t === name);
+                if (tab2) tab2.classList.toggle('active', t === name);
             });
             if (name === 'rooms') ownerLoadRooms();
             if (name === 'chat') ownerLoadChat();
             if (name === 'games') ownerLoadGames();
+            if (name === 'log') ownerLoadLog();
+        }
+
+        async function ownerLoadLog() {
+            const box = document.getElementById('owner-log-list');
+            try {
+                const resp = await fetch(API_BASE + '/owner/modlog?owner_id=' + userId);
+                if (!resp.ok) throw new Error();
+                const log = (await resp.json()).log || [];
+                if (!log.length) { box.innerHTML = '<div class="oempty">Log bo\'sh — hozircha amal qilinmagan</div>'; return; }
+                box.innerHTML = log.map(e => `
+                    <div class="ulog-row">
+                        <b>${esc(e.actor)}</b> — ${esc(e.text)}
+                        <div class="lt">${e.ts ? new Date(e.ts).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                    </div>`).join('');
+            } catch (e) {
+                box.innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
+            }
+        }
+
+        async function ownerCleanup() {
+            if (!amOwner) return;
+            if (!confirm("O'lik xonalar (30+ daqiqa ochiq lobbylar va bo'sh tugagan xonalar) o'chiriladi. Davom etamizmi?")) return;
+            try {
+                const resp = await fetch(API_BASE + '/owner/cleanup?owner_id=' + userId);
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Bajarilmadi');
+                const r = await resp.json();
+                showToast('🧹 ' + (r.removed ?? 0) + " ta xona tozalandi");
+                ownerLoadPanel(); ownerLoadRooms();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function ownerLoadWS() {
+            const box = document.getElementById('owner-ws-list');
+            if (!box) return;
+            try {
+                const resp = await fetch(API_BASE + '/owner/ws?owner_id=' + userId);
+                if (!resp.ok) throw new Error();
+                const d = await resp.json();
+                const rooms = d.rooms || [];
+                if (!rooms.length) { box.innerHTML = '<div class="oempty">Hozir hech kim o\'yin servisiga ulanmagan</div>'; return; }
+                box.innerHTML = rooms.map(r => `
+                    <div class="owss-row">
+                        <span class="live">${r.in_game ? '● LIVE' : '○ LOBBY'}</span>
+                        <b>${esc(r.code)}</b>
+                        <span style="color:var(--text-dim);">${r.connections} ulanish · ${r.players.length} o'yinchi</span>
+                    </div>`).join('');
+            } catch (e) {
+                box.innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
+            }
         }
 
         async function ownerLoadRooms() {
@@ -3334,6 +3613,7 @@
         }
 
         async function ownerLoadGames() {
+            ownerLoadWS();
             const box = document.getElementById('owner-games-list');
             try {
                 const resp = await fetch(API_BASE + '/owner/games?owner_id=' + userId);
@@ -3345,7 +3625,7 @@
                         <div class="hist-icon">🏆</div>
                         <div class="hist-info">
                             <div class="hist-title">Xona ${esc(g.room_code)}</div>
-                            <div class="hist-sub">${esc(g.winner_name || '—')} g'olib · ${(g.players || []).length} o'yinchi · ${g.finished_at ? new Date(g.finished_at).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                            <div class="hist-sub">${esc(g.winner_name || '—')} g\'olib · ${(g.players || []).length} o\'yinchi · ${g.finished_at ? new Date(g.finished_at).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
                         </div>
                     </div>`).join('');
             } catch (e) {
@@ -3404,10 +3684,10 @@
 
         async function ownerSetRole(id) {
             if (!_ownerActionGuard(id)) return;
-            const v = prompt('Rol: owner / admin / deputy / player', 'player');
+            const v = prompt(amMainOwner ? 'Rol: main_owner / owner / admin / deputy / player' : 'Rol: owner / admin / deputy / player', 'player');
             if (v === null) return;
             const role = v.trim().toLowerCase();
-            if (!['owner', 'admin', 'deputy', 'player'].includes(role)) { showToast('⚠️ owner / admin / deputy / player'); return; }
+            if (!['owner', 'admin', 'deputy', 'player'].includes(role) && !(amMainOwner && role === 'main_owner')) { showToast('⚠️ Noto\'g\'ri rol'); return; }
             await _ownerPost('/owner/users/' + id + '/role', { owner_id: userId, role }, 'Rol o\'rnatildi: ' + role);
         }
 

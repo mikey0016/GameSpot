@@ -16,6 +16,7 @@ from .database import async_session_maker, init_db
 from .api import rooms_router, social_router  # import routers
 from .game.uno import GameState
 from .models.room import Room
+from .api.social import _broadcast as social_broadcast  # noqa: E402  (owner force-leave notifications)
 
 app = FastAPI(title="Game Spot Backend", version="0.1.0")
 
@@ -88,6 +89,8 @@ class ConnectionManager:
         self.user_sockets: dict[str, dict[int, WebSocket]] = {}
         # user_id -> last known name for chat/reaction labels
         self.user_names: dict[int, str] = {}
+        # personal channel: user_id -> websocket (global WS identifies with {action: hello})
+        self.personal_ws: dict[int, WebSocket] = {}
 
     async def connect(self, room_code: str, websocket: WebSocket, user_id: int | None = None, name: str | None = None):
         await websocket.accept()
@@ -124,6 +127,48 @@ class ConnectionManager:
             except Exception:
                 pass
 
+    def register_personal(self, user_id: int, websocket: WebSocket):
+        self.personal_ws[user_id] = websocket
+
+    def unregister_personal(self, websocket: WebSocket):
+        for uid, ws in list(self.personal_ws.items()):
+            if ws is websocket:
+                self.personal_ws.pop(uid, None)
+
+    async def leave_all(self, user_id: int, reason: str = ""):
+        """Remove a user from every room/game they are inside; returns room count."""
+        rooms: list[str] = []
+        for code, mapping in list(self.user_sockets.items()):
+            if code == "global" or user_id not in mapping:
+                continue
+            rooms.append(code)
+            async with async_session_maker() as db:
+                room = await db.get(Room, code)
+                if room is not None:
+                    remaining = [str(pid) for pid in (room.player_ids or []) if str(pid) != str(user_id)]
+                    if str(room.host_id) == str(user_id) or not remaining:
+                        await db.delete(room)
+                    else:
+                        room.player_ids = remaining
+                    await db.commit()
+            await self.broadcast(code, {
+                "type": "player_kicked",
+                "user_id": user_id,
+                "name": self.user_names.get(user_id, "O'yinchi"),
+                "reason": reason,
+            })
+            await social_broadcast({
+                "type": "toast",
+                "user_id": user_id,
+                "name": self.user_names.get(user_id, "O'yinchi"),
+                "emoji": "👢 chiqarildi",
+            })
+            self.user_sockets.pop(code, None)
+            g = games.pop(code, None)
+            if g is not None:
+                await self.broadcast(code, {"type": "room_closed"})
+        return len(rooms)
+
 manager = ConnectionManager()
 
 # NOTE: /ws/global MUST be declared BEFORE /ws/{room_code}, otherwise the
@@ -159,6 +204,12 @@ async def global_websocket(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
+            # --- personal channel registration (owner_kick etc.) ---
+            if data.get("action") == "hello":
+                uid = data.get("user_id")
+                if uid is not None:
+                    manager.register_personal(uid, websocket)
+                continue
             if data.get("action") == "chat":
                 text = str(data.get("text", ""))[:300]
                 if text.strip():
@@ -196,6 +247,10 @@ async def global_websocket(websocket: WebSocket):
                     })
     except WebSocketDisconnect:
         manager.disconnect("global", websocket)
+        manager.unregister_personal(websocket)
+    except Exception:
+        manager.disconnect("global", websocket)
+        manager.unregister_personal(websocket)
 
 @app.websocket("/ws/{room_code}")
 async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = ""):

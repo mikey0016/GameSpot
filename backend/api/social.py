@@ -16,10 +16,10 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from datetime import datetime, timedelta
 
-from ..models.social import OnlineUser, GameRecord, ChatMessage, Friendship
+from ..models.social import OnlineUser, GameRecord, ChatMessage, Friendship, ModLogEntry
 from ..database import async_session_maker
 
 router = APIRouter(tags=["social"])
@@ -32,11 +32,14 @@ VALID_ROLES = ("main_owner", "owner", "admin", "deputy", "player")
 
 
 def _can_manage(actor: OnlineUser | None, target: OnlineUser | None) -> bool:
-    """Actor may manage target only if strictly higher in the hierarchy."""
+    """Actor may manage target only if strictly higher in the hierarchy.
+    main_owner may manage EVERYONE except themselves (including other main_owners)."""
     if not actor or not target:
         return False
     if actor.id == target.id:
         return False
+    if actor.role == "main_owner":
+        return True
     return ROLE_RANK.get(actor.role, 3) < ROLE_RANK.get(target.role, 3)
 
 
@@ -109,6 +112,65 @@ def _user_public(u: OnlineUser) -> dict:
 
 def _display_name(u: OnlineUser) -> str:
     return u.nickname or u.first_name or u.username or "O'yinchi"
+
+
+def _owner_action(actor: OnlineUser, target: OnlineUser) -> bool:
+    """Permission gate for panel actions on a target user.
+    - main_owner may act on anyone but themselves
+    - owner may act on strictly lower roles
+    - admin may act on deputy/player only
+    Returns False when forbidden."""
+    if target.id == actor.id:
+        return False
+    if actor.role == "main_owner":
+        return True
+    if actor.role == "owner":
+        return target.role not in ("main_owner", "owner")
+    if actor.role == "admin":
+        return target.role in (None, "deputy", "player")
+    return False
+
+
+async def _modlog(db, actor: OnlineUser | None, action: str, text: str,
+                  target_id: int | None = None):
+    """Persist a moderation event and show it in the panel's So'rovlar/Log tab."""
+    db.add(ModLogEntry(
+        actor_id=actor.id if actor else None,
+        actor_name=_display_name(actor) if actor else "SYSTEM",
+        action=action,
+        target_id=target_id,
+        text=text[:220],
+    ))
+    await db.commit()
+
+
+async def _cleanup_rooms(db) -> int:
+    """Delete stale lobbies and orphaned finished rooms. Returns removed count."""
+    from ..models.room import Room, RoomStatus
+    from ..main import games as active_games
+    now = datetime.utcnow()
+    removed = 0
+    rows = (await db.execute(select(Room))).scalars().all()
+    for r in rows:
+        status = r.status.value if hasattr(r.status, "value") else str(r.status)
+        age_min = (now - r.created_at).total_seconds() / 60.0 if r.created_at else 999
+        stale = (status == "WAITING" and age_min > 30)
+        orphan = (status == "FINISHED" and code_empty(r.id))
+        if stale or orphan:
+            await db.delete(r)
+            removed += 1
+    if removed:
+        await db.commit()
+    return removed
+
+
+def code_empty(code: str) -> bool:
+    """True when nobody is connected to the room socket anymore."""
+    try:
+        from ..main import manager
+        return not manager.active_connections.get(code)
+    except Exception:
+        return True
 
 
 def _record_public(r: GameRecord) -> dict:
@@ -735,21 +797,27 @@ class OwnerDeleteIn(BaseModel):
 
 @router.delete("/owner/users/{user_id}")
 async def owner_delete_user(user_id: int, owner_id: int, session=Depends(get_session)):
-    """Delete a user (and their stats); owner cannot delete themselves."""
+    """Delete a user (and their stats); main_owner may delete anyone else,
+    other owners only strictly lower roles."""
     async with session() as db:
-        await _require_owner(owner_id, db)
+        actor = await _require_owner(owner_id, db)
         if user_id == owner_id:
             raise HTTPException(400, "O'zingizni o'chira olmaysiz")
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _can_manage(actor, u):
+            raise HTTPException(403, "Bu foydalanuvchini o'chirish huquqi yo'q")
         # remove their game history entries (players is JSON with ids)
         records = (await db.execute(select(GameRecord))).scalars().all()
         for r in records:
             if any(p.get("id") == user_id for p in (r.players or [])):
                 await db.delete(r)
+        deleted_name = _display_name(u)
         await db.delete(u)
         await db.commit()
+        await _broadcast({"type": "user_deleted", "user_id": user_id, "name": deleted_name})
+        await _modlog(db, actor, "delete", f"🗑 {deleted_name} (ID {user_id}) o'chirildi", target_id=user_id)
         return {"ok": True}
 
 
@@ -781,6 +849,122 @@ async def owner_broadcast(req: BroadcastIn, session=Depends(get_session)):
     return {"ok": True}
 
 
+# ---------- Main Owner: extended facilities ----------
+
+@router.get("/owner/users/{user_id}/detail")
+async def owner_user_detail(user_id: int, owner_id: int, session=Depends(get_session)):
+    """Full profile for the panel: stats, block info, friends, personal game history."""
+    async with session() as db:
+        await _require_owner(owner_id, db)
+        u = await db.get(OnlineUser, user_id)
+        if not u:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        now = datetime.utcnow()
+        online = bool(u.last_online and u.last_online >= now - ONLINE_WINDOW)
+        rows = (await db.execute(
+            select(Friendship).where(
+                ((Friendship.user_id == user_id) | (Friendship.friend_id == user_id))
+                & (Friendship.status == "accepted")
+            )
+        )).scalars().all()
+        friend_ids = [f.friend_id if f.user_id == user_id else f.user_id for f in rows]
+        friends = []
+        for fid in friend_ids[:60]:
+            f = await db.get(OnlineUser, fid)
+            if f:
+                friends.append({
+                    "id": f.id,
+                    "name": _display_name(f),
+                    "online": bool(f.last_online and f.last_online >= now - ONLINE_WINDOW),
+                })
+        history = (await db.execute(
+            select(GameRecord).order_by(GameRecord.finished_at.desc()).limit(100)
+        )).scalars().all()
+        games, wins, losses = [], 0, 0
+        for r in history:
+            players = r.players or []
+            idx = next((i for i, p in enumerate(players) if p.get("id") == user_id), None)
+            if idx is None:
+                continue
+            won = (r.winner_id == user_id)
+            if won:
+                wins += 1
+            else:
+                losses += 1
+            games.append({
+                "room_code": r.room_code,
+                "place": idx + 1,
+                "won": won,
+                "players": [p.get("name") for p in players],
+                "finished_at": r.finished_at.isoformat() if r.finished_at else None,
+            })
+        return {
+            "id": u.id,
+            "name": _display_name(u),
+            "first_name": u.first_name,
+            "username": u.username,
+            "nickname": u.nickname,
+            "role": u.role or "player",
+            "blocked": bool(u.blocked),
+            "blocked_until": u.blocked_until.isoformat() if u.blocked_until else None,
+            "block_reason": u.block_reason,
+            "online": online,
+            "last_online": u.last_online.isoformat() if u.last_online else None,
+            "games_played": u.games_played,
+            "wins": u.wins,
+            "losses": u.losses,
+            "xp": u.xp,
+            "level": u.level,
+            "friends": friends,
+            "games": games[:20],
+        }
+
+
+class NickResetIn(BaseModel):
+    owner_id: int
+
+
+@router.post("/owner/users/{user_id}/reset-nickname")
+async def owner_reset_nickname(user_id: int, req: NickResetIn, session=Depends(get_session)):
+    """Main Owner: clear a user's nickname (back to Telegram name)."""
+    async with session() as db:
+        actor = await _require_owner(req.owner_id, db)
+        u = await db.get(OnlineUser, user_id)
+        if not u:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _can_manage(actor, u):
+            raise HTTPException(403, "Huquq yo'q")
+        u.nickname = None
+        await db.commit()
+        await _broadcast_stats_update(db, user_id)
+        return {"ok": True, "name": _display_name(u)}
+
+
+class KickIn(BaseModel):
+    owner_id: int
+    room_code: str
+    reason: str | None = None
+
+
+@router.post("/owner/users/{user_id}/disconnect")
+async def owner_force_disconnect(user_id: int, req: KickIn, session=Depends(get_session)):
+    """Main Owner: kick a user from a room/game and show them a notice."""
+    async with session() as db:
+        actor = await _require_owner(req.owner_id, db)
+        u = await db.get(OnlineUser, user_id)
+        if not u:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _can_manage(actor, u):
+            raise HTTPException(403, "Bu userga bu amal qilib bo'lmaydi")
+        from ..main import manager
+        removed = await manager.leave_all(user_id, reason="owner_kick")
+        await manager.send_to_user(
+            user_id,
+            {"type": "owner_kick", "reason": (req.reason or "Siz admin tomonidan o'yindan chiqarildingiz")[:140]},
+        )
+        return {"ok": True, "rooms_left": removed}
+
+
 # ---------- Owner user management actions ----------
 
 class BlockIn(BaseModel):
@@ -792,14 +976,14 @@ class BlockIn(BaseModel):
 
 @router.post("/owner/users/{user_id}/block")
 async def owner_block_user(user_id: int, req: BlockIn, session=Depends(get_session)):
-    """Block/unblock: owner/admin may block strictly lower roles; timed blocks supported."""
+    """Block/unblock: strictly-lower roles only (main_owner everyone); timed blocks supported."""
     async with session() as db:
         await _expire_blocks(db)
         actor = await _require_owner(req.owner_id, db)
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        if req.blocked and not _can_manage(actor, u):
+        if not _owner_action(actor, u):
             raise HTTPException(403, "Bu foydalanuvchini bloklash huquqi yo'q")
         if req.blocked:
             u.blocked = 1
@@ -821,6 +1005,11 @@ async def owner_block_user(user_id: int, req: BlockIn, session=Depends(get_sessi
             "reason": u.block_reason,
         })
         await _broadcast_stats_update(db, user_id)
+        await _modlog(
+            db, actor, "unblock" if not u.blocked else "block",
+            ("🚫 " if u.blocked else "✅ ") + _display_name(u) + (f" — {u.block_reason}" if u.blocked else " blokdan olindi"),
+            target_id=user_id,
+        )
         return {"ok": True, "blocked": bool(u.blocked), "blocked_until": u.blocked_until.isoformat() if u.blocked_until else None}
 
 
@@ -833,14 +1022,17 @@ class XpIn(BaseModel):
 async def owner_add_xp(user_id: int, req: XpIn, session=Depends(get_session)):
     """Add (or subtract with negative amount) XP; level is recalculated."""
     async with session() as db:
-        await _require_owner(req.owner_id, db)
+        actor = await _require_owner(req.owner_id, db)
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _owner_action(actor, u):
+            raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.xp = max(0, (u.xp or 0) + req.amount)
         u.level = 1 + (u.xp or 0) // 50
         await db.commit()
         await _broadcast_stats_update(db, user_id)
+        await _modlog(db, actor, "xp", f"➕ XP {req.amount:+d} → {_display_name(u)}", target_id=user_id)
         return {"ok": True, "xp": u.xp, "level": u.level}
 
 
@@ -854,14 +1046,17 @@ async def owner_set_level(user_id: int, req: LevelIn, session=Depends(get_sessio
     """Set level directly; XP is aligned so future games keep the level."""
     level = max(1, req.level)
     async with session() as db:
-        await _require_owner(req.owner_id, db)
+        actor = await _require_owner(req.owner_id, db)
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _owner_action(actor, u):
+            raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.level = level
         u.xp = (level - 1) * 50
         await db.commit()
         await _broadcast_stats_update(db, user_id)
+        await _modlog(db, actor, "level", f"🎚 Lvl {level} → {_display_name(u)}", target_id=user_id)
         return {"ok": True, "xp": u.xp, "level": u.level}
 
 
@@ -872,10 +1067,14 @@ class RoleIn(BaseModel):
 
 @router.post("/owner/users/{user_id}/role")
 async def owner_set_role(user_id: int, req: RoleIn, session=Depends(get_session)):
-    """Assign a role tag: owner / admin / deputy / player (hierarchy enforced)."""
+    """Assign a role tag (hierarchy enforced):
+    - main_owner can grant ANY role on ANY user (except themselves)
+    - owner can grant owner/admin/deputy/player, but may not demote another owner
+    - admin can grant deputy/player only
+    """
     role = (req.role or "player").lower()
     if role not in VALID_ROLES:
-        raise HTTPException(400, "Role: owner | admin | deputy | player")
+        raise HTTPException(400, "Role: main_owner | owner | admin | deputy | player")
     async with session() as db:
         actor = await _require_owner(req.owner_id, db)
         u = await db.get(OnlineUser, user_id)
@@ -883,16 +1082,22 @@ async def owner_set_role(user_id: int, req: RoleIn, session=Depends(get_session)
             raise HTTPException(404, "Foydalanuvchi topilmadi")
         if user_id == req.owner_id:
             raise HTTPException(400, "O'z rolingizni o'zgartira olmaysiz")
-        if u.role == "owner" and role != "owner":
-            raise HTTPException(400, "Ownerni pasaytirish mumkin emas")
-        # Granting admin/owner: only main_owner/owner; main_owner can only be granted by main_owner
-        if role in ("owner", "admin") and actor.role not in ("main_owner", "owner"):
-            raise HTTPException(403, "Faqat owner admin/owner o'rnatadi")
-        if role == "main_owner" and actor.role != "main_owner":
-            raise HTTPException(403, "Faqat main_owner main_owner o'rnatadi")
+        if role == "main_owner":
+            if actor.role != "main_owner":
+                raise HTTPException(403, "Faqat MAIN OWNER main_owner o'rnatadi")
+        elif not _can_manage(actor, u):
+            raise HTTPException(403, "Bu user rolini o'zgartirish huquqi yo'q")
+        if u.role == "owner" and role not in ("main_owner", "owner") and actor.role != "main_owner":
+            raise HTTPException(400, "Ownerni faqat MAIN OWNER pasaytiradi")
+        if role == "owner" and actor.role not in ("main_owner", "owner"):
+            raise HTTPException(403, "Faqat owner/main_owner owner o'rnatadi")
+        if role == "admin" and actor.role not in ("main_owner", "owner", "admin"):
+            raise HTTPException(403, "Faqat owner/admin admin o'rnatadi")
+        old_role = u.role or "player"
         u.role = None if role == "player" else role
         await db.commit()
         await _broadcast_stats_update(db, user_id)
+        await _modlog(db, actor, "role", f"🛡 {old_role} → {role}: {_display_name(u)}", target_id=user_id)
         return {"ok": True, "role": u.role or "player"}
 
 
@@ -943,6 +1148,7 @@ async def owner_close_room(code: str, owner_id: int, session=Depends(get_session
         await db.commit()
     from ..main import manager
     await manager.broadcast(code, {"type": "room_closed"})
+    await _broadcast({"type": "room_deleted", "code": code})
     return {"ok": True}
 
 
@@ -1009,10 +1215,12 @@ async def owner_games(owner_id: int, session=Depends(get_session)):
 async def owner_reset_stats(user_id: int, req: StatsIn, session=Depends(get_session)):
     """Zero out a user's statistics."""
     async with session() as db:
-        await _require_owner(req.owner_id, db)
+        actor = await _require_owner(req.owner_id, db)
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _owner_action(actor, u):
+            raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.games_played = 0
         u.wins = 0
         u.losses = 0
@@ -1020,6 +1228,7 @@ async def owner_reset_stats(user_id: int, req: StatsIn, session=Depends(get_sess
         u.level = 1
         await db.commit()
         await _broadcast_stats_update(db, user_id)
+        await _modlog(db, actor, "reset", f"♻️ Statistika reset → {_display_name(u)}", target_id=user_id)
         return {"ok": True}
 
 
@@ -1027,10 +1236,12 @@ async def owner_reset_stats(user_id: int, req: StatsIn, session=Depends(get_sess
 async def owner_edit_stats(user_id: int, req: StatsIn, session=Depends(get_session)):
     """Overwrite statistics values; level is recalculated from XP."""
     async with session() as db:
-        await _require_owner(req.owner_id, db)
+        actor = await _require_owner(req.owner_id, db)
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _owner_action(actor, u):
+            raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         if req.games is not None:
             u.games_played = max(0, req.games)
         if req.wins is not None:
@@ -1042,6 +1253,7 @@ async def owner_edit_stats(user_id: int, req: StatsIn, session=Depends(get_sessi
             u.level = 1 + (u.xp or 0) // 50
         await db.commit()
         await _broadcast_stats_update(db, user_id)
+        await _modlog(db, actor, "stats", f"📊 Statistika tahrirlandi → {_display_name(u)}", target_id=user_id)
         return {"ok": True, "user": _user_public(u)}
 
 
@@ -1062,7 +1274,56 @@ async def _require_moderator(user_id: int, db) -> OnlineUser:
     return u
 
 
-async def _require_main_owner(user_id: int, db) -> OnlineUser:
+# ---------- Main Owner extended facilities ----------
+
+@router.get("/owner/cleanup")
+async def owner_cleanup(owner_id: int, session=Depends(get_session)):
+    """Remove stale lobbies (>30 min) and orphaned FINISHED rooms; returns what was removed."""
+    async with session() as db:
+        actor = await _require_owner(owner_id, db)
+        removed = await _cleanup_rooms(db)
+        await _modlog(db, actor, "cleanup", f"🧹 Tozalash: {removed} ta o'lik xona o'chirildi")
+        return {"ok": True, "removed": removed}
+
+
+@router.get("/owner/modlog")
+async def owner_modlog(owner_id: int, session=Depends(get_session)):
+    """Latest moderation actions (log) — panel shows the last 80."""
+    async with session() as db:
+        await _require_owner(owner_id, db)
+        rows = (await db.execute(
+            select(ModLogEntry).order_by(ModLogEntry.created_at.desc()).limit(80)
+        )).scalars().all()
+        return {"log": [
+            {
+                "id": e.id,
+                "actor": e.actor_name,
+                "action": e.action,
+                "text": e.text,
+                "ts": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in rows
+        ]}
+
+
+@router.get("/owner/ws")
+async def owner_ws(owner_id: int, session=Depends(get_session)):
+    """Live view of room sockets (join the panel's O'yinlar tab to observe the game server)."""
+    async with session() as db:
+        await _require_owner(owner_id, db)
+    from ..main import manager, games
+    room_list = []
+    for code, conns in manager.active_connections.items():
+        if code == "global":
+            continue
+        g = games.get(code)
+        room_list.append({
+            "code": code,
+            "connections": len(conns),
+            "players": sorted(manager.user_sockets.get(code, {}).keys()),
+            "in_game": bool(g and getattr(g, "winner_id", None) is None),
+        })
+    return {"rooms": room_list, "total_connections": sum(len(c) for k, c in manager.active_connections.items() if k != "global")}
     u = await db.get(OnlineUser, user_id)
     if not u or u.role != "main_owner":
         raise HTTPException(403, "Faqat main_owner uchun")
@@ -1150,4 +1411,9 @@ async def admin_block_user(user_id: int, req: AdminBlockIn, session=Depends(get_
             "reason": u.block_reason,
         })
         await _broadcast_stats_update(db, user_id)
+        await _modlog(
+            db, actor, "unblock" if not u.blocked else "block",
+            ("🚫 " if u.blocked else "✅ ") + _display_name(u) + (f" — {u.block_reason}" if u.blocked else " blokdan olindi"),
+            target_id=user_id,
+        )
         return {"ok": True, "blocked": bool(u.blocked), "blocked_until": u.blocked_until.isoformat() if u.blocked_until else None}

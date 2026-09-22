@@ -51,6 +51,18 @@ class GameRecord(Base):
     finished_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
+class ModLogEntry(Base):
+    __tablename__ = "mod_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    actor_id = Column(BigInteger, nullable=True, index=True)
+    actor_name = Column(String, nullable=True)
+    action = Column(String(24), nullable=False, index=True)   # block | unblock | role | delete | cleanup | system
+    target_id = Column(BigInteger, nullable=True, index=True)
+    text = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
