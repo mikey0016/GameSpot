@@ -557,11 +557,96 @@
         .cc-green { background: #44dd66; }
         .cc-blue { background: #4488ff; }
 
-        .card-red { background: linear-gradient(135deg, #ff4444, #cc0000); }
-        .card-blue { background: linear-gradient(135deg, #4488ff, #0044cc); }
-        .card-green { background: linear-gradient(135deg, #44dd66, #009933); }
-        .card-yellow { background: linear-gradient(135deg, #ffcc00, #cc9900); }
-        .card-wild { background: linear-gradient(135deg, #8844ff, #ff4488, #44ff88, #ffcc00); }
+        /* ===== UNO CARD FACE — premium redesign ===== */
+        .card-red {
+            background: radial-gradient(130% 130% at 22% 12%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 42%),
+                        linear-gradient(160deg, #ff6b5e 0%, #e63232 48%, #9c1010 100%);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.22), 0 3px 10px rgba(0,0,0,0.38);
+        }
+        .card-blue {
+            background: radial-gradient(130% 130% at 22% 12%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 42%),
+                        linear-gradient(160deg, #6db3ff 0%, #2470e0 48%, #0b3f91 100%);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.22), 0 3px 10px rgba(0,0,0,0.38);
+        }
+        .card-green {
+            background: radial-gradient(130% 130% at 22% 12%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 42%),
+                        linear-gradient(160deg, #6ee88f 0%, #1cae44 48%, #0a6e2a 100%);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.22), 0 3px 10px rgba(0,0,0,0.38);
+        }
+        .card-yellow {
+            background: radial-gradient(130% 130% at 22% 12%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0) 42%),
+                        linear-gradient(160deg, #ffe479 0%, #f2b800 48%, #bd8c00 100%);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.24), 0 3px 10px rgba(0,0,0,0.38);
+        }
+        .card-wild {
+            background: radial-gradient(130% 130% at 22% 12%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 45%),
+                        linear-gradient(160deg, #4a3b80 0%, #2a2452 55%, #17142e 100%);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.20), 0 3px 10px rgba(0,0,0,0.42);
+        }
+        /* Klassik UNO oq ellipsi */
+        .cf-oval {
+            position: absolute;
+            inset: 8% 10%;
+            border-radius: 50%;
+            background: linear-gradient(160deg, #ffffff 0%, #eef0f6 100%);
+            transform: rotate(-30deg) scale(1.10, 0.80);
+            box-shadow: inset 0 0 0 2px rgba(10,12,24,0.10), 0 1px 3px rgba(0,0,0,0.30);
+        }
+        .card-wild .cf-oval {
+            background: conic-gradient(from 210deg, #ff5b5b, #ffb648, #51d96b, #4b8bff, #b44bff, #ff5b5b);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35), 0 1px 3px rgba(0,0,0,0.30);
+        }
+        .cf-corner, .cf-value, .cf-oval { display: block; }
+        .hand .card .cf-oval { pointer-events: none; }
+        .cf-value {
+            position: relative;
+            z-index: 2;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            line-height: 1;
+            transform: rotate(-12deg);
+            text-shadow: 0 1px 0 rgba(255,255,255,0.55);
+        }
+        .hand .card .cf-value { font-size: 1.6rem; }
+        .pile-card .cf-value { font-size: 2.2rem; }
+        .card-red .cf-value { color: #d21f2c; }
+        .card-blue .cf-value { color: #1667d9; }
+        .card-green .cf-value { color: #0f9d3a; }
+        .card-yellow .cf-value { color: #d9a400; }
+        .card-wild .cf-value {
+            background: linear-gradient(90deg, #ff4b4b, #ffb648, #51d96b, #4b8bff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: none;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+        }
+        /* Burchak belgilari (klubonli karta ko'rinishi) */
+        .cf-corner {
+            position: absolute;
+            z-index: 2;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            line-height: 1;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+        }
+        .cf-corner.tl { top: 3px; left: 6px; font-size: 0.62rem; }
+        .cf-corner.br { bottom: 3px; right: 6px; font-size: 0.62rem; transform: rotate(180deg); }
+        .pile-card .cf-corner.tl { font-size: 0.78rem; top: 5px; left: 8px; }
+        .pile-card .cf-corner.br { font-size: 0.78rem; bottom: 5px; right: 8px; }
+        /* Gloss — yorug'lik aksi */
+        .hand .card::before,
+        .pile-card.card-red::before, .pile-card.card-blue::before, .pile-card.card-green::before,
+        .pile-card.card-yellow::before, .pile-card.card-wild::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(115deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.07) 30%, rgba(255,255,255,0) 52%);
+            z-index: 1;
+            pointer-events: none;
+        }
 
         /* ===== GAME HINT ===== */
         .game-hint {
@@ -601,8 +686,8 @@
             position: absolute;
             left: 50%;
             top: 0;
-            width: 60px;
-            height: 90px;
+            width: 68px;
+            height: 102px;
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -1673,7 +1758,7 @@
             <div class="piles">
                 <div class="pile">
                     <div class="pile-label">Yonidagi karta</div>
-                    <div class="pile-card card-red" id="discard-pile">7</div>
+                    <div class="pile-card card-red" id="discard-pile"><span class="cf-corner tl">7</span><span class="cf-corner br">7</span><span class="cf-oval"></span><span class="cf-value">7</span></div>
                     <div class="chosen-color-dot" id="chosen-color"></div>
                 </div>
                 <div class="pile">
@@ -2492,10 +2577,35 @@
         }
 
         const CARD_COLORS = { RED: 'card-red', BLUE: 'card-blue', GREEN: 'card-green', YELLOW: 'card-yellow', WILD: 'card-wild' };
-        const CARD_ICONS = { skip: '⊘', reverse: '⇄', draw_two: '+2', wild: '🌈', wild_draw_four: '+4' };
+        const CARD_ICONS = { skip: '⊘', reverse: '⇄', draw_two: '+2', wild: '', wild_draw_four: '+4' };
 
         function cardLabel(value) {
             return CARD_ICONS[value] !== undefined ? CARD_ICONS[value] : value;
+        }
+
+        // 🎴 Premium UNO card markup: oq ellips + burchak belgilari
+        function unoCardHtml(c, extraCls = '', attrs = '') {
+            const cls = CARD_COLORS[(c.color || '').toUpperCase()] || 'card-wild';
+            const v = cardLabel(c.value);
+            const wild = ((c.color || '').toUpperCase() === 'WILD');
+            const centerV = wild ? '' : v;
+            return `<div class="card ${cls} ${extraCls}" ${attrs}>
+                <span class="cf-corner tl">${v}</span>
+                <span class="cf-corner br">${v}</span>
+                <span class="cf-oval"></span>
+                <span class="cf-value">${centerV}</span>
+            </div>`;
+        }
+
+        // Ichki qism (mavjud konteynerga joylash uchun — discard pile)
+        function unoCardInner(c) {
+            const v = cardLabel(c.value);
+            const wild = ((c.color || '').toUpperCase() === 'WILD');
+            const centerV = wild ? '' : v;
+            return `<span class="cf-corner tl">${v}</span>
+                <span class="cf-corner br">${v}</span>
+                <span class="cf-oval"></span>
+                <span class="cf-value">${centerV}</span>`;
         }
 
         // Can this card be placed on the current top card?
@@ -2544,10 +2654,7 @@
                 const i = ((handOffset % myHand.length) + myHand.length) % myHand.length;
                 const c = myHand[i];
                 const ok = myTurn && cardMatches(c);
-                hand.innerHTML = `<div class="card ${CARD_COLORS[(c.color || '').toUpperCase()] || 'card-wild'} ${ok ? 'playable' : 'not-playable'}"
-                     data-idx="${i}" title="${c.color} ${c.value}">
-                    ${cardLabel(c.value)}
-                </div>`;
+                hand.innerHTML = unoCardHtml(c, ok ? 'playable' : 'not-playable', `data-idx="${i}" title="${c.color} ${c.value}"`);
             } else {
                 hand.innerHTML = '';
             }
@@ -2663,7 +2770,7 @@
                 topCard = top;
                 const dp = document.getElementById('discard-pile');
                 dp.className = 'pile-card ' + (CARD_COLORS[(top.color || '').toUpperCase()] || 'card-wild');
-                dp.textContent = cardLabel(top.value);
+                dp.innerHTML = unoCardInner(top);
                 const cc = document.getElementById('chosen-color');
                 if (top.chosen_color) {
                     cc.className = 'chosen-color-dot show cc-' + top.chosen_color;
