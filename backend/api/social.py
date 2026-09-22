@@ -101,6 +101,9 @@ def _user_public(u: OnlineUser) -> dict:
         "role": u.role,
         "blocked": bool(u.blocked),
         "blocked_until": u.blocked_until.isoformat() if u.blocked_until else None,
+        "muted": bool(u.muted),
+        "muted_until": u.muted_until.isoformat() if u.muted_until else None,
+        "warning": u.warning,
         "display_name": u.nickname or u.first_name or u.username,
         "last_online": u.last_online.isoformat() if u.last_online else None,
         "games_played": u.games_played,
@@ -229,6 +232,9 @@ async def heartbeat(req: UserIn, session=Depends(get_session)):
             "blocked": bool(u.blocked),
             "blocked_until": u.blocked_until.isoformat() if u.blocked_until else None,
             "block_reason": u.block_reason,
+            "muted": bool(u.muted),
+            "muted_until": u.muted_until.isoformat() if u.muted_until else None,
+            "warning": u.warning,
             "role": u.role,
         }
 
@@ -1182,13 +1188,16 @@ async def owner_chat(owner_id: int, session=Depends(get_session)):
 
 @router.delete("/owner/chat/{msg_id}")
 async def owner_delete_chat(msg_id: int, owner_id: int, session=Depends(get_session)):
+    """Single message delete — owner uchun ham moderator guard bilan."""
     async with session() as db:
-        await _require_owner(owner_id, db)
+        actor = await _require_moderator(owner_id, db)
         m = await db.get(ChatMessage, msg_id)
         if not m:
             raise HTTPException(404, "Xabar topilmadi")
         await db.delete(m)
         await db.commit()
+        await _broadcast({"type": "chat_deleted", "id": msg_id})
+        await _modlog(db, actor, "delete-msg", f"💬 xabar #{msg_id} o'chirildi ({m.name})")
     return {"ok": True}
 
 
@@ -1276,6 +1285,88 @@ async def _require_moderator(user_id: int, db) -> OnlineUser:
     if not u or u.role not in ("main_owner", "owner", "admin", "deputy"):
         raise HTTPException(403, "Faqat moderator rollar uchun")
     return u
+
+
+class MuteIn(BaseModel):
+    admin_id: int
+    muted: bool
+    minutes: int | None = None  # muddatli mute; None/0 = doimiy
+    reason: str | None = None
+
+
+@router.post("/admin/users/{user_id}/mute")
+async def admin_mute_user(user_id: int, req: MuteIn, session=Depends(get_session)):
+    """Mute: user o'ynay oladi, lekin chat yozolmaydi (global + xonalar).
+    Moderatorlar faqat pastdagi rollarga mute beradi."""
+    async with session() as db:
+        await _expire_blocks(db)
+        actor = await _require_moderator(req.admin_id, db)
+        u = await db.get(OnlineUser, user_id)
+        if not u:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _owner_action(actor, u):
+            raise HTTPException(403, "Bu userga mute berish huquqi yo'q")
+        if not req.muted:
+            u.muted = 0
+            u.muted_until = None
+        else:
+            u.muted = 1
+            u.muted_until = (datetime.utcnow() + timedelta(minutes=req.minutes)) if (req.minutes and req.minutes > 0) else None
+        await db.commit()
+        await _broadcast({"type": "user_muted", "user_id": user_id, "muted": bool(u.muted)})
+        await _broadcast_stats_update(db, user_id)
+        await _modlog(db, actor, "mute", (("🔇 MUTE — " if u.muted else "🔊 UNMUTE — ") + _display_name(u) + (f" ({req.reason})" if (u.muted and req.reason) else "")), target_id=user_id)
+        return {"ok": True, "muted": bool(u.muted), "muted_until": u.muted_until.isoformat() if u.muted_until else None}
+
+
+class WarnIn(BaseModel):
+    admin_id: int
+    text: str
+
+
+@router.post("/admin/users/{user_id}/warn")
+async def admin_warn_user(user_id: int, req: WarnIn, session=Depends(get_session)):
+    """Warn: userga ogohlantirish yuboriladi (toast + saqlanadi, o'zi o'chiradi)."""
+    async with session() as db:
+        actor = await _require_moderator(req.admin_id, db)
+        u = await db.get(OnlineUser, user_id)
+        if not u:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not _owner_action(actor, u):
+            raise HTTPException(403, "Bu userga ogohlantirish berish huquqi yo'q")
+        text = (req.text or "").strip()[:220]
+        if not text:
+            raise HTTPException(400, "Ogohlantirish matni bo'sh")
+        u.warning = text
+        await db.commit()
+        await _broadcast({"type": "user_warned", "user_id": user_id, "warning": text})
+        await _modlog(db, actor, "warn", f"⚠️ WARN — {_display_name(u)}: {text}", target_id=user_id)
+        return {"ok": True}
+
+
+@router.post("/users/warn/ack")
+async def warn_ack(req: UserIn, session=Depends(get_session)):
+    """User ogohlantirishni ko'rib bo'lib yopadi."""
+    async with session() as db:
+        u = await db.get(OnlineUser, req.id)
+        if u and u.warning:
+            u.warning = None
+            await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/owner/games/{game_id}")
+async def admin_delete_game(game_id: int, admin_id: int, session=Depends(get_session)):
+    """Delete one game record — moderatorlar uchun."""
+    async with session() as db:
+        actor = await _require_moderator(admin_id, db)
+        r = await db.get(GameRecord, game_id)
+        if not r:
+            raise HTTPException(404, "O'yin topilmadi")
+        await db.delete(r)
+        await db.commit()
+        await _modlog(db, actor, "delete-game", f"🎮 o'yin #{game_id} ({r.room_code}) o'chirildi")
+    return {"ok": True}
 
 
 # ---------- Main Owner extended facilities ----------

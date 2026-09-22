@@ -1184,6 +1184,9 @@
             <button class="btn btn-outline" onclick="showScreen('about')">
                 ℹ️ Qanday O'ynash
             </button>
+            <button class="btn btn-outline" id="panels-btn" style="display:none; border-color:#b088ff; color:#b088ff;" onclick="showScreen('panels')">
+                🗂 Panellar
+            </button>
             <button class="btn btn-outline" id="owner-panel-btn" style="display:none; border-color:var(--yellow); color:var(--yellow);" onclick="showScreen('owner')">
                 👑 Owner Panel
             </button>
@@ -1216,6 +1219,30 @@
         <div class="glass-panel">
             <div class="panel-head"><span>👥 Userlar</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="adminLoadUsers()">🔄</button></div>
             <div id="admin-users-list"><p class="invite-hint">Yuklanmoqda...</p></div>
+        </div>
+    </div>
+
+    <!-- ===== PANELS HUB (main owner) ===== -->
+    <div id="screen-panels" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">PANELLAR</div>
+            <div class="subtitle">Barcha rollar boshqaruvi</div>
+        </div>
+        <div class="glass-panel">
+            <div class="panel-head"><span>👑 Owner paneli</span></div>
+            <p class="invite-hint">To'liq boshqaruv: userlar, xonalar, chat, o'yinlar, log</p>
+            <button class="ubtn gold" style="width:100%; justify-content:center;" onclick="showScreen('owner')">👑 Owner Panel ochish</button>
+        </div>
+        <div class="glass-panel">
+            <div class="panel-head"><span>🛡 Admin paneli</span></div>
+            <p class="invite-hint">Moderatsiya: bloklash, mute, warn, xonalar</p>
+            <button class="ubtn blue" style="width:100%; justify-content:center;" onclick="showScreen('admin')">🛡 Admin Panel ochish</button>
+        </div>
+        <div class="glass-panel">
+            <div class="panel-head"><span>⭐ Deputy paneli</span></div>
+            <p class="invite-hint">Faqat bloklash vakolati</p>
+            <button class="ubtn" style="width:100%; justify-content:center; border-color:#b088ff; color:#b088ff;" onclick="showScreen('deputy')">⭐ Deputy Panel ochish</button>
         </div>
     </div>
 
@@ -1814,6 +1841,7 @@
             if (name === 'open-rooms') loadOpenRooms();
             if (name === 'friends') loadFriends();
             if (name === 'owner') ownerLoadPanel();
+            if (name === 'admin') adminLoadPanel();
             if (name === 'admin') adminLoadPanel();
             if (name === 'deputy') deputyLoadPanel();
             if (name === 'global-chat') { loadGlobalChatHistory(); connectGlobalChat(); }
@@ -2758,6 +2786,8 @@
             if (document.getElementById('screen-leaderboard')?.classList.contains('active') && typeof loadLeaderboard === 'function') loadLeaderboard();
         }
         let myBlocked = false;
+        let myMuted = false;
+        let myWarning = null;
 
         // ---------- Blocked screen (muddat + sabab bilan) ----------
         function setBlockedState(blocked, reason, until) {
@@ -3117,6 +3147,20 @@
                         setBlockedState(data.blocked, data.block_reason, data.blocked_until);
                         showToast(data.blocked ? '🚫 Siz bloklandingiz!' : '✅ Blokdan olindingiz!');
                     }
+                    // mute holati
+                    if (data.muted !== myMuted) {
+                        myMuted = !!data.muted;
+                        showToast(myMuted ? '🔇 Siz mute qilingansiz — chat yopiq' : '🔊 Mute olib tashlandi');
+                    }
+                    // ogohlantirish (heartbeat orqali)
+                    if (data.warning && data.warning !== myWarning) {
+                        myWarning = data.warning;
+                        showToast('⚠️ ADMIN OGOHLANTIRISHI: ' + data.warning);
+                        fetch(API_BASE + '/users/warn/ack', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: userId })
+                        }).catch(() => {});
+                    }
                 }
             } catch (e) {}
         }
@@ -3174,6 +3218,16 @@
                     if (data.type === 'room_deleted' && data.code && data.code === currentRoom) {
                         showToast('🚪 Xona moderator tomonidan yopildi');
                         leaveLobby();
+                    }
+                    if (data.type === 'muted' && (data.user_id === userId || data.user_id === undefined)) {
+                        myMuted = true;
+                        showToast('🔇 Siz mute qilingansiz — chat vaqtincha yopiq' + (data.muted_until ? (' (' + new Date(data.muted_until).toLocaleString('uz-UZ') + ')') : ''));
+                    }
+                    if (data.type === 'chat_deleted' && data.id) {
+                        document.querySelectorAll('[data-msg-id="' + data.id + '"]').forEach(el => el.remove());
+                    }
+                    if (data.type === 'user_warned' && data.user_id === userId) {
+                        showToast('⚠️ ADMIN OGOHLANTIRISHI: ' + (data.warning || ''));
                     }
                     if (data.type === 'user_blocked' && data.user_id === userId) {
                         setBlockedState(data.blocked, data.reason, data.until);
@@ -3339,6 +3393,7 @@
                 document.getElementById('admin-panel-btn').style.display = (amAdmin && !amOwner) ? 'flex' : 'none';
                 // 💎 Main Owner: hamma moderator panellari ko'rinadi
                 document.getElementById('deputy-panel-btn').style.display = amModerator ? 'flex' : 'none';
+                document.getElementById('panels-btn').style.display = amMainOwner ? 'flex' : 'none';
             } catch (e) {}
         }
         checkOwner();
@@ -3771,24 +3826,59 @@
                     // Moderator (owner/admin/deputy) faqat pastdagi rollarni boshqara oladi
                     const rank = { owner: 0, admin: 1, deputy: 2 };
                     const myRank = amOwner ? 0 : (amAdmin ? 1 : 2);
-                    const canBlock = u.id !== userId && (rank[u.role] ?? 3) > myRank;
+                    const canAct = u.id !== userId && (rank[u.role] ?? 3) > myRank;
                     return `
                     <div class="urow">
                         <div class="online-row" style="border:none;padding:0;">
                             <span class="online-dot" style="background:${online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${online ? '0 0 8px var(--green)' : 'none'};"></span>
-                            <div class="online-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}
+                            <div class="online-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}${u.muted ? ' 🔇' : ''}
                                 <div class="ustats">${u.games ?? 0} o'yin · ${u.wins ?? 0} g'alaba · ${u.xp ?? 0} XP · Lvl ${u.level ?? 1}</div>
                             </div>
                         </div>
-                        ${canBlock ? `
+                        ${canAct ? `
                         <div class="uact">
                             <button class="icon-btn ${u.blocked ? 'gold' : 'danger'}" onclick="adminToggleBlock(${u.id}, ${u.blocked ? 'false' : 'true'})">${u.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>
+                            <button class="icon-btn ${u.muted ? 'gold' : ''}" onclick="adminToggleMute(${u.id}, ${u.muted ? 'false' : 'true'})">${u.muted ? '🔊 Unmute' : '🔇 Mute'}</button>
+                            <button class="icon-btn" onclick="adminWarnUser(${u.id})">⚠️ Warn</button>
                         </div>` : ''}
                     </div>`;
                 }).join('');
             } catch (e) {
                 box.innerHTML = '<p class="invite-hint">Yuklab bo\'lmadi</p>';
             }
+        }
+
+        async function adminToggleMute(id, mute) {
+            let minutes = null, reason = null;
+            if (mute) {
+                const mv = prompt("Mute muddati (daqiqa). Bo'sh = doimiy:", '30');
+                if (mv === null) return;
+                minutes = parseInt(mv, 10);
+                if (isNaN(minutes) || minutes <= 0) minutes = null;
+                reason = prompt('Sabab (ixtiyoriy):', '') || null;
+            }
+            try {
+                const resp = await fetch(API_BASE + '/admin/users/' + id + '/mute', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_id: userId, muted: mute, minutes, reason })
+                });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Bajarilmadi');
+                showToast(mute ? '🔇 User mute qilindi' : '🔊 Unmute qilindi');
+                adminLoadUsers();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function adminWarnUser(id) {
+            const text = prompt("Ogohlantirish matni (user ekranda ko'radi):", '');
+            if (!text || !text.trim()) return;
+            try {
+                const resp = await fetch(API_BASE + '/admin/users/' + id + '/warn', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_id: userId, text })
+                });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Bajarilmadi');
+                showToast('⚠️ Ogohlantirish yuborildi');
+            } catch (e) { showToast('❌ ' + e.message); }
         }
 
         async function adminToggleBlock(id, block) {

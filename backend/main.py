@@ -176,9 +176,10 @@ manager = ConnectionManager()
 
 # Global chat WebSocket: every WebApp client connects here for worldwide chat
 async def _chat_meta(db, user_id) -> dict:
-    """Role tag + block info for chat payloads (DB lookup, cheap at this scale)."""
+    """Role tag + block/mute info for chat payloads (DB lookup, cheap at this scale)."""
     if user_id is None:
-        return {"role": None, "blocked": False, "blocked_until": None, "block_reason": None}
+        return {"role": None, "blocked": False, "blocked_until": None, "block_reason": None,
+                "muted": False, "muted_until": None}
     from .models.social import OnlineUser
     from datetime import datetime as _dt
     u = await db.get(OnlineUser, user_id)
@@ -190,11 +191,20 @@ async def _chat_meta(db, user_id) -> dict:
         u.block_reason = None
         await db.commit()
         blocked = False
+    muted = bool(u and u.muted)
+    # Muddati chiqqan mute'ni avtomatik o'chirish
+    if muted and u and u.muted_until and u.muted_until <= _dt.utcnow():
+        u.muted = 0
+        u.muted_until = None
+        await db.commit()
+        muted = False
     return {
         "role": (u.role if u else None),
         "blocked": blocked,
         "blocked_until": (u.blocked_until.isoformat() if u and u.blocked_until else None),
         "block_reason": (u.block_reason if u else None),
+        "muted": muted,
+        "muted_until": (u.muted_until.isoformat() if u and u.muted_until else None),
     }
 
 
@@ -236,6 +246,13 @@ async def global_websocket(websocket: WebSocket):
                                 "until": meta.get("blocked_until"),
                             })
                         continue  # blocked users cannot chat
+                    if meta["muted"]:
+                        if uid is not None:
+                            await manager.send_to_user("global", uid, {
+                                "type": "muted",
+                                "muted_until": meta.get("muted_until"),
+                            })
+                        continue  # muted users cannot chat either
                     await manager.broadcast("global", {
                         "type": "chat",
                         "room": "global",
@@ -408,6 +425,13 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                     async with async_session_maker() as db:
                         meta = await _chat_meta(db, user_id)
                     if meta["blocked"]:
+                        continue
+                    if meta["muted"]:
+                        if user_id is not None:
+                            await manager.send_to_user(room_code, user_id, {
+                                "type": "muted",
+                                "muted_until": meta.get("muted_until"),
+                            })
                         continue
                     await manager.broadcast(room_code, {
                         "type": "chat",

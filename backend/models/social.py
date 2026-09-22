@@ -27,6 +27,12 @@ class OnlineUser(Base):
     blocked_until = Column(DateTime, nullable=True)
     # Optional reason shown to the blocked user
     block_reason = Column(String(140), nullable=True)
+    # 1 = muted: cannot chat (global + rooms) but can play
+    muted = Column(Integer, default=0, nullable=False)
+    # Optional mute expiry
+    muted_until = Column(DateTime, nullable=True)
+    # Optional warning text shown to the user (player sees it until dismissed)
+    warning = Column(String(220), nullable=True)
     last_online = Column(DateTime, default=datetime.utcnow, index=True)
 
     # Stats (updated when a game result is recorded)
