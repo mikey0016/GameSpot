@@ -75,6 +75,20 @@ async def init_db():
                 "ALTER TABLE friendships ALTER COLUMN status TYPE VARCHAR USING status::text; "
                 "EXCEPTION WHEN others THEN NULL; END $$;"
             ))
+            # friendships: drop legacy FK constraints (they reference the OLD app's
+            # users table, so new Telegram users violate them) and widen ids to BIGINT
+            await conn.execute(text(
+                "ALTER TABLE friendships DROP CONSTRAINT IF EXISTS friendships_user_id_fkey"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE friendships DROP CONSTRAINT IF EXISTS friendships_friend_id_fkey"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE friendships ALTER COLUMN user_id TYPE BIGINT"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE friendships ALTER COLUMN friend_id TYPE BIGINT"
+            ))
             # Backfill: old rows have NULL player_ids; seed with host id so they stay joinable
             await conn.execute(text(
                 "UPDATE rooms SET player_ids = json_build_array(host_id) WHERE player_ids IS NULL"

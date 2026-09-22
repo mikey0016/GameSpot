@@ -1481,11 +1481,12 @@
         <div class="glass-panel">
             <div class="panel-head"><span>➕ Do'st qo'shish</span></div>
             <div class="chat-input-row">
-                <input type="text" class="input-field" id="friend-add-input" placeholder="Do'st ID yoki @username" maxlength="24"
-                       style="font-size:0.9rem; letter-spacing:0; text-align:left;">
+                <input type="text" class="input-field" id="friend-add-input" placeholder="Do'st ID yoki @username" maxlength="32"
+                       style="font-size:0.9rem; letter-spacing:0; text-align:left;" oninput="friendSearchLive()">
                 <button class="chat-send" onclick="sendFriendRequest()">➤</button>
             </div>
-            <p class="invite-hint">Onlayn userlar ro'yxatidan ham so'rov yuborish mumkin</p>
+            <div id="friend-search-results" style="display:none; margin-top:8px;"></div>
+            <p class="invite-hint">ID, @username yoki ism bo'yicha qidiriladi — natijaga bosib so'rov yuboring</p>
         </div>
     </div>
 
@@ -3092,27 +3093,65 @@
             }
         }
 
-        async function sendFriendRequest() {
+        let _friendSearchTimer = null;
+        function friendSearchLive() {
+            clearTimeout(_friendSearchTimer);
+            _friendSearchTimer = setTimeout(_friendSearchDo, 250);
+        }
+
+        async function _friendSearchDo() {
             const input = document.getElementById('friend-add-input');
-            const val = (input?.value || '').trim();
-            if (!val) { showToast('⚠️ ID yoki @username kiriting'); return; }
+            const box = document.getElementById('friend-search-results');
+            const q = (input?.value || '').trim();
+            if (!q || q.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
             try {
-                // /users/search: ID, @username, nickname yoki ism bo'yicha (hamma userlar orasidan)
-                const sr = await fetch(API_BASE + '/users/search?q=' + encodeURIComponent(val));
+                const sr = await fetch(API_BASE + '/users/search?q=' + encodeURIComponent(q));
                 const sd = await sr.json();
-                if (!sr.ok) throw new Error(sd.detail || 'User topilmadi');
-                const toId = sd.id;
+                if (!sr.ok) {
+                    box.style.display = 'block';
+                    box.innerHTML = '<div class="oempty" style="padding:6px;">Topilmadi</div>';
+                    return;
+                }
+                const list = (sd.matches && sd.matches.length ? sd.matches : [sd]);
+                box.style.display = 'block';
+                box.innerHTML = list.map(m => `
+                    <div class="owss-row" style="cursor:pointer;" onclick="friendRequestTo(${m.id}, '${esc(m.name).replace(/'/g, "\\'")}')">
+                        <b style="flex:1;">${esc(m.name)}</b>
+                        <span style="color:var(--text-dim); font-size:0.65rem;">${m.username ? '@' + esc(m.username) : 'ID ' + m.id}</span>
+                        <span class="ubtn blue" style="padding:4px 8px; font-size:0.65rem;">➕</span>
+                    </div>`).join('');
+            } catch (e) {
+                box.style.display = 'block';
+                box.innerHTML = '<div class="oempty" style="padding:6px;">Qidiruvda xato</div>';
+            }
+        }
+
+        async function friendRequestTo(toId, name) {
+            try {
                 const resp = await fetch(API_BASE + '/friends', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ from_id: userId, to_id: toId })
                 });
                 const d = await resp.json().catch(() => ({}));
                 if (!resp.ok) throw new Error(d.detail || 'Yuborilmadi');
-                showToast(d.auto_accepted ? ('✅ Siz endi do\'stlar: ' + (sd.name || ''))
+                showToast(d.auto_accepted ? ('✅ Siz endi do\'stlar: ' + name)
                     : (d.already ? 'ℹ️ Allaqachon do\'stsiz'
-                    : (d.pending ? 'ℹ️ So\'rov allaqachon yuborilgan' : ('📩 So\'rov yuborildi: ' + (sd.name || toId)))));
-                input.value = '';
+                    : (d.pending ? 'ℹ️ So\'rov allaqachon yuborilgan' : ('📩 So\'rov yuborildi: ' + name))));
+                document.getElementById('friend-add-input').value = '';
+                document.getElementById('friend-search-results').style.display = 'none';
                 loadFriends();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function sendFriendRequest() {
+            const input = document.getElementById('friend-add-input');
+            const val = (input?.value || '').trim();
+            if (!val) { showToast('⚠️ ID yoki @username kiriting'); return; }
+            try {
+                const sr = await fetch(API_BASE + '/users/search?q=' + encodeURIComponent(val));
+                const sd = await sr.json();
+                if (!sr.ok) throw new Error(sd.detail || 'User topilmadi');
+                await friendRequestTo(sd.id, sd.name || '');
             } catch (e) { showToast('❌ ' + e.message); }
         }
 
@@ -3517,7 +3556,7 @@
                     </div>
                     <div class="uactions" style="justify-content:center;">
                         ${friendBtn}
-                        <button class="ubtn ghost" onclick="copyText('ID: ${d.id}'); showToast('📋 ID nusxalandi')">🆔 ID</button>
+                        <button class="ubtn ghost" onclick="copyText('${d.id}'); showToast('📋 ID nusxalandi')">🆔 ID</button>
                         <button class="ubtn ghost" onclick="closeMiniProfile();showScreen('leaderboard')">🏆 Back</button>
                     </div>
                 `;
