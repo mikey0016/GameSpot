@@ -28,12 +28,16 @@ router = APIRouter(tags=["social"])
 
 ONLINE_WINDOW = timedelta(seconds=60)
 
-# ----- Role hierarchy: lower number = more power (Deputy > Admin) -----
-ROLE_RANK = {"main_owner": -1, "owner": 0, "deputy": 1, "admin": 2, None: 3}
-VALID_ROLES = ("main_owner", "owner", "deputy", "admin", "player")
+# ----- Role hierarchy: lower number = more power -----
+# 💎 MO (-1) > 💠 Co-Owner (0) > 👑 Owner (1) > 🛡 Moderator (2) > ⭐ Deputy (3) > 🎖 Admin (4) > 👤 Player (5)
+ROLE_RANK = {"main_owner": -1, "co_owner": 0, "owner": 1, "moderator": 2, "deputy": 3, "admin": 4, None: 5}
+VALID_ROLES = ("main_owner", "co_owner", "owner", "moderator", "deputy", "admin", "player")
+# Panellarga kirish darajasi: MO, Co-Owner, Owner — owner panel; moderator — admin panel
+OWNER_LEVEL = ("main_owner", "co_owner", "owner")
+CO_LEVEL = ("main_owner", "co_owner")
 
 
-def _can_manage(actor: OnlineUser | None, target: OnlineUser | None) -> bool:
+def _can_manage(actor, target) -> bool:
     """Actor may manage target only if strictly higher in the hierarchy.
     main_owner may manage EVERYONE except themselves (including other main_owners)."""
     if not actor or not target:
@@ -42,7 +46,7 @@ def _can_manage(actor: OnlineUser | None, target: OnlineUser | None) -> bool:
         return False
     if actor.role == "main_owner":
         return True
-    return ROLE_RANK.get(actor.role, 3) < ROLE_RANK.get(target.role, 3)
+    return ROLE_RANK.get(actor.role, 5) < ROLE_RANK.get(target.role, 5)
 
 
 async def get_session():
@@ -121,23 +125,18 @@ def _display_name(u: OnlineUser) -> str:
 
 
 def _owner_action(actor: OnlineUser, target: OnlineUser) -> bool:
-    """Permission gate for panel actions on a target user.
-    - main_owner: everyone except themselves
-    - owner: deputy/admin/player
-    - deputy: admin/player (deputy > admin)
-    - admin: player only
-    Returns False when forbidden."""
+    """Permission gate for panel actions on a target user (pure — side-effect yo'q).
+    💎 main_owner: hamma ustida (o'zidan boshqa) — hech qanday cheklov yo'q
+    💠 co_owner: pastdagi barcha rollar (owner, moderator, deputy, admin, player)
+    👑 owner: moderator/deputy/admin/player
+    🛡 moderator: deputy/admin/player
+    ⭐ deputy: admin/player
+    🎖 admin: player"""
     if target.id == actor.id:
         return False
     if actor.role == "main_owner":
         return True
-    if actor.role == "owner":
-        return target.role not in ("main_owner", "owner")
-    if actor.role == "deputy":
-        return target.role not in ("main_owner", "owner", "deputy")
-    if actor.role == "admin":
-        return target.role in (None, "player")
-    return False
+    return ROLE_RANK.get(actor.role, 5) < ROLE_RANK.get(target.role, 5)
 
 
 async def _modlog(db, actor: OnlineUser | None, action: str, text: str,
@@ -816,8 +815,8 @@ async def record_game_result(req: GameResultIn, session=Depends(get_session)):
 
 async def _require_owner(user_id: int, db) -> OnlineUser:
     u = await db.get(OnlineUser, user_id)
-    if not u or u.role not in ("main_owner", "owner"):
-        raise HTTPException(403, "Faqat owner uchun")
+    if not u or u.role not in ("main_owner", "co_owner", "owner"):
+        raise HTTPException(403, "Faqat owner darajasidagi rollar uchun")
     return u
 
 
@@ -862,9 +861,10 @@ async def owner_check(user_id: int, session=Depends(get_session)):
     async with session() as db:
         u = await db.get(OnlineUser, user_id)
         return {
-            "is_owner": bool(u and u.role in ("main_owner", "owner")),
-            "is_admin": bool(u and u.role in ("main_owner", "owner", "admin")),
-            "is_moderator": bool(u and u.role in ("main_owner", "owner", "admin", "deputy")),
+            "is_owner": bool(u and u.role in ("main_owner", "co_owner", "owner")),
+            "is_co_owner": bool(u and u.role == "co_owner"),
+            "is_admin": bool(u and u.role in ("main_owner", "co_owner", "owner", "moderator", "deputy", "admin")),
+            "is_moderator": bool(u and u.role in ("main_owner", "co_owner", "owner", "moderator", "deputy", "admin")),
             "is_main_owner": bool(u and u.role == "main_owner"),
             "role": (u.role if u else None),
         }
@@ -1245,14 +1245,19 @@ async def owner_set_role(user_id: int, req: RoleIn, session=Depends(get_session)
                 raise HTTPException(403, "Faqat MAIN OWNER main_owner o'rnatadi")
         elif not _can_manage(actor, u):
             raise HTTPException(403, "Bu user rolini o'zgartirish huquqi yo'q")
-        if u.role == "owner" and role not in ("main_owner", "owner") and actor.role != "main_owner":
-            raise HTTPException(400, "Ownerni faqat MAIN OWNER pasaytiradi")
-        if role == "owner" and actor.role not in ("main_owner", "owner"):
-            raise HTTPException(403, "Faqat owner/main_owner owner o'rnatadi")
-        if role == "deputy" and actor.role not in ("main_owner", "owner"):
-            raise HTTPException(403, "Faqat owner/main_owner deputy o'rnatadi")
-        if role == "admin" and actor.role not in ("main_owner", "owner", "deputy"):
-            raise HTTPException(403, "Faqat owner/deputy admin o'rnatadi")
+        if u.role == "owner" and role not in ("main_owner", "co_owner", "owner") and actor.role not in ("main_owner", "co_owner"):
+            raise HTTPException(400, "Ownerni faqat MAIN OWNER/CO-OWNER pasaytiradi")
+        if role == "co_owner":
+            if actor.role not in ("main_owner",):
+                raise HTTPException(403, "Faqat MAIN OWNER co_owner o'rnatadi")
+        elif role == "owner" and actor.role not in ("main_owner", "co_owner"):
+            raise HTTPException(403, "Faqat MO/co_owner/owner owner o'rnatadi")
+        elif role == "moderator" and actor.role not in ("main_owner", "co_owner", "owner"):
+            raise HTTPException(403, "Faqat MO/co_owner/owner moderator o'rnatadi")
+        elif role == "deputy" and actor.role not in ("main_owner", "co_owner", "owner"):
+            raise HTTPException(403, "Faqat MO/co_owner/owner deputy o'rnatadi")
+        elif role == "admin" and actor.role not in ("main_owner", "co_owner", "owner", "moderator", "deputy"):
+            raise HTTPException(403, "Faqat MO/co_owner/owner/moderator/deputy admin o'rnatadi")
         old_role = u.role or "player"
         u.role = None if role == "player" else role
         await db.commit()
@@ -1426,15 +1431,15 @@ async def owner_edit_stats(user_id: int, req: StatsIn, session=Depends(get_sessi
 
 async def _require_admin(user_id: int, db) -> OnlineUser:
     u = await db.get(OnlineUser, user_id)
-    if not u or u.role not in ("main_owner", "owner", "admin"):
-        raise HTTPException(403, "Faqat main_owner/owner/admin uchun")
+    if not u or u.role not in ("main_owner", "co_owner", "owner", "moderator", "deputy", "admin"):
+        raise HTTPException(403, "Faqat admin darajasidagi rollar uchun")
     return u
 
 
 async def _require_moderator(user_id: int, db) -> OnlineUser:
-    """main_owner > owner > admin > deputy — all four may use moderation endpoints."""
+    """Barcha moderator darajasidagi rollar (MO > CO > Owner > Moderator > Deputy > Admin)."""
     u = await db.get(OnlineUser, user_id)
-    if not u or u.role not in ("main_owner", "owner", "admin", "deputy"):
+    if not u or u.role not in ("main_owner", "co_owner", "owner", "moderator", "deputy", "admin"):
         raise HTTPException(403, "Faqat moderator rollar uchun")
     return u
 

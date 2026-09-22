@@ -2875,11 +2875,15 @@
         function roleTag(role, blocked) {
             if (blocked) return '<span class="role-tag role-bad">🚫 BLOK</span>';
             if (role === 'main_owner') return '<span class="role-tag role-owner">💎 MAIN OWNER</span>';
+            if (role === 'co_owner') return '<span class="role-tag role-owner">💠 CO-OWNER</span>';
             if (role === 'owner') return '<span class="role-tag role-owner">👑 OWNER</span>';
-            if (role === 'admin') return '<span class="role-tag role-admin">🛡 ADMIN</span>';
+            if (role === 'moderator') return '<span class="role-tag role-admin">🛡 MODERATOR</span>';
+            if (role === 'admin') return '<span class="role-tag role-admin">🎖 ADMIN</span>';
             if (role === 'deputy') return '<span class="role-tag role-deputy">⭐ ZAMESTITEL</span>';
             return '<span class="role-tag role-player">PLAYER</span>';
         }
+        // 💎 MO(-1) > 💠 CO(0) > 👑 Owner(1) > 🛡 Mod(2) > ⭐ Deputy(3) > 🎖 Admin(4) > Player(5)
+        const ROLE_RANK_MAP = { main_owner: -1, co_owner: 0, owner: 1, moderator: 2, deputy: 3, admin: 4 };
         // usersCache: id -> latest user info from /users/online + stats_update WS
         let usersCache = {};
         function tagFor(id) {
@@ -3287,12 +3291,11 @@
                 const resp = await fetch(API_BASE + '/admin/users?admin_id=' + userId);
                 if (!resp.ok) throw new Error();
                 const users = (await resp.json()).users || [];
-                const rank = { main_owner: -1, owner: 0, deputy: 1, admin: 2 };
-                const myRank = rank[users.find(u => u.id === userId)?.role] ?? 3;
+                const myRank = amMainOwner ? -1 : (ROLE_RANK_MAP[users.find(u => u.id === userId)?.role] ?? 5);
                 box.innerHTML = users.map(u => {
                     const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
                     usersCache[u.id] = { ...(usersCache[u.id] || {}), ...u, id: u.id };
-                    const canBlock = u.id !== userId && (rank[u.role] ?? 3) > myRank;
+                    const canBlock = u.id !== userId && (ROLE_RANK_MAP[u.role] ?? 5) > myRank;
                     return `
                     <div class="urow">
                         <div class="online-row" style="border:none;padding:0;">
@@ -3722,8 +3725,9 @@
         // ---------- Owner panel ----------
         let amOwner = false;
         let amAdmin = false;
-        let amModerator = false; // owner yoki admin yoki deputy
+        let amModerator = false; // barcha moderator darajasi
         let amMainOwner = false; // 💎 — hamma ustidan amal qilish huquqi
+        let amCoOwner = false; // 💠 — MO'dan keyingi daraja
 
         async function checkOwner() {
             if (!userId) return;
@@ -3735,6 +3739,7 @@
                 amAdmin = !!d.is_admin;
                 amModerator = !!d.is_moderator || amAdmin || amOwner;
                 amMainOwner = !!d.is_main_owner;
+                amCoOwner = !!d.is_co_owner;
                 // 💎 MO: alohida Main Owner Panel | Owner: Owner Panel | Admin: Admin | Deputy: Deputy
                 document.getElementById('mainowner-panel-btn').style.display = amMainOwner ? 'flex' : 'none';
                 document.getElementById('owner-panel-btn').style.display = (amOwner && !amMainOwner) ? 'flex' : 'none';
@@ -3778,12 +3783,10 @@
         }
 
         function _ouCanManage(u) {
-            // Frontend taxminiy guard: main_owner hamma ustidan, owner pastdagi rollar
+            // Frontend taxminiy guard: ierarxiya bo'yicha (MO hamma ustidan)
             if (u.id === userId) return false;
-            if (amMainOwner) return true;
-            if (u.role === 'main_owner' || u.role === 'owner') return false;
-            if (amOwner) return true;
-            return false;
+            const myRole = usersCache[userId]?.role || (amMainOwner ? 'main_owner' : (amCoOwner ? 'co_owner' : (amOwner ? 'owner' : 'player')));
+            return (ROLE_RANK_MAP[u.role] ?? 5) > (ROLE_RANK_MAP[myRole] ?? 5);
         }
 
         function renderOwnerUsers() {
@@ -4132,12 +4135,16 @@
             if (!_ownerActionGuard(id)) return;
             const opts = [
                 { label: '👑 OWNER', value: 'owner', cls: 'gold' },
+                { label: '🛡 MODERATOR', value: 'moderator', cls: 'blue' },
                 { label: '⭐ DEPUTY', value: 'deputy' },
-                { label: '🛡 ADMIN', value: 'admin', cls: 'blue' },
+                { label: '🎖 ADMIN', value: 'admin', cls: 'blue' },
                 { label: '👤 PLAYER', value: 'player' },
             ];
-            if (amMainOwner) opts.unshift({ label: '💎 MAIN OWNER', value: 'main_owner', cls: 'gold' });
-            const role = await showChoiceDialog('🛡 Rol tanlang', opts);
+            if (amMainOwner) {
+                opts.unshift({ label: '💠 CO-OWNER', value: 'co_owner', cls: 'gold' });
+                opts.unshift({ label: '💎 MAIN OWNER', value: 'main_owner', cls: 'gold' });
+            }
+            const role = await showChoiceDialog('🛡 Rol tanlang (💎>💠>👑>🛡>⭐>🎖)', opts);
             if (!role) return;
             await _ownerPost('/owner/users/' + id + '/role', { owner_id: userId, role }, 'Rol o\'rnatildi: ' + role);
         }
@@ -4420,10 +4427,9 @@
                 box.innerHTML = users.map(u => {
                     const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
                     usersCache[u.id] = { ...(usersCache[u.id] || {}), ...u, id: u.id };
-                    // Moderator (owner/deputy/admin) faqat pastdagi rollarni boshqara oladi (deputy > admin)
-                    const rank = { main_owner: -1, owner: 0, deputy: 1, admin: 2 };
-                    const myRank = amMainOwner ? -1 : (amOwner ? 0 : (amAdmin ? 2 : 1));
-                    const canAct = u.id !== userId && (rank[u.role] ?? 3) > myRank;
+                    // Moderator darajasi: faqat pastdagi rollarni boshqara oladi
+                    const myRank = amMainOwner ? -1 : (ROLE_RANK_MAP[users.find(u => u.id === userId)?.role] ?? ROLE_RANK_MAP[usersCache[userId]?.role] ?? 5);
+                    const canAct = u.id !== userId && (ROLE_RANK_MAP[u.role] ?? 5) > myRank;
                     return `
                     <div class="urow">
                         <div class="online-row" style="border:none;padding:0;">
