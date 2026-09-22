@@ -19,10 +19,14 @@ class OnlineUser(Base):
     last_name = Column(String, nullable=True)
     # In-app nickname (user can change it; preferred over Telegram names)
     nickname = Column(String(24), nullable=True)
-    # "owner" | "admin" | None(player) — tag shown next to the name
+    # "owner" | "admin" | "deputy" | None(player) — tag shown next to the name
     role = Column(String(16), nullable=True)
     # 1 = blocked: cannot chat, invite or join rooms
     blocked = Column(Integer, default=0, nullable=False)
+    # Optional block expiry (muddatli blok); NULL + blocked=1 => permanent
+    blocked_until = Column(DateTime, nullable=True)
+    # Optional reason shown to the blocked user
+    block_reason = Column(String(140), nullable=True)
     last_online = Column(DateTime, default=datetime.utcnow, index=True)
 
     # Stats (updated when a game result is recorded)

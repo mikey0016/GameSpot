@@ -40,6 +40,12 @@ async def init_db():
             await conn.execute(text(
                 "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS blocked INTEGER DEFAULT 0"
             ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS blocked_until TIMESTAMP"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS block_reason VARCHAR(140)"
+            ))
             # rooms: columns added after the first release (join tracking + game ref)
             await conn.execute(text(
                 "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS player_ids JSON DEFAULT '[]'"

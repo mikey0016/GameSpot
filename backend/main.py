@@ -131,12 +131,26 @@ manager = ConnectionManager()
 
 # Global chat WebSocket: every WebApp client connects here for worldwide chat
 async def _chat_meta(db, user_id) -> dict:
-    """Role tag + blocked flag for chat payloads (DB lookup, cheap at this scale)."""
+    """Role tag + block info for chat payloads (DB lookup, cheap at this scale)."""
     if user_id is None:
-        return {"role": None, "blocked": False}
+        return {"role": None, "blocked": False, "blocked_until": None, "block_reason": None}
     from .models.social import OnlineUser
+    from datetime import datetime as _dt
     u = await db.get(OnlineUser, user_id)
-    return {"role": (u.role if u else None), "blocked": bool(u and u.blocked)}
+    blocked = bool(u and u.blocked)
+    # Muddati chiqqan blokni avtomatik o'chirish
+    if blocked and u and u.blocked_until and u.blocked_until <= _dt.utcnow():
+        u.blocked = 0
+        u.blocked_until = None
+        u.block_reason = None
+        await db.commit()
+        blocked = False
+    return {
+        "role": (u.role if u else None),
+        "blocked": blocked,
+        "blocked_until": (u.blocked_until.isoformat() if u and u.blocked_until else None),
+        "block_reason": (u.block_reason if u else None),
+    }
 
 
 @app.websocket("/ws/global")
@@ -161,6 +175,15 @@ async def global_websocket(websocket: WebSocket):
                             ))
                             await db.commit()
                     if meta["blocked"]:
+                        # Bloklangan userga blok ekrani ma'lumotini yuboramiz
+                        if uid is not None:
+                            await manager.send_to_user("global", uid, {
+                                "type": "user_blocked",
+                                "user_id": uid,
+                                "blocked": True,
+                                "reason": meta.get("block_reason"),
+                                "until": meta.get("blocked_until"),
+                            })
                         continue  # blocked users cannot chat
                     await manager.broadcast("global", {
                         "type": "chat",

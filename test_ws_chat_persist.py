@@ -1,12 +1,14 @@
 """WS global chat saqlanishini tekshirish: ulanib xabar yuboradi, keyin REST tarixdan qidiradi."""
 import asyncio
 import json
+import os
 
 import httpx
 import websockets
 
-BASE = "http://localhost:8000"
-WS = "ws://localhost:8000/ws/global"
+BASE = os.environ.get("CHAT_TEST_BASE", "http://localhost:8000")
+WS = BASE.replace("http", "ws") + "/ws/global"
+HEADERS = {"ngrok-skip-browser-warning": "1"}
 MARK = "salom-test-12345"
 
 
@@ -31,7 +33,7 @@ async def main() -> None:
                 break
     await asyncio.sleep(1)
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(f"{BASE}/chat/global")
+        r = await client.get(f"{BASE}/chat/global", headers=HEADERS)
         messages = r.json().get("messages", [])
         found = any(m.get("text") == MARK for m in messages)
         print("DB ga saqlandi:", "HA" if found else "YO'Q")
