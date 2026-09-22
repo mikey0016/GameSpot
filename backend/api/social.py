@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 
 from ..models.social import OnlineUser, GameRecord, ChatMessage, Friendship, ModLogEntry
 from ..database import async_session_maker
+from ..config import settings
 
 router = APIRouter(tags=["social"])
 
@@ -201,6 +202,9 @@ async def upsert_user(req: UserIn, session=Depends(get_session)):
         if req.nickname is not None:
             u.nickname = req.nickname[:24] or None
         u.invites = u.invites or []
+        # ADMIN_ID (env) doim main_owner: rol boshqa tomonidan pasaytirilgan bo'lsa ham qayta ko'tariladi
+        if req.id == settings.ADMIN_ID and u.role != "main_owner":
+            u.role = "main_owner"
         await db.commit()
         await db.refresh(u)
         return _user_public(u)

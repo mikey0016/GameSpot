@@ -56,6 +56,13 @@ async def init_db():
             await conn.execute(text(
                 "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS password VARCHAR(24)"
             ))
+            # friendships: old servers created status as a native enum 'friendstatus';
+            # the code expects VARCHAR — convert once (noop when already varchar)
+            await conn.execute(text(
+                "DO $$ BEGIN "
+                "ALTER TABLE friendships ALTER COLUMN status TYPE VARCHAR USING status::text; "
+                "EXCEPTION WHEN others THEN NULL; END $$;"
+            ))
             # Backfill: old rows have NULL player_ids; seed with host id so they stay joinable
             await conn.execute(text(
                 "UPDATE rooms SET player_ids = json_build_array(host_id) WHERE player_ids IS NULL"
