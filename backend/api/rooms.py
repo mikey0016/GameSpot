@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 
 from ..models.room import Room, RoomStatus
 from ..database import async_session_maker
+from ..tz import now_local
 
 async def get_session():
     """Yield the session factory so handlers can do `async with session() as db`.
@@ -232,7 +233,7 @@ async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
 async def open_rooms(session=Depends(get_session)):
     """Public lobbies that are still WAITING for players (created in the last 30 min)."""
     from ..models.social import OnlineUser
-    cutoff = datetime.utcnow() - timedelta(minutes=30)
+    cutoff = now_local() - timedelta(minutes=30)
     async with session() as db:
         rooms = (
             await db.execute(

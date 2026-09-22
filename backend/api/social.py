@@ -21,15 +21,16 @@ from datetime import datetime, timedelta
 
 from ..models.social import OnlineUser, GameRecord, ChatMessage, Friendship, ModLogEntry
 from ..database import async_session_maker
+from ..tz import now_local
 from ..config import settings
 
 router = APIRouter(tags=["social"])
 
 ONLINE_WINDOW = timedelta(seconds=60)
 
-# ----- Role hierarchy: lower number = more power -----
-ROLE_RANK = {"main_owner": -1, "owner": 0, "admin": 1, "deputy": 2, None: 3}
-VALID_ROLES = ("main_owner", "owner", "admin", "deputy", "player")
+# ----- Role hierarchy: lower number = more power (Deputy > Admin) -----
+ROLE_RANK = {"main_owner": -1, "owner": 0, "deputy": 1, "admin": 2, None: 3}
+VALID_ROLES = ("main_owner", "owner", "deputy", "admin", "player")
 
 
 def _can_manage(actor: OnlineUser | None, target: OnlineUser | None) -> bool:
@@ -120,9 +121,10 @@ def _display_name(u: OnlineUser) -> str:
 
 def _owner_action(actor: OnlineUser, target: OnlineUser) -> bool:
     """Permission gate for panel actions on a target user.
-    - main_owner may act on anyone but themselves
-    - owner may act on strictly lower roles
-    - admin may act on deputy/player only
+    - main_owner: everyone except themselves
+    - owner: deputy/admin/player
+    - deputy: admin/player (deputy > admin)
+    - admin: player only
     Returns False when forbidden."""
     if target.id == actor.id:
         return False
@@ -130,8 +132,10 @@ def _owner_action(actor: OnlineUser, target: OnlineUser) -> bool:
         return True
     if actor.role == "owner":
         return target.role not in ("main_owner", "owner")
+    if actor.role == "deputy":
+        return target.role not in ("main_owner", "owner", "deputy")
     if actor.role == "admin":
-        return target.role in (None, "deputy", "player")
+        return target.role in (None, "player")
     return False
 
 
@@ -152,7 +156,7 @@ async def _cleanup_rooms(db) -> int:
     """Delete stale lobbies and orphaned finished rooms. Returns removed count."""
     from ..models.room import Room, RoomStatus
     from ..main import games as active_games
-    now = datetime.utcnow()
+    now = now_local()
     removed = 0
     rows = (await db.execute(select(Room))).scalars().all()
     for r in rows:
@@ -201,7 +205,7 @@ async def upsert_user(req: UserIn, session=Depends(get_session)):
         u.username = req.username or u.username
         u.first_name = req.first_name or u.first_name
         u.last_name = req.last_name or u.last_name
-        u.last_online = datetime.utcnow()
+        u.last_online = now_local()
         if req.nickname is not None:
             u.nickname = req.nickname[:24] or None
         u.invites = u.invites or []
@@ -222,7 +226,7 @@ async def heartbeat(req: UserIn, session=Depends(get_session)):
         if not u:
             u = OnlineUser(id=req.id, username=req.username, first_name=req.first_name)
             db.add(u)
-        u.last_online = datetime.utcnow()
+        u.last_online = now_local()
         u.invites = u.invites or []
         await db.commit()
         pending = [i for i in u.invites if i.get("status") == "pending"]
@@ -243,7 +247,7 @@ async def heartbeat(req: UserIn, session=Depends(get_session)):
 async def online_users(session=Depends(get_session)):
     from sqlalchemy import select
     async with session() as db:
-        cutoff = datetime.utcnow() - ONLINE_WINDOW
+        cutoff = now_local() - ONLINE_WINDOW
         result = await db.execute(
             select(OnlineUser)
             .where(OnlineUser.last_online >= cutoff)
@@ -340,12 +344,17 @@ async def leaderboard(session=Depends(get_session)):
                 .limit(20)
             )
         ).scalars().all()
+        now = now_local()
         return {
             "leaderboard": [
                 {
                     "rank": i + 1,
                     "id": u.id,
                     "name": _display_name(u),
+                    "username": u.username,
+                    "role": u.role,
+                    "online": bool(u.last_online and u.last_online >= now - ONLINE_WINDOW),
+                    "blocked": bool(u.blocked),
                     "wins": u.wins,
                     "games": u.games_played,
                     "level": u.level,
@@ -356,12 +365,62 @@ async def leaderboard(session=Depends(get_session)):
         }
 
 
+@router.get("/users/{user_id}/mini")
+async def user_mini_profile(user_id: int, viewer_id: int = 0, session=Depends(get_session)):
+    """Leaderboard card popup: short stats + friend-request state (viewer_id orqali)."""
+    async with session() as db:
+        u = await db.get(OnlineUser, user_id)
+        if not u:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        now = now_local()
+        online = bool(u.last_online and u.last_online >= now - ONLINE_WINDOW)
+        # get_profile'dagi fallback: hech qachon online bo'lmagan lekin o'ynagan userlar
+        games = u.games_played or 0
+        wins = u.wins or 0
+        if not u.last_online and not games:
+            hist = (await db.execute(
+                select(GameRecord).where(GameRecord.winner_id == user_id)
+            )).scalars().all()
+            games = len(hist)
+            wins = len(hist)
+        friend_state = None
+        friend_req_id = None
+        friend_incoming = False
+        if viewer_id and viewer_id != user_id:
+            f = (await db.execute(
+                select(Friendship).where(
+                    ((Friendship.user_id == viewer_id) & (Friendship.friend_id == user_id)) |
+                    ((Friendship.user_id == user_id) & (Friendship.friend_id == viewer_id))
+                )
+            )).scalars().first()
+            if f:
+                friend_state = f.status
+                friend_req_id = f.id
+                friend_incoming = (f.status == "pending" and f.friend_id == viewer_id)
+        return {
+            "id": u.id,
+            "name": _display_name(u),
+            "username": u.username,
+            "role": u.role or "player",
+            "online": online,
+            "blocked": bool(u.blocked),
+            "games": games,
+            "wins": wins,
+            "losses": u.losses or 0,
+            "level": u.level or 1,
+            "xp": u.xp or 0,
+            "friend_state": friend_state,  # None | pending | accepted
+            "friend_req_id": friend_req_id,
+            "friend_incoming": friend_incoming,
+        }
+
+
 # ---------- Friends ----------
 
 def _friend_public(u: OnlineUser | None) -> dict:
     if not u:
         return {}
-    online = bool(u.last_online and u.last_online >= datetime.utcnow() - ONLINE_WINDOW)
+    online = bool(u.last_online and u.last_online >= now_local() - ONLINE_WINDOW)
     return {
         "id": u.id,
         "name": _display_name(u),
@@ -458,6 +517,24 @@ async def accept_friend(req: FriendActionIn, session=Depends(get_session)):
         return {"ok": True}
 
 
+@router.post("/friends/decline")
+async def decline_friend(req: FriendActionIn, session=Depends(get_session)):
+    """Reject an incoming pending request (user = receiver, friend = sender)."""
+    async with session() as db:
+        fr = (await db.execute(
+            select(Friendship).where(
+                Friendship.user_id == req.friend_id,
+                Friendship.friend_id == req.user_id,
+                Friendship.status == "pending",
+            )
+        )).scalars().first()
+        if not fr:
+            raise HTTPException(404, "So'rov topilmadi")
+        await db.delete(fr)
+        await db.commit()
+        return {"ok": True}
+
+
 @router.post("/friends/remove")
 async def remove_friend(req: FriendActionIn, session=Depends(get_session)):
     async with session() as db:
@@ -495,12 +572,12 @@ async def send_invite(req: InviteIn, session=Depends(get_session)):
         if not friendship:
             raise HTTPException(403, "Faqat do'stlaringizga taklif yubora olasiz")
         invite = {
-            "id": f"{req.to_id}-{int(datetime.utcnow().timestamp() * 1000)}",
+            "id": f"{req.to_id}-{int(now_local().timestamp() * 1000)}",
             "from_id": req.from_id,
             "from_name": req.from_name,
             "room_code": req.room_code,
             "status": "pending",
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": now_local().isoformat(),
         }
         target.invites = (target.invites or []) + [invite]
         await db.commit()
@@ -575,7 +652,7 @@ async def global_chat(req: ChatIn, session=Depends(get_session)):
         "user_id": req.user_id,
         "name": req.name or "O'yinchi",
         "text": req.text.strip(),
-        "ts": datetime.utcnow().isoformat(),
+        "ts": now_local().isoformat(),
     }
     await _broadcast(payload)
     return {"ok": True}
@@ -702,7 +779,7 @@ async def _expire_blocks(db):
     await db.execute(update(OnlineUser)
                      .where(OnlineUser.blocked == 1,
                             OnlineUser.blocked_until.isnot(None),
-                            OnlineUser.blocked_until <= datetime.utcnow())
+                            OnlineUser.blocked_until <= now_local())
                      .values(blocked=0, blocked_until=None))
 
 
@@ -710,7 +787,7 @@ async def _is_blocked(db, user_id: int) -> bool:
     u = await db.get(OnlineUser, user_id)
     if not u or not u.blocked:
         return False
-    if u.blocked_until and u.blocked_until <= datetime.utcnow():
+    if u.blocked_until and u.blocked_until <= now_local():
         u.blocked = 0
         u.blocked_until = None
         await db.commit()
@@ -752,7 +829,7 @@ async def owner_stats(owner_id: int, session=Depends(get_session)):
         users = (await db.execute(select(func.count()).select_from(OnlineUser))).scalar() or 0
         online = (await db.execute(
             select(func.count()).select_from(OnlineUser)
-            .where(OnlineUser.last_online >= datetime.utcnow() - ONLINE_WINDOW)
+            .where(OnlineUser.last_online >= now_local() - ONLINE_WINDOW)
         )).scalar() or 0
         from ..models.room import Room, RoomStatus
         rooms_total = (await db.execute(select(func.count()).select_from(Room))).scalar() or 0
@@ -854,7 +931,7 @@ async def owner_broadcast(req: BroadcastIn, session=Depends(get_session)):
         "user_id": 0,
         "name": "📢 SYSTEM",
         "text": text,
-        "ts": datetime.utcnow().isoformat(),
+        "ts": now_local().isoformat(),
     })
     return {"ok": True}
 
@@ -869,7 +946,7 @@ async def owner_user_detail(user_id: int, owner_id: int, session=Depends(get_ses
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        now = datetime.utcnow()
+        now = now_local()
         online = bool(u.last_online and u.last_online >= now - ONLINE_WINDOW)
         rows = (await db.execute(
             select(Friendship).where(
@@ -998,7 +1075,7 @@ async def owner_block_user(user_id: int, req: BlockIn, session=Depends(get_sessi
         if req.blocked:
             u.blocked = 1
             if req.hours and req.hours > 0:
-                u.blocked_until = datetime.utcnow() + timedelta(hours=req.hours)
+                u.blocked_until = now_local() + timedelta(hours=req.hours)
             else:
                 u.blocked_until = None
             u.block_reason = (req.reason or "Qoidabuzarlik")[:140]
@@ -1101,8 +1178,10 @@ async def owner_set_role(user_id: int, req: RoleIn, session=Depends(get_session)
             raise HTTPException(400, "Ownerni faqat MAIN OWNER pasaytiradi")
         if role == "owner" and actor.role not in ("main_owner", "owner"):
             raise HTTPException(403, "Faqat owner/main_owner owner o'rnatadi")
-        if role == "admin" and actor.role not in ("main_owner", "owner", "admin"):
-            raise HTTPException(403, "Faqat owner/admin admin o'rnatadi")
+        if role == "deputy" and actor.role not in ("main_owner", "owner"):
+            raise HTTPException(403, "Faqat owner/main_owner deputy o'rnatadi")
+        if role == "admin" and actor.role not in ("main_owner", "owner", "deputy"):
+            raise HTTPException(403, "Faqat owner/deputy admin o'rnatadi")
         old_role = u.role or "player"
         u.role = None if role == "player" else role
         await db.commit()
@@ -1311,7 +1390,7 @@ async def admin_mute_user(user_id: int, req: MuteIn, session=Depends(get_session
             u.muted_until = None
         else:
             u.muted = 1
-            u.muted_until = (datetime.utcnow() + timedelta(minutes=req.minutes)) if (req.minutes and req.minutes > 0) else None
+            u.muted_until = (now_local() + timedelta(minutes=req.minutes)) if (req.minutes and req.minutes > 0) else None
         await db.commit()
         await _broadcast({"type": "user_muted", "user_id": user_id, "muted": bool(u.muted)})
         await _broadcast_stats_update(db, user_id)
@@ -1433,7 +1512,7 @@ async def admin_stats(admin_id: int, session=Depends(get_session)):
         users = (await db.execute(select(func.count()).select_from(OnlineUser))).scalar() or 0
         online = (await db.execute(
             select(func.count()).select_from(OnlineUser)
-            .where(OnlineUser.last_online >= datetime.utcnow() - ONLINE_WINDOW)
+            .where(OnlineUser.last_online >= now_local() - ONLINE_WINDOW)
         )).scalar() or 0
         games = (await db.execute(select(func.count()).select_from(GameRecord))).scalar() or 0
         return {"users": users, "online": online, "games": games}
@@ -1489,7 +1568,7 @@ async def admin_block_user(user_id: int, req: AdminBlockIn, session=Depends(get_
         if req.blocked:
             u.blocked = 1
             if req.hours and req.hours > 0:
-                u.blocked_until = datetime.utcnow() + timedelta(hours=req.hours)
+                u.blocked_until = now_local() + timedelta(hours=req.hours)
             else:
                 u.blocked_until = None
             u.block_reason = (req.reason or "Qoidabuzarlik")[:140]

@@ -12,6 +12,7 @@ from starlette.responses import JSONResponse
 
 from .config import settings
 from .database import async_session_maker, init_db
+from .tz import now_local
 
 from .api import rooms_router, social_router  # import routers
 from .game.uno import GameState
@@ -60,7 +61,7 @@ async def cleanup_stale_rooms():
     from sqlalchemy import delete
     from .models.room import Room, RoomStatus
 
-    cutoff = datetime.utcnow() - timedelta(hours=2)
+    cutoff = now_local() - timedelta(hours=2)
     async with async_session_maker() as db:
         await db.execute(
             delete(Room).where(
@@ -185,7 +186,7 @@ async def _chat_meta(db, user_id) -> dict:
     u = await db.get(OnlineUser, user_id)
     blocked = bool(u and u.blocked)
     # Muddati chiqqan blokni avtomatik o'chirish
-    if blocked and u and u.blocked_until and u.blocked_until <= _dt.utcnow():
+    if blocked and u and u.blocked_until and u.blocked_until <= now_local():
         u.blocked = 0
         u.blocked_until = None
         u.block_reason = None
@@ -193,7 +194,7 @@ async def _chat_meta(db, user_id) -> dict:
         blocked = False
     muted = bool(u and u.muted)
     # Muddati chiqqan mute'ni avtomatik o'chirish
-    if muted and u and u.muted_until and u.muted_until <= _dt.utcnow():
+    if muted and u and u.muted_until and u.muted_until <= now_local():
         u.muted = 0
         u.muted_until = None
         await db.commit()
@@ -260,7 +261,7 @@ async def global_websocket(websocket: WebSocket):
                         "name": data.get("name") or "O'yinchi",
                         "role": meta["role"],
                         "text": text.strip(),
-                        "ts": datetime.utcnow().isoformat(),
+                        "ts": now_local().isoformat(),
                     })
     except WebSocketDisconnect:
         manager.disconnect("global", websocket)

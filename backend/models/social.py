@@ -2,6 +2,7 @@
 
 """Models for social features: online presence, invites, chat, game history."""
 
+from ..tz import now_local
 from sqlalchemy import Column, BigInteger, String, Integer, DateTime, JSON
 from sqlalchemy.orm import declarative_base
 from .mutable import JSONList, JSONDict
@@ -33,7 +34,7 @@ class OnlineUser(Base):
     muted_until = Column(DateTime, nullable=True)
     # Optional warning text shown to the user (player sees it until dismissed)
     warning = Column(String(220), nullable=True)
-    last_online = Column(DateTime, default=datetime.utcnow, index=True)
+    last_online = Column(DateTime, default=now_local, index=True)
 
     # Stats (updated when a game result is recorded)
     games_played = Column(Integer, default=0)
@@ -54,7 +55,7 @@ class GameRecord(Base):
     winner_id = Column(BigInteger, nullable=True, index=True)
     winner_name = Column(String, nullable=True)
     players = Column(JSONList, default=list)  # [{id, name}]
-    finished_at = Column(DateTime, default=datetime.utcnow, index=True)
+    finished_at = Column(DateTime, default=now_local, index=True)
 
 
 class ModLogEntry(Base):
@@ -66,7 +67,7 @@ class ModLogEntry(Base):
     action = Column(String(24), nullable=False, index=True)   # block | unblock | role | delete | cleanup | system
     target_id = Column(BigInteger, nullable=True, index=True)
     text = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=now_local, index=True)
 
 
 class ChatMessage(Base):
@@ -77,7 +78,7 @@ class ChatMessage(Base):
     user_id = Column(BigInteger, nullable=False)
     name = Column(String, nullable=True)
     text = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=now_local, index=True)
 
 
 class Friendship(Base):
@@ -88,4 +89,4 @@ class Friendship(Base):
     friend_id = Column(BigInteger, nullable=False, index=True)    # who receives it
     # "pending" | "accepted"
     status = Column(String(16), default="pending", nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_local)

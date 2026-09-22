@@ -1088,6 +1088,14 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
+    <!-- ===== MINI PROFILE MODAL (leaderboard) ===== -->
+    <div id="mini-profile-overlay" class="block-overlay" onclick="if(event.target===this)closeMiniProfile()">
+        <div style="width:100%; max-width:340px; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
+            <div id="mini-profile-body"><div class="oempty">Yuklanmoqda...</div></div>
+            <button class="ubtn ghost" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeMiniProfile()">✕ Yopish</button>
+        </div>
+    </div>
+
     <!-- ===== INVITE FRIEND PICKER ===== -->
     <div id="invite-overlay" class="block-overlay" onclick="if(event.target===this)closeInvitePicker()">
         <div style="width:100%; max-width:360px; max-height:78vh; overflow-y:auto; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
@@ -2878,12 +2886,14 @@
                     box.innerHTML = '<p class="invite-hint">Hali natija yo\'q — birinchi bo\'lib g\'alaba qozoning! 🏆</p>';
                     return;
                 }
-                box.innerHTML = rows.map(r => `
-                    <div class="lb-row ${r.id === userId ? 'me' : ''}">
+                box.innerHTML = rows.map(r => {
+                    return `
+                    <div class="lb-row ${r.id === userId ? 'me' : ''}" style="cursor:pointer;" onclick="openMiniProfile(${r.id})">
                         <div class="lb-rank r${r.rank}">${r.rank}</div>
-                        <div class="lb-name">${esc(r.name)}${r.id === userId ? ' <span class="you-badge">siz</span>' : ''} ${tagFor(r.id)}</div>
+                        <div class="lb-name">${r.online ? '<span style="color:var(--green);">●</span> ' : ''}${esc(r.name)}${r.id === userId ? ' <span class="you-badge">siz</span>' : ''} ${roleTag(r.role, r.blocked)}${r.username ? ` <span style="color:var(--text-dim); font-size:0.62rem;">@${esc(r.username)}</span>` : ''}</div>
                         <div class="lb-stats"><span class="lb-wins">${r.wins}</span> g'alaba · ${r.games} o'yin · Lvl ${r.level}</div>
-                    </div>`).join('');
+                    </div>`;
+                }).join('');
             } catch (e) {
                 box.innerHTML = '<p class="invite-hint">Yuklab bo\'lmadi — internetni tekshiring</p>';
             }
@@ -3103,7 +3113,7 @@
                 const resp = await fetch(API_BASE + '/admin/users?admin_id=' + userId);
                 if (!resp.ok) throw new Error();
                 const users = (await resp.json()).users || [];
-                const rank = { main_owner: -1, owner: 0, admin: 1, deputy: 2 };
+                const rank = { main_owner: -1, owner: 0, deputy: 1, admin: 2 };
                 const myRank = rank[users.find(u => u.id === userId)?.role] ?? 3;
                 box.innerHTML = users.map(u => {
                     const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
@@ -3370,6 +3380,103 @@
             if (data.user_id !== userId) {
                 showToast((data.name || "O'yinchi") + ' ' + (data.emoji || ''));
             }
+        }
+
+        // ---------- Mini profile (leaderboard popup) ----------
+        async function openMiniProfile(id) {
+            const body = document.getElementById('mini-profile-body');
+            document.getElementById('mini-profile-overlay').classList.add('show');
+            body.innerHTML = '<div class="oempty">Yuklanmoqda...</div>';
+            try {
+                const resp = await fetch(API_BASE + '/users/' + id + '/mini?viewer_id=' + (userId || 0));
+                if (!resp.ok) throw new Error('Yuklab bo\'lmadi');
+                const d = await resp.json();
+                const winrate = d.games ? Math.round(d.wins * 100 / d.games) : 0;
+                let friendBtn = '';
+                if (d.id === userId) {
+                    friendBtn = '<span class="ubtn ghost" style="pointer-events:none;">Bu siz</span>';
+                } else if (d.friend_state === 'accepted') {
+                    friendBtn = `<button class="ubtn gold" onclick="miniRemoveFriend(${d.id})">🤝 Do'st — o'chirish</button>`;
+                } else if (d.friend_state === 'pending' && d.friend_incoming) {
+                    friendBtn = `<button class="ubtn blue" onclick="miniAcceptFriend(${d.id})">✅ Qabul qilish</button> <button class="ubtn ghost" onclick="miniDeclineFriend(${d.id})">✕ Rad</button>`;
+                } else if (d.friend_state === 'pending') {
+                    friendBtn = '<span class="ubtn ghost" style="pointer-events:none;">⏳ So\'rov yuborilgan</span>';
+                } else {
+                    friendBtn = `<button class="ubtn blue" onclick="miniAddFriend(${d.id})">➕ Do'st qo'shish</button>`;
+                }
+                body.innerHTML = `
+                    <div class="ud-hero">
+                        <div class="ud-ava">${esc((d.name || '?')[0].toUpperCase())}</div>
+                        <div style="flex:1; min-width:0;">
+                            <div class="ud-name">${d.online ? '<span style="color:var(--green);">●</span> ' : ''}${esc(d.name)} ${roleTag(d.role, d.blocked)}</div>
+                            <div class="ud-sub">${d.username ? '@' + esc(d.username) : 'ID ' + d.id}</div>
+                        </div>
+                    </div>
+                    <div class="ud-stats">
+                        <div class="ud-stat"><b>${d.games}</b><span>O'yin</span></div>
+                        <div class="ud-stat"><b>${d.wins}</b><span>G'alaba</span></div>
+                        <div class="ud-stat"><b>${winrate}%</b><span>Winrate</span></div>
+                        <div class="ud-stat"><b>${d.level}</b><span>Lvl</span></div>
+                    </div>
+                    <div class="uactions" style="justify-content:center;">
+                        ${friendBtn}
+                        <button class="ubtn ghost" onclick="copyText('ID: ${d.id}'); showToast('📋 ID nusxalandi')">🆔 ID</button>
+                        <button class="ubtn ghost" onclick="closeMiniProfile();showScreen('leaderboard')">🏆 Back</button>
+                    </div>
+                `;
+            } catch (e) {
+                body.innerHTML = '<div class="oempty">' + esc(e.message) + '</div>';
+            }
+        }
+
+        function closeMiniProfile() {
+            document.getElementById('mini-profile-overlay').classList.remove('show');
+        }
+
+        async function miniAddFriend(id) {
+            try {
+                const resp = await fetch(API_BASE + '/friends', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from_id: userId, to_id: id })
+                });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Yuborilmadi');
+                showToast('🤝 So\'rov yuborildi');
+                openMiniProfile(id);
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function miniAcceptFriend(id) {
+            try {
+                await fetch(API_BASE + '/friends/accept', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, friend_id: id })
+                });
+                showToast('✅ Do\'st qo\'shildi');
+                openMiniProfile(id);
+            } catch (e) { showToast('❌ Qabul qilinmadi'); }
+        }
+
+        async function miniDeclineFriend(id) {
+            try {
+                await fetch(API_BASE + '/friends/decline', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, friend_id: id })
+                });
+                showToast('✕ Rad etildi');
+                openMiniProfile(id);
+            } catch (e) {}
+        }
+
+        async function miniRemoveFriend(id) {
+            if (!confirm("Do'stlikni o'chirasizmi?")) return;
+            try {
+                await fetch(API_BASE + '/friends/remove', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, friend_id: id })
+                });
+                showToast('🗑 O\'chirildi');
+                openMiniProfile(id);
+            } catch (e) {}
         }
 
         // ---------- Owner panel ----------
@@ -3823,9 +3930,9 @@
                 box.innerHTML = users.map(u => {
                     const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
                     usersCache[u.id] = { ...(usersCache[u.id] || {}), ...u, id: u.id };
-                    // Moderator (owner/admin/deputy) faqat pastdagi rollarni boshqara oladi
-                    const rank = { owner: 0, admin: 1, deputy: 2 };
-                    const myRank = amOwner ? 0 : (amAdmin ? 1 : 2);
+                    // Moderator (owner/deputy/admin) faqat pastdagi rollarni boshqara oladi (deputy > admin)
+                    const rank = { main_owner: -1, owner: 0, deputy: 1, admin: 2 };
+                    const myRank = amMainOwner ? -1 : (amOwner ? 0 : (amAdmin ? 2 : 1));
                     const canAct = u.id !== userId && (rank[u.role] ?? 3) > myRank;
                     return `
                     <div class="urow">
