@@ -112,6 +112,7 @@ def _user_public(u: OnlineUser) -> dict:
         "losses": u.losses,
         "xp": u.xp,
         "level": u.level,
+        "coins": u.coins or 0,
     }
 
 
@@ -258,6 +259,34 @@ async def online_users(session=Depends(get_session)):
         return {"users": [_user_public(u) for u in users]}
 
 
+@router.get("/users/search")
+async def search_users(q: str, session=Depends(get_session)):
+    """Search by exact username / nickname / first_name / numeric ID (all users, not only online)."""
+    q = (q or "").strip().lstrip("@")
+    if not q:
+        raise HTTPException(400, "Qidiruv bo'sh")
+    async with session() as db:
+        u = None
+        if q.isdigit():
+            u = await db.get(OnlineUser, int(q))
+        if not u:
+            ql = q.lower()
+            rows = (await db.execute(
+                select(OnlineUser).where(
+                    (func.lower(OnlineUser.username) == ql) |
+                    (func.lower(OnlineUser.nickname) == ql) |
+                    (func.lower(OnlineUser.first_name) == ql)
+                ).limit(5)
+            )).scalars().all()
+            u = rows[0] if rows else None
+            matches = [{"id": r.id, "name": _display_name(r), "username": r.username} for r in rows]
+        else:
+            matches = [{"id": u.id, "name": _display_name(u), "username": u.username}]
+        if not u:
+            raise HTTPException(404, "User topilmadi")
+        return {"id": u.id, "name": _display_name(u), "username": u.username, "matches": matches}
+
+
 @router.get("/users/{user_id}")
 async def get_profile(user_id: int, session=Depends(get_session)):
     async with session() as db:
@@ -296,6 +325,7 @@ async def get_profile(user_id: int, session=Depends(get_session)):
             "wins": u.wins, "losses": u.losses,
             "xp": u.xp,
             "level": u.level,
+            "coins": u.coins or 0,
         }
 
 
@@ -409,6 +439,7 @@ async def user_mini_profile(user_id: int, viewer_id: int = 0, session=Depends(ge
             "losses": u.losses or 0,
             "level": u.level or 1,
             "xp": u.xp or 0,
+            "coins": u.coins or 0,
             "friend_state": friend_state,  # None | pending | accepted
             "friend_req_id": friend_req_id,
             "friend_incoming": friend_incoming,
@@ -716,6 +747,9 @@ async def record_result_server(room_code: str, winner_id: int | None, winner_nam
                 u.losses = (u.losses or 0) + 1
             u.xp = (u.xp or 0) + xp_by_place.get(place, 3)
             u.level = 1 + (u.xp or 0) // 50
+            # Coin rewards: 1st +50, 2nd +25, 3rd +15, others +5
+            coin_by_place = {1: 50, 2: 25, 3: 15}
+            u.coins = (u.coins or 0) + coin_by_place.get(place, 5)
         await db.commit()
 
 
@@ -755,9 +789,11 @@ async def record_game_result(req: GameResultIn, session=Depends(get_session)):
             if pid == req.winner_id:
                 u.wins = (u.wins or 0) + 1
                 u.xp = (u.xp or 0) + 20
+                u.coins = (u.coins or 0) + 50
             else:
                 u.losses = (u.losses or 0) + 1
                 u.xp = (u.xp or 0) + 5
+                u.coins = (u.coins or 0) + 5
             u.level = 1 + (u.xp or 0) // 50
 
         await db.commit()
@@ -998,13 +1034,14 @@ async def owner_user_detail(user_id: int, owner_id: int, session=Depends(get_ses
             "online": online,
             "last_online": u.last_online.isoformat() if u.last_online else None,
             "games_played": u.games_played,
-            "wins": u.wins,
-            "losses": u.losses,
-            "xp": u.xp,
-            "level": u.level,
-            "friends": friends,
-            "games": games[:20],
-        }
+        "wins": u.wins,
+        "losses": u.losses,
+        "xp": u.xp,
+        "level": u.level,
+        "coins": u.coins or 0,
+        "friends": friends,
+        "games": games[:20],
+    }
 
 
 class NickResetIn(BaseModel):
@@ -1121,6 +1158,28 @@ async def owner_add_xp(user_id: int, req: XpIn, session=Depends(get_session)):
         await _broadcast_stats_update(db, user_id)
         await _modlog(db, actor, "xp", f"➕ XP {req.amount:+d} → {_display_name(u)}", target_id=user_id)
         return {"ok": True, "xp": u.xp, "level": u.level}
+
+
+class CoinsIn(BaseModel):
+    owner_id: int
+    amount: int
+
+
+@router.post("/owner/users/{user_id}/coins")
+async def owner_add_coins(user_id: int, req: CoinsIn, session=Depends(get_session)):
+    """Add/subtract coins (owner+)."""
+    async with session() as db:
+        actor = await _require_owner(req.owner_id, db)
+        u = await db.get(OnlineUser, user_id)
+        if not u:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if not (_owner_action(actor, u) or user_id == req.owner_id):
+            raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
+        u.coins = max(0, (u.coins or 0) + req.amount)
+        await db.commit()
+        await _broadcast_stats_update(db, user_id)
+        await _modlog(db, actor, "coins", f"🪙 {req.amount:+d} → {_display_name(u)}", target_id=user_id)
+        return {"ok": True, "coins": u.coins}
 
 
 class LevelIn(BaseModel):

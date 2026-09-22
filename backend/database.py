@@ -55,6 +55,9 @@ async def init_db():
             await conn.execute(text(
                 "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS warning VARCHAR(220)"
             ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS coins INTEGER DEFAULT 0"
+            ))
             # rooms: columns added after the first release (join tracking + game ref)
             await conn.execute(text(
                 "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS player_ids JSON DEFAULT '[]'"

@@ -39,7 +39,7 @@ def _generate_code(length: int = 6) -> str:
 
 class CreateRoomRequest(BaseModel):
     host_id: int
-    max_players: int = 4
+    max_players: int = 4  # 2..7 qabul qilinadi
     password: str | None = None  # bo'sh bo'lsa ochiq xona
 
 class JoinRoomRequest(BaseModel):
@@ -90,7 +90,7 @@ async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
         room = Room(
             id=code,
             host_id=req.host_id,
-            max_players=req.max_players,
+            max_players=max(2, min(7, int(req.max_players or 4))),
             status=RoomStatus.WAITING,
             player_ids=[req.host_id],
             password=(req.password or None),

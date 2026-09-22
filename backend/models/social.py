@@ -40,6 +40,8 @@ class OnlineUser(Base):
     games_played = Column(Integer, default=0)
     wins = Column(Integer, default=0)
     losses = Column(Integer, default=0)
+    # Coin currency (game rewards + owner grants)
+    coins = Column(Integer, default=0, nullable=False)
     xp = Column(Integer, default=0)
     level = Column(Integer, default=1)
 

@@ -1088,6 +1088,21 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
+    <!-- ===== UNIVERSAL DIALOG (prompt o'rniga button-dialog) ===== -->
+    <div id="dlg-overlay" class="block-overlay" onclick="if(event.target===this)closeDialog()">
+        <div style="width:100%; max-width:320px; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:18px; padding:16px;">
+            <div class="ud-name" id="dlg-title" style="margin-bottom:10px;">Sarlavha</div>
+            <div id="dlg-options" style="display:flex; flex-direction:column; gap:6px;"></div>
+            <div id="dlg-input-row" style="display:none; margin-top:10px;">
+                <input type="text" class="osearch" id="dlg-input" placeholder="Qimmat kiritish...">
+            </div>
+            <div style="display:flex; gap:6px; margin-top:10px;">
+                <button class="ubtn blue" style="flex:1; justify-content:center; display:none;" id="dlg-ok" onclick="dlgConfirm()">Tasdiqlash</button>
+                <button class="ubtn ghost" style="flex:1; justify-content:center;" onclick="closeDialog()">Bekor</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== MINI PROFILE MODAL (leaderboard) ===== -->
     <div id="mini-profile-overlay" class="block-overlay" onclick="if(event.target===this)closeMiniProfile()">
         <div style="width:100%; max-width:340px; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
@@ -1294,10 +1309,25 @@
         <div class="glass-panel">
             <div class="input-group">
                 <label>Maksimal o'yinchilar</label>
-                <div style="display:flex; gap:10px; justify-content:center;">
+                <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
                     <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(2)" id="mp-2">2</button>
                     <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(3)" id="mp-3">3</button>
                     <button class="btn btn-primary mp-btn" onclick="setMaxPlayers(4)" id="mp-4">4</button>
+                    <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(5)" id="mp-5">5</button>
+                    <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(6)" id="mp-6">6</button>
+                    <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(7)" id="mp-7">7</button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Xona turi</label>
+                <div style="display:flex; gap:8px; justify-content:center;">
+                    <button class="btn btn-primary mp-btn" onclick="setRoomPrivacy(false)" id="pw-open">🌐 Ochiq</button>
+                    <button class="btn btn-outline mp-btn" onclick="setRoomPrivacy(true)" id="pw-locked">🔒 Parolli</button>
+                </div>
+                <div class="input-group" id="create-password-group" style="display:none; margin-top:10px;">
+                    <label>Xona paroli</label>
+                    <input type="text" class="input-field" id="create-password-input"
+                           placeholder="Parol kiriting" maxlength="24" style="letter-spacing:2px;">
                 </div>
             </div>
         </div>
@@ -1688,8 +1718,8 @@
                     <div class="stat-label">Mag'lubiyat</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-val" id="pf-xp">0</div>
-                    <div class="stat-label">XP</div>
+                    <div class="stat-val" style="color:var(--yellow);" id="pf-coins">0</div>
+                    <div class="stat-label">🪙 Coins</div>
                 </div>
             </div>
         </div>
@@ -1910,21 +1940,36 @@
             }
         }
 
-        // ===== Max Players =====
+        // ===== Max Players + parol tanlovi =====
         function setMaxPlayers(n) {
             maxPlayers = n;
-            [2,3,4].forEach(v => {
+            [2,3,4,5,6,7].forEach(v => {
                 const btn = document.getElementById('mp-' + v);
-                btn.className = v === n ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
+                if (btn) btn.className = v === n ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
             });
+        }
+
+        let roomLocked = false;
+        function setRoomPrivacy(locked) {
+            roomLocked = locked;
+            const open = document.getElementById('pw-open');
+            const lock = document.getElementById('pw-locked');
+            open.className = locked ? 'btn btn-outline mp-btn' : 'btn btn-primary mp-btn';
+            lock.className = locked ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
+            document.getElementById('create-password-group').style.display = locked ? 'block' : 'none';
         }
 
         // ===== Room Creation =====
         async function createRoom() {
             const loader = document.getElementById('create-loader');
             loader.classList.add('active');
-            // Parol (ixtiyoriy)
-            const pw = prompt('Xona paroli (bo\'sh = ochiq xona):', '') || '';
+            // Parol: button tanloviga qarab input'dan olinadi
+            const pw = roomLocked ? (document.getElementById('create-password-input')?.value.trim() || '') : '';
+            if (roomLocked && !pw) {
+                loader.classList.remove('active');
+                showToast('⚠️ Parolli xona uchun parol kiriting');
+                return;
+            }
             try {
                 const resp = await fetch(API_BASE + '/rooms/create', {
                     method: 'POST',
@@ -2353,6 +2398,9 @@
             }
             if (data.type === 'game_over') {
                 showResult(data.winner, data.standings);
+            }
+            if (data.type === 'chat' && data.room && data.room !== 'global' && data.user_id === userId) {
+                return; // o'z xabarimni allaqachon ko'rsatdik (duplikat bug)
             }
             if (data.type === 'chat' && data.room && data.room !== 'global' && data.user_id !== userId) {
                 // Lobby va in-game chat: o'yin ekrani ochiq bo'lsa ham ko'rinadi
@@ -2788,8 +2836,10 @@
                 if (typeof loadProfile === 'function') loadProfile();
             }
             // live refresh of visible lists
-            if (document.getElementById('screen-owner')?.classList.contains('active') && typeof ownerLoadUsers === 'function') ownerLoadUsers();
+            // 🔴 Live refresh: panel oynasi ochiq bo'lsa ro'yxatlarni darhol yangilash
+            if (document.getElementById('screen-owner')?.classList.contains('active') && typeof ownerLoadUsers === 'function') { ownerLoadUsers(); ownerLoadPanel(); }
             if (document.getElementById('screen-admin')?.classList.contains('active') && typeof adminLoadUsers === 'function') adminLoadUsers();
+            if (document.getElementById('screen-deputy')?.classList.contains('active') && typeof deputyLoadUsers === 'function') deputyLoadUsers();
             if (document.getElementById('screen-online')?.classList.contains('active') && typeof loadOnline === 'function') loadOnline();
             if (document.getElementById('screen-leaderboard')?.classList.contains('active') && typeof loadLeaderboard === 'function') loadLeaderboard();
         }
@@ -2860,7 +2910,8 @@
                 document.getElementById('pf-games').textContent = p.games_played ?? 0;
                 document.getElementById('pf-wins').textContent = p.wins ?? 0;
                 document.getElementById('pf-losses').textContent = p.losses ?? 0;
-                document.getElementById('pf-xp').textContent = p.xp ?? 0;
+                document.getElementById('pf-xp') && (document.getElementById('pf-xp').textContent = p.xp ?? 0);
+                document.getElementById('pf-coins').textContent = '🪙 ' + (p.coins ?? 0);
                 document.getElementById('pf-level').textContent = p.level ?? 1;
                 document.getElementById('stat-games').textContent = p.games_played ?? 0;
                 document.getElementById('stat-wins').textContent = p.wins ?? 0;
@@ -3046,24 +3097,20 @@
             const val = (input?.value || '').trim();
             if (!val) { showToast('⚠️ ID yoki @username kiriting'); return; }
             try {
-                let toId = null;
-                if (val.startsWith('@')) {
-                    const r = await fetch(API_BASE + '/users/online');
-                    const us = (await r.json()).users || [];
-                    const u = us.find(x => (x.username || '').toLowerCase() === val.slice(1).toLowerCase());
-                    if (!u) throw new Error('Bunday onlayn user topilmadi');
-                    toId = u.id;
-                } else {
-                    toId = parseInt(val, 10);
-                    if (isNaN(toId)) throw new Error('ID raqam bo\'lishi kerak');
-                }
+                // /users/search: ID, @username, nickname yoki ism bo'yicha (hamma userlar orasidan)
+                const sr = await fetch(API_BASE + '/users/search?q=' + encodeURIComponent(val));
+                const sd = await sr.json();
+                if (!sr.ok) throw new Error(sd.detail || 'User topilmadi');
+                const toId = sd.id;
                 const resp = await fetch(API_BASE + '/friends', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ from_id: userId, to_id: toId })
                 });
-                const d = await resp.json();
-                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Yuborilmadi');
-                showToast(d.auto_accepted ? '✅ Siz endi do\'stlar!' : (d.already ? 'ℹ️ Allaqachon do\'stsiz' : '📩 So\'rov yuborildi'));
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Yuborilmadi');
+                showToast(d.auto_accepted ? ('✅ Siz endi do\'stlar: ' + (sd.name || ''))
+                    : (d.already ? 'ℹ️ Allaqachon do\'stsiz'
+                    : (d.pending ? 'ℹ️ So\'rov allaqachon yuborilgan' : ('📩 So\'rov yuborildi: ' + (sd.name || toId)))));
                 input.value = '';
                 loadFriends();
             } catch (e) { showToast('❌ ' + e.message); }
@@ -3229,7 +3276,7 @@
                         showToast('🚪 Xona moderator tomonidan yopildi');
                         leaveLobby();
                     }
-                    if (data.type === 'muted' && (data.user_id === userId || data.user_id === undefined)) {
+                    if (data.type === 'muted' && data.user_id === userId) {
                         myMuted = true;
                         showToast('🔇 Siz mute qilingansiz — chat vaqtincha yopiq' + (data.muted_until ? (' (' + new Date(data.muted_until).toLocaleString('uz-UZ') + ')') : ''));
                     }
@@ -3305,13 +3352,14 @@
             const input = document.getElementById('game-chat-input');
             const text = input.value.trim();
             if (myBlocked) { showToast('🚫 Siz bloklangansiz'); input.value = ''; return; }
+            if (myMuted) { showToast('🔇 Siz mute qilingansiz — chat yopiq'); return; }
             if (!text || !ws || ws.readyState !== WebSocket.OPEN) {
                 if (!ws || ws.readyState !== WebSocket.OPEN) showToast('⏳ Ulanish kutilmoqda...');
                 input.value = '';
                 return;
             }
             ws.send(JSON.stringify({ action: 'chat', user_id: userId, name: myName(), text }));
-            // O'z xabarimni darhol ko'rsataman
+            // O'z xabarimni darhol ko'rsataman (server broadcast'i frontend'da filtrlanadi)
             appendGameChatMsg({ user_id: userId, name: myName(), text });
             input.value = '';
             if (tg) tg.HapticFeedback?.impactOccurred('light');
@@ -3382,6 +3430,55 @@
             }
         }
 
+        // ---------- Universal button-dialog (prompt o'rniga) ----------
+        let _dlgResolve = null;
+
+        function showChoiceDialog(title, options) {
+            // options: [{label, value, cls?}] — tanlansa value resolve bo'ladi
+            return new Promise(resolve => {
+                _dlgResolve = resolve;
+                document.getElementById('dlg-title').textContent = title;
+                const box = document.getElementById('dlg-options');
+                box.innerHTML = options.map(o =>
+                    `<button class="ubtn ${o.cls || ''}" style="justify-content:center; padding:10px;" onclick="dlgPick('${String(o.value).replace(/'/g, "\\'")}')">${o.label}</button>`
+                ).join('');
+                document.getElementById('dlg-input-row').style.display = 'none';
+                document.getElementById('dlg-ok').style.display = 'none';
+                document.getElementById('dlg-overlay').classList.add('show');
+            });
+        }
+
+        function showInputDialog(title, defVal, placeholder) {
+            return new Promise(resolve => {
+                _dlgResolve = resolve;
+                document.getElementById('dlg-title').textContent = title;
+                document.getElementById('dlg-options').innerHTML = '';
+                const row = document.getElementById('dlg-input-row');
+                row.style.display = 'block';
+                const inp = document.getElementById('dlg-input');
+                inp.value = defVal || '';
+                inp.placeholder = placeholder || '';
+                document.getElementById('dlg-ok').style.display = 'flex';
+                document.getElementById('dlg-overlay').classList.add('show');
+                setTimeout(() => inp.focus(), 60);
+            });
+        }
+
+        function dlgPick(value) {
+            closeDialog();
+            if (_dlgResolve) { _dlgResolve(value); _dlgResolve = null; }
+        }
+
+        function dlgConfirm() {
+            const v = document.getElementById('dlg-input').value;
+            closeDialog();
+            if (_dlgResolve) { _dlgResolve(v); _dlgResolve = null; }
+        }
+
+        function closeDialog() {
+            document.getElementById('dlg-overlay').classList.remove('show');
+        }
+
         // ---------- Mini profile (leaderboard popup) ----------
         async function openMiniProfile(id) {
             const body = document.getElementById('mini-profile-body');
@@ -3439,8 +3536,9 @@
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ from_id: userId, to_id: id })
                 });
-                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Yuborilmadi');
-                showToast('🤝 So\'rov yuborildi');
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Yuborilmadi');
+                showToast(d.auto_accepted ? '✅ Siz endi do\'stlar!' : (d.already || d.pending ? 'ℹ️ Allaqachon do\'st yoki so\'rov bor' : '🤝 So\'rov yuborildi'));
                 openMiniProfile(id);
             } catch (e) { showToast('❌ ' + e.message); }
         }
@@ -3611,7 +3709,7 @@
                         <div class="ud-stat"><b>${winrate}%</b><span>Winrate</span></div>
                     </div>
                     <div class="ud-stats">
-                        <div class="ud-stat"><b>${d.xp ?? 0}</b><span>XP</span></div>
+                        <div class="ud-stat"><b style="color:var(--yellow);">🪙 ${d.coins ?? 0}</b><span>Coins</span></div>
                         <div class="ud-stat"><b>${d.level ?? 1}</b><span>Level</span></div>
                         <div class="ud-stat"><b>${(d.friends || []).length}</b><span>Do'st</span></div>
                         <div class="ud-stat"><b>${(d.games || []).length}</b><span>Ox. o'yin</span></div>
@@ -3621,6 +3719,7 @@
                     <div class="uactions">
                         <button class="ubtn ${d.blocked ? 'gold' : 'danger'}" onclick="ownerToggleBlock(${d.id}, ${d.blocked ? 'false' : 'true'})">${d.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>
                         <button class="ubtn blue" onclick="ownerAddXp(${d.id})">➕ XP</button>
+                        <button class="ubtn gold" onclick="ownerAddCoins(${d.id})">🪙 Coins</button>
                         <button class="ubtn blue" onclick="ownerSetLevel(${d.id})">🎚 Lvl</button>
                         <button class="ubtn blue" onclick="ownerSetRole(${d.id})">🛡 Rol</button>
                         <button class="ubtn" onclick="ownerEditStats(${d.id})">📊 Statistika</button>
@@ -3660,7 +3759,11 @@
 
         async function ownerKickUser(id, name) {
             if (!_ownerActionGuard(id)) return;
-            const reason = prompt(name + " qaysi xona/o'yindan chiqarilsin?\nXona kodi yozing (bo'sh = hamma joydan):", '');
+            const reason = await showInputDialog(
+                '👢 ' + name + " — qaysi xonadan?",
+                '',
+                "Xona kodi (bo'sh = hamma joydan)"
+            );
             if (reason === null) return;
             const code = reason.trim();
             if (!code) {
@@ -3855,16 +3958,25 @@
 
         async function ownerAddXp(id, allowSelf) {
             if (!_ownerActionGuard(id, allowSelf)) return;
-            const v = prompt('Qancha XP qo\'shilsin? (manfiy son = ayirish)', '10');
+            const v = await showInputDialog('➕ XP (manfiy = ayirish)', '10', 'Masalan: 25 yoki -10');
             if (v === null) return;
             const amount = parseInt(v, 10);
             if (isNaN(amount)) { showToast('⚠️ Son kiriting'); return; }
             await _ownerPost('/owner/users/' + id + '/xp', { owner_id: userId, amount }, 'XP o\'zgartirildi');
         }
 
+        async function ownerAddCoins(id, allowSelf) {
+            if (!_ownerActionGuard(id, allowSelf)) return;
+            const v = await showInputDialog('🪙 Coins (manfiy = ayirish)', '100', 'Masalan: 500 yoki -50');
+            if (v === null) return;
+            const amount = parseInt(v, 10);
+            if (isNaN(amount)) { showToast('⚠️ Son kiriting'); return; }
+            await _ownerPost('/owner/users/' + id + '/coins', { owner_id: userId, amount }, 'Coins o\'zgartirildi');
+        }
+
         async function ownerSetLevel(id, allowSelf) {
             if (!_ownerActionGuard(id, allowSelf)) return;
-            const v = prompt('Yangi level (1+):', '1');
+            const v = await showInputDialog('🎚 Yangi level (1+)', '1', 'Masalan: 5');
             if (v === null) return;
             const level = parseInt(v, 10);
             if (isNaN(level) || level < 1) { showToast('⚠️ 1 dan katta son kiriting'); return; }
@@ -3873,10 +3985,15 @@
 
         async function ownerSetRole(id) {
             if (!_ownerActionGuard(id)) return;
-            const v = prompt(amMainOwner ? 'Rol: main_owner / owner / admin / deputy / player' : 'Rol: owner / admin / deputy / player', 'player');
-            if (v === null) return;
-            const role = v.trim().toLowerCase();
-            if (!['owner', 'admin', 'deputy', 'player'].includes(role) && !(amMainOwner && role === 'main_owner')) { showToast('⚠️ Noto\'g\'ri rol'); return; }
+            const opts = [
+                { label: '👑 OWNER', value: 'owner', cls: 'gold' },
+                { label: '⭐ DEPUTY', value: 'deputy' },
+                { label: '🛡 ADMIN', value: 'admin', cls: 'blue' },
+                { label: '👤 PLAYER', value: 'player' },
+            ];
+            if (amMainOwner) opts.unshift({ label: '💎 MAIN OWNER', value: 'main_owner', cls: 'gold' });
+            const role = await showChoiceDialog('🛡 Rol tanlang', opts);
+            if (!role) return;
             await _ownerPost('/owner/users/' + id + '/role', { owner_id: userId, role }, 'Rol o\'rnatildi: ' + role);
         }
 
@@ -3884,11 +4001,25 @@
             if (!_ownerActionGuard(id)) return;
             let hours = null, reason = null;
             if (block) {
-                const hv = prompt('Blok muddati (soat). Bo\'sh = doimiy:', '');
-                if (hv === null) return;
-                hours = parseFloat(hv);
-                if (isNaN(hours) || hours <= 0) hours = null;
-                reason = prompt('Sabab (ixtiyoriy):', '') || null;
+                const hv = await showChoiceDialog('⏱ Blok muddati', [
+                    { label: '⏳ 1 soat', value: '1' },
+                    { label: '🌙 1 kun', value: '24' },
+                    { label: '📅 1 hafta', value: '168' },
+                    { label: '🚫 Doimiy', value: '0' },
+                    { label: '✏️ Boshqa (soat)', value: '_custom' },
+                ]);
+                if (hv === null || hv === undefined) return;
+                if (hv === '_custom') {
+                    const cv = await showInputDialog('⏱ Soat kiriting', '', 'Masalan: 12');
+                    if (cv === null) return;
+                    hours = parseFloat(cv);
+                } else {
+                    hours = parseFloat(hv);
+                }
+                if (isNaN(hours) || hours < 0) hours = null;
+                if (hours === 0) hours = null;
+                reason = await showInputDialog('📝 Sabab (ixtiyoriy)', '', 'Masalan: spam');
+                if (reason === null) reason = null;
             }
             await _ownerPost('/owner/users/' + id + '/block', { owner_id: userId, blocked: block, hours, reason },
                 block ? (hours ? 'User ' + hours + ' soatga bloklandi' : 'User doimiy bloklandi') : 'Blok ochildi');
@@ -3896,10 +4027,10 @@
 
         async function ownerEditStats(id, allowSelf) {
             if (!_ownerActionGuard(id, allowSelf)) return;
-            const g = prompt('O\'yinlar soni:', '0'); if (g === null) return;
-            const w = prompt('G\'alabalar:', '0'); if (w === null) return;
-            const l = prompt('Mag\'lubiyatlar:', '0'); if (l === null) return;
-            const x = prompt('XP:', '0'); if (x === null) return;
+            const g = await showInputDialog('🎮 O\'yinlar soni', '0', 'Masalan: 10'); if (g === null) return;
+            const w = await showInputDialog('🏆 G\'alabalar', '0', 'Masalan: 7'); if (w === null) return;
+            const l = await showInputDialog('💀 Mag\'lubiyatlar', '0', 'Masalan: 3'); if (l === null) return;
+            const x = await showInputDialog('⭐ XP', '0', 'Masalan: 350'); if (x === null) return;
             const games = parseInt(g, 10), wins = parseInt(w, 10), losses = parseInt(l, 10), xp = parseInt(x, 10);
             if ([games, wins, losses, xp].some(n => isNaN(n) || n < 0)) { showToast('⚠️ 0 dan kichik bo\'lmagan sonlar kiriting'); return; }
             await _ownerPost('/owner/users/' + id + '/stats', { owner_id: userId, games, wins, losses, xp }, 'Statistika saqlandi');
@@ -3958,11 +4089,18 @@
         async function adminToggleMute(id, mute) {
             let minutes = null, reason = null;
             if (mute) {
-                const mv = prompt("Mute muddati (daqiqa). Bo'sh = doimiy:", '30');
-                if (mv === null) return;
+                const mv = await showChoiceDialog('🔇 Mute muddati', [
+                    { label: '⏳ 10 daqiqa', value: '10' },
+                    { label: '⏳ 30 daqiqa', value: '30' },
+                    { label: '🌙 1 soat', value: '60' },
+                    { label: '📅 1 kun', value: '1440' },
+                    { label: '🚫 Doimiy', value: '0' },
+                ]);
+                if (!mv) return;
                 minutes = parseInt(mv, 10);
                 if (isNaN(minutes) || minutes <= 0) minutes = null;
-                reason = prompt('Sabab (ixtiyoriy):', '') || null;
+                reason = await showInputDialog('📝 Sabab (ixtiyoriy)', '', 'Masalan: spam');
+                if (reason === null) reason = null;
             }
             try {
                 const resp = await fetch(API_BASE + '/admin/users/' + id + '/mute', {
@@ -3976,7 +4114,7 @@
         }
 
         async function adminWarnUser(id) {
-            const text = prompt("Ogohlantirish matni (user ekranda ko'radi):", '');
+            const text = await showInputDialog('⚠️ Ogohlantirish', '', "User ekranda ko'radigan matn");
             if (!text || !text.trim()) return;
             try {
                 const resp = await fetch(API_BASE + '/admin/users/' + id + '/warn', {
@@ -3991,11 +4129,17 @@
         async function adminToggleBlock(id, block) {
             let hours = null, reason = null;
             if (block) {
-                const hv = prompt('Blok muddati (soat). Bo\'sh = doimiy:', '');
-                if (hv === null) return;
+                const hv = await showChoiceDialog('⏱ Blok muddati', [
+                    { label: '⏳ 1 soat', value: '1' },
+                    { label: '🌙 1 kun', value: '24' },
+                    { label: '📅 1 hafta', value: '168' },
+                    { label: '🚫 Doimiy', value: '0' },
+                ]);
+                if (!hv) return;
                 hours = parseFloat(hv);
                 if (isNaN(hours) || hours <= 0) hours = null;
-                reason = prompt('Sabab (ixtiyoriy):', '') || null;
+                reason = await showInputDialog('📝 Sabab (ixtiyoriy)', '', 'Masalan: spam');
+                if (reason === null) reason = null;
             }
             try {
                 const resp = await fetch(API_BASE + '/admin/users/' + id + '/block', {
