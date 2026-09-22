@@ -1088,6 +1088,16 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
+    <!-- ===== INVITE FRIEND PICKER ===== -->
+    <div id="invite-overlay" class="block-overlay" onclick="if(event.target===this)closeInvitePicker()">
+        <div style="width:100%; max-width:360px; max-height:78vh; overflow-y:auto; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
+            <div class="ud-name" style="justify-content:center; margin-bottom:2px;">📩 Kimga taklif yuboramiz?</div>
+            <div class="ud-sub" style="text-align:center; margin-bottom:10px;">Xona: <b id="invite-room-code">—</b> — do'stlaringizdan tanlang</div>
+            <div id="invite-friends-list"><div class="oempty">Yuklanmoqda...</div></div>
+            <button class="ubtn ghost" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeInvitePicker()">✕ Yopish</button>
+        </div>
+    </div>
+
     <!-- ===== USER DETAIL MODAL (owner panel) ===== -->
     <div id="user-detail-overlay" class="block-overlay" onclick="if(event.target===this)closeUserDetail()">
         <div style="width:100%; max-width:380px; max-height:82vh; overflow-y:auto; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
@@ -2163,38 +2173,47 @@
         }
 
         async function inviteFriend() {
-            // Do'stlarga in-app + bot taklifi; do'st bo'lmasa avval qo'shish taklif etiladi
+            // Do'stlar ro'yxatini ochish — user o'zi kimga yuborishni tanlaydi
+            document.getElementById('invite-room-code').textContent = currentRoom || '—';
+            const box = document.getElementById('invite-friends-list');
+            document.getElementById('invite-overlay').classList.add('show');
+            box.innerHTML = '<div class="oempty">Yuklanmoqda...</div>';
             try {
                 const resp = await fetch(API_BASE + '/friends/' + (userId || 1));
                 const data = await resp.json();
-                const friends = (data.friends || []).filter(f => f.online);
+                const friends = data.friends || [];
                 if (!friends.length) {
-                    showToast('🤝 Onlayn do\'st yo\'q — Do\'stlar bo\'limidan qo\'shing');
-                } else {
-                    const names = friends.map(f => f.name).join(', ');
-                    showToast('📩 Onlayn do\'stlaringizga taklif yuboriladi: ' + names.slice(0, 40));
-                    for (const f of friends) {
-                        try {
-                            await fetch(API_BASE + '/invites', {
-                                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ from_id: userId, from_name: myName(), to_id: f.id, room_code: currentRoom })
-                            });
-                        } catch (e) {}
-                    }
-                }
-            } catch (e) {}
-            // Havola ham nusxalanadi (do'st bo'lmaganlar uchun)
-            const link = inviteLink();
-            const text = '🎮 UNO o\'ynaymik! Xona kodi: ' + currentRoom + '\n👇 Havola orqali kir:';
-            if (navigator.share) {
-                try {
-                    await navigator.share({ title: 'Game Spot — UNO', text: text, url: link });
+                    box.innerHTML = '<div class="oempty">Do\'stlaringiz yo\'q 🤝<br><br><span class="ubtn ghost" onclick="closeInvitePicker();showScreen(\'friends\')">➕ Do\'st qo\'shish</span></div>';
                     return;
-                } catch (e) { /* cancelled -> copy instead */ }
+                }
+                box.innerHTML = friends.map(f => `
+                    <div class="owss-row" style="cursor:pointer;" onclick="sendInviteTo(${f.id}, '${esc(f.name).replace(/'/g, "\\'")}')">
+                        <span style="font-size:0.8rem;">${f.online ? '🟢' : '⚪'}</span>
+                        <b style="flex:1;">${esc(f.name)}</b>
+                        <span style="color:var(--text-dim); font-size:0.65rem;">${f.online ? "onlayn" : "oflayn"} · Lvl ${f.level ?? 1}</span>
+                        <span class="ubtn blue" style="padding:4px 8px; font-size:0.65rem;">📩</span>
+                    </div>`).join('');
+            } catch (e) {
+                box.innerHTML = '<div class="oempty">Do\'stlar yuklanmadi</div>';
             }
-            const ok = await copyText(text + ' ' + link);
-            showToast(ok ? '📋 Taklif nusxalandi — do\'stingizga yuboring!' : '📋 Kod: ' + currentRoom);
-            if (tg) tg.HapticFeedback?.impactOccurred('light');
+        }
+
+        async function sendInviteTo(friendId, friendName) {
+            try {
+                const resp = await fetch(API_BASE + '/invites', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from_id: userId, from_name: myName(), to_id: friendId, room_code: currentRoom })
+                });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Yuborilmadi');
+                showToast('📩 Taklif yuborildi: ' + friendName);
+                if (tg) tg.HapticFeedback?.notificationOccurred('success');
+            } catch (e) {
+                showToast('❌ ' + e.message);
+            }
+        }
+
+        function closeInvitePicker() {
+            document.getElementById('invite-overlay').classList.remove('show');
         }
 
         function pendingInviteCode() {
@@ -3318,7 +3337,8 @@
                 const amDeputy = !!d.is_moderator && !d.is_admin && !d.is_owner;
                 document.getElementById('owner-panel-btn').style.display = amOwner ? 'flex' : 'none';
                 document.getElementById('admin-panel-btn').style.display = (amAdmin && !amOwner) ? 'flex' : 'none';
-                document.getElementById('deputy-panel-btn').style.display = (amDeputy && typeof document.getElementById('deputy-panel-btn') !== 'undefined') ? 'flex' : 'none';
+                // 💎 Main Owner: hamma moderator panellari ko'rinadi
+                document.getElementById('deputy-panel-btn').style.display = amModerator ? 'flex' : 'none';
             } catch (e) {}
         }
         checkOwner();
@@ -3446,7 +3466,14 @@
                         ${d.nickname ? `<button class="ubtn ghost" onclick="ownerResetNickname(${d.id})">📛 Nick o'chirish</button>` : ''}
                         <button class="ubtn gold" onclick="ownerKickUser(${d.id}, '${esc(d.name).replace(/'/g, "\\'")}')">👢 Chiqarish</button>
                         <button class="ubtn danger" onclick="ownerDeleteUser(${d.id}, '${esc(d.name).replace(/'/g, "\\'")}')">🗑 O'chirish</button>
-                    </div>` : `<div class="ud-sec">⚙️ AMALLAR</div><div class="oempty" style="padding:4px;">Bu user ustida amal qilish huquqi yo'q (o'zingiz yoki undan yuqori rol)</div>`}
+                    </div>` : (d.id === userId ? `
+                    <div class="ud-sec">⚙️ O'ZINGIZNI TAHRIRLASH</div>
+                    <div class="uactions">
+                        <button class="ubtn blue" onclick="ownerAddXp(${d.id}, true)">➕ XP</button>
+                        <button class="ubtn blue" onclick="ownerSetLevel(${d.id}, true)">🎚 Lvl</button>
+                        <button class="ubtn" onclick="ownerEditStats(${d.id}, true)">📊 Statistika</button>
+                        <button class="ubtn" onclick="ownerResetStats(${d.id}, '${esc(d.name).replace(/'/g, "\\'")}', true)">♻️ Reset</button>
+                    </div>` : `<div class="ud-sec">⚙️ AMALLAR</div><div class="oempty" style="padding:4px;">Bu user ustida amal qilish huquqi yo'q (undan yuqori rol)</div>`)}
                     <div class="ud-sec">🤝 DO'STLARI</div>
                     <div class="uactions">${friendsHtml}</div>
                     <div class="ud-sec">🎮 OXIRGI O'YINLAR</div>
@@ -3633,8 +3660,8 @@
             }
         }
 
-        async function ownerResetStats(id, name) {
-            if (!_ownerActionGuard(id)) return;
+        async function ownerResetStats(id, name, allowSelf) {
+            if (!_ownerActionGuard(id, allowSelf)) return;
             if (!confirm(name + ' statistikasi nolga tushadi. Davom etamizmi?')) return;
             await _ownerPost('/owner/users/' + id + '/reset-stats', { owner_id: userId }, 'Statistika resetlandi');
         }

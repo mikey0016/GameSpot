@@ -1030,7 +1030,7 @@ async def owner_add_xp(user_id: int, req: XpIn, session=Depends(get_session)):
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        if not _owner_action(actor, u):
+        if not (_owner_action(actor, u) or user_id == req.owner_id):
             raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.xp = max(0, (u.xp or 0) + req.amount)
         u.level = 1 + (u.xp or 0) // 50
@@ -1054,7 +1054,7 @@ async def owner_set_level(user_id: int, req: LevelIn, session=Depends(get_sessio
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        if not _owner_action(actor, u):
+        if not (_owner_action(actor, u) or user_id == req.owner_id):
             raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.level = level
         u.xp = (level - 1) * 50
@@ -1223,7 +1223,7 @@ async def owner_reset_stats(user_id: int, req: StatsIn, session=Depends(get_sess
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        if not _owner_action(actor, u):
+        if not (_owner_action(actor, u) or user_id == req.owner_id):
             raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.games_played = 0
         u.wins = 0
@@ -1244,7 +1244,7 @@ async def owner_edit_stats(user_id: int, req: StatsIn, session=Depends(get_sessi
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        if not _owner_action(actor, u):
+        if not (_owner_action(actor, u) or user_id == req.owner_id):
             raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         if req.games is not None:
             u.games_played = max(0, req.games)
