@@ -40,6 +40,17 @@ async def init_db():
             await conn.execute(text(
                 "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS blocked INTEGER DEFAULT 0"
             ))
+            # rooms: columns added after the first release (join tracking + game ref)
+            await conn.execute(text(
+                "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS player_ids JSON DEFAULT '[]'"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS game_id VARCHAR"
+            ))
+            # Backfill: old rows have NULL player_ids; seed with host id so they stay joinable
+            await conn.execute(text(
+                "UPDATE rooms SET player_ids = json_build_array(host_id) WHERE player_ids IS NULL"
+            ))
     except Exception:
         pass  # SQLite or already migrated
 

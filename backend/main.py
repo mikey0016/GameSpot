@@ -4,6 +4,8 @@
 It registers REST API routers, WebSocket endpoint and includes CORS configuration.
 """
 
+from datetime import datetime
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
@@ -149,6 +151,15 @@ async def global_websocket(websocket: WebSocket):
                     uid = data.get("user_id")
                     async with async_session_maker() as db:
                         meta = await _chat_meta(db, uid)
+                        if not meta["blocked"]:
+                            # Persist so history survives reconnects/reloads
+                            from .models.social import ChatMessage
+                            db.add(ChatMessage(
+                                user_id=uid if isinstance(uid, int) else 0,
+                                name=data.get("name") or "O'yinchi",
+                                text=text.strip(),
+                            ))
+                            await db.commit()
                     if meta["blocked"]:
                         continue  # blocked users cannot chat
                     await manager.broadcast("global", {
@@ -158,6 +169,7 @@ async def global_websocket(websocket: WebSocket):
                         "name": data.get("name") or "O'yinchi",
                         "role": meta["role"],
                         "text": text.strip(),
+                        "ts": datetime.utcnow().isoformat(),
                     })
     except WebSocketDisconnect:
         manager.disconnect("global", websocket)

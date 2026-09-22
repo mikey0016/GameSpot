@@ -11,7 +11,7 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5434:5432"
 
   backend:
     build:
@@ -31,7 +31,7 @@ services:
       dockerfile: Dockerfile.frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "3002:80"
     depends_on:
       - backend
 
