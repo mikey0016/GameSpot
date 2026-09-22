@@ -1328,30 +1328,6 @@
                     🤝 Do'stlar
                 </button>
             </div>
-            <div class="menu-row">
-                <button class="btn btn-outline" id="daily-bonus-btn" onclick="claimDailyBonus()">
-                    🎁 Kunlik Bonus
-                </button>
-                <button class="btn btn-outline" onclick="showScreen('shop')">
-                    🛍 Do'kon
-                </button>
-            </div>
-            <div class="menu-row">
-                <button class="btn btn-outline" onclick="showScreen('tournaments')">
-                    🏁 Turnirlar
-                </button>
-                <button class="btn btn-outline" onclick="showScreen('achievements')">
-                    🏆 Yutuqlar
-                </button>
-            </div>
-            <div class="menu-row">
-                <button class="btn btn-outline" onclick="openRefModal()">
-                    🤝 Referal
-                </button>
-                <button class="btn btn-outline" onclick="showScreen('about')">
-                    ℹ️ Qoidalar
-                </button>
-            </div>
             <button class="btn btn-outline" id="owner-panel-btn" style="display:none; border-color:var(--yellow); color:var(--yellow);" onclick="showScreen('owner')">
                 👑 Owner Panel
             </button>
@@ -1520,6 +1496,17 @@
             <button class="btn btn-success" onclick="createRoom()">
                 ✨ Xonani Yaratish
             </button>
+        </div>
+
+        <div class="glass-panel" style="margin-top:12px;">
+            <div class="panel-head"><span>🏁 Yoki turnir yaratish</span></div>
+            <p class="invite-hint">O'yinchilar coin kirisi bilan qo'shiladi — g'olib barcha jamg'armani oladi</p>
+            <div class="menu-row">
+                <button class="ubtn blue" style="justify-content:center;" onclick="tournamentCreate(0)">🆓 Bepul</button>
+                <button class="ubtn gold" style="justify-content:center;" onclick="tournamentCreate(50)">💰 50🪙</button>
+                <button class="ubtn gold" style="justify-content:center;" onclick="tournamentCreate(100)">👑 100🪙</button>
+            </div>
+            <button class="ubtn ghost" style="width:100%; justify-content:center;" onclick="showScreen('tournaments')">📋 Ochiq turnirlar ro'yxati</button>
         </div>
 
         <div class="loader" id="create-loader">
@@ -2002,6 +1989,26 @@
 
         <div style="width:100%; max-width:400px;">
             <button class="btn btn-outline" onclick="showScreen('history')">📜 O'yin tarixi</button>
+        </div>
+
+        <div class="glass-panel" style="margin-top:12px;">
+            <div class="panel-head"><span>🎁 Bonus & Imtiyozlar</span></div>
+            <div class="menu-row">
+                <button class="btn btn-outline" id="daily-bonus-btn" onclick="claimDailyBonus()">
+                    🎁 Kunlik Bonus
+                </button>
+                <button class="btn btn-outline" onclick="showScreen('shop')">
+                    🛍 Do'kon
+                </button>
+            </div>
+            <div class="menu-row">
+                <button class="btn btn-outline" onclick="showScreen('achievements')">
+                    🏆 Yutuqlar
+                </button>
+                <button class="btn btn-outline" onclick="openRefModal()">
+                    🤝 Referal
+                </button>
+            </div>
         </div>
     </div>
 
