@@ -2897,6 +2897,7 @@
             }
             // live refresh of visible lists
             // 🔴 Live refresh: panel oynasi ochiq bo'lsa ro'yxatlarni darhol yangilash
+            if (document.getElementById('screen-useredit')?.classList.contains('active') && _userEditCurrentId && typeof openUserEdit === 'function') { openUserEdit(_userEditCurrentId, _userEditReturn); }
             if (document.getElementById('screen-mainowner')?.classList.contains('active') && typeof moLoadUsers === 'function') { moLoadUsers(); moLoadPanel(); }
             if (document.getElementById('screen-owner')?.classList.contains('active') && typeof ownerLoadUsers === 'function') { ownerLoadUsers(); ownerLoadPanel(); }
             if (document.getElementById('screen-admin')?.classList.contains('active') && typeof adminLoadUsers === 'function') adminLoadUsers();
@@ -3765,8 +3766,10 @@
         }
 
         let _userEditReturn = 'owner'; // sahifadan qaytish uchun
+        let _userEditCurrentId = null; // ayni ochiq user edit sahifasi (live refresh uchun)
 
         async function openUserEdit(id, from) {
+            _userEditCurrentId = id;
             _userEditReturn = from || (amMainOwner ? 'mainowner' : 'owner');
             showScreen('useredit');
             const body = document.getElementById('user-edit-body');
@@ -3845,6 +3848,7 @@
         }
 
         function closeUserEdit() {
+            _userEditCurrentId = null;
             showScreen(_userEditReturn || 'owner');
             renderOwnerUsers();
         }
