@@ -1121,12 +1121,14 @@
         </div>
     </div>
 
-    <!-- ===== USER DETAIL MODAL (owner panel) ===== -->
-    <div id="user-detail-overlay" class="block-overlay" onclick="if(event.target===this)closeUserDetail()">
-        <div style="width:100%; max-width:380px; max-height:82vh; overflow-y:auto; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
-            <div id="user-detail-body"></div>
-            <button class="ubtn ghost" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeUserDetail()">✕ Yopish</button>
+    <!-- ===== USER EDIT PAGE (owner panel, modal o'rniga alohida ekran) ===== -->
+    <div id="screen-useredit" class="screen">
+        <button class="back-btn" onclick="closeUserEdit()">←</button>
+        <div class="header">
+            <div class="logo">USER</div>
+            <div class="subtitle">Foydalanuvchi boshqaruvi</div>
         </div>
+        <div id="user-edit-body"><div class="glass-panel"><p class="invite-hint">Yuklanmoqda...</p></div></div>
     </div>
 
 
@@ -1207,9 +1209,6 @@
             <button class="btn btn-outline" onclick="showScreen('about')">
                 ℹ️ Qanday O'ynash
             </button>
-            <button class="btn btn-outline" id="panels-btn" style="display:none; border-color:#b088ff; color:#b088ff;" onclick="showScreen('panels')">
-                🗂 Panellar
-            </button>
             <button class="btn btn-outline" id="owner-panel-btn" style="display:none; border-color:var(--yellow); color:var(--yellow);" onclick="showScreen('owner')">
                 👑 Owner Panel
             </button>
@@ -1242,30 +1241,6 @@
         <div class="glass-panel">
             <div class="panel-head"><span>👥 Userlar</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="adminLoadUsers()">🔄</button></div>
             <div id="admin-users-list"><p class="invite-hint">Yuklanmoqda...</p></div>
-        </div>
-    </div>
-
-    <!-- ===== PANELS HUB (main owner) ===== -->
-    <div id="screen-panels" class="screen">
-        <button class="back-btn" onclick="showScreen('home')">←</button>
-        <div class="header">
-            <div class="logo">PANELLAR</div>
-            <div class="subtitle">Barcha rollar boshqaruvi</div>
-        </div>
-        <div class="glass-panel">
-            <div class="panel-head"><span>👑 Owner paneli</span></div>
-            <p class="invite-hint">To'liq boshqaruv: userlar, xonalar, chat, o'yinlar, log</p>
-            <button class="ubtn gold" style="width:100%; justify-content:center;" onclick="showScreen('owner')">👑 Owner Panel ochish</button>
-        </div>
-        <div class="glass-panel">
-            <div class="panel-head"><span>🛡 Admin paneli</span></div>
-            <p class="invite-hint">Moderatsiya: bloklash, mute, warn, xonalar</p>
-            <button class="ubtn blue" style="width:100%; justify-content:center;" onclick="showScreen('admin')">🛡 Admin Panel ochish</button>
-        </div>
-        <div class="glass-panel">
-            <div class="panel-head"><span>⭐ Deputy paneli</span></div>
-            <p class="invite-hint">Faqat bloklash vakolati</p>
-            <button class="ubtn" style="width:100%; justify-content:center; border-color:#b088ff; color:#b088ff;" onclick="showScreen('deputy')">⭐ Deputy Panel ochish</button>
         </div>
     </div>
 
@@ -3557,7 +3532,6 @@
                     <div class="uactions" style="justify-content:center;">
                         ${friendBtn}
                         <button class="ubtn ghost" onclick="copyText('${d.id}'); showToast('📋 ID nusxalandi')">🆔 ID</button>
-                        <button class="ubtn ghost" onclick="closeMiniProfile();showScreen('leaderboard')">🏆 Back</button>
                     </div>
                 `;
             } catch (e) {
@@ -3632,12 +3606,10 @@
                 amAdmin = !!d.is_admin;
                 amModerator = !!d.is_moderator || amAdmin || amOwner;
                 amMainOwner = !!d.is_main_owner;
-                const amDeputy = !!d.is_moderator && !d.is_admin && !d.is_owner;
-                document.getElementById('owner-panel-btn').style.display = amOwner ? 'flex' : 'none';
-                document.getElementById('admin-panel-btn').style.display = (amAdmin && !amOwner) ? 'flex' : 'none';
-                // 💎 Main Owner: hamma moderator panellari ko'rinadi
-                document.getElementById('deputy-panel-btn').style.display = amModerator ? 'flex' : 'none';
-                document.getElementById('panels-btn').style.display = amMainOwner ? 'flex' : 'none';
+                // 💎 MO: faqat Owner Panel (hamma narsa ichida) | Owner: Owner | Admin: Admin | Deputy: Deputy
+                document.getElementById('owner-panel-btn').style.display = (amOwner || amMainOwner) ? 'flex' : 'none';
+                document.getElementById('admin-panel-btn').style.display = (amAdmin && !amOwner && !amMainOwner) ? 'flex' : 'none';
+                document.getElementById('deputy-panel-btn').style.display = (amModerator && !amOwner && !amAdmin && !amMainOwner) ? 'flex' : 'none';
             } catch (e) {}
         }
         checkOwner();
@@ -3695,7 +3667,7 @@
                 const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
                 const manage = _ouCanManage(u);
                 return `
-                <div class="ucard ${ownerSelectedId === u.id ? 'sel' : ''}" onclick="openUserDetail(${u.id})">
+                <div class="ucard ${ownerSelectedId === u.id ? 'sel' : ''}" onclick="openUserEdit(${u.id})">
                     <span class="online-dot" style="background:${online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${online ? '0 0 8px var(--green)' : 'none'};"></span>
                     <div class="uc-main">
                         <div class="uc-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}</div>
@@ -3706,12 +3678,13 @@
             }).join('');
         }
 
-        async function openUserDetail(id) {
-            ownerSelectedId = id;
-            renderOwnerUsers();
-            const body = document.getElementById('user-detail-body');
-            document.getElementById('user-detail-overlay').classList.add('show');
-            body.innerHTML = '<div class="oempty">Yuklanmoqda...</div>';
+        let _userEditReturn = 'owner'; // sahifadan qaytish uchun
+
+        async function openUserEdit(id, from) {
+            _userEditReturn = from || 'owner';
+            showScreen('useredit');
+            const body = document.getElementById('user-edit-body');
+            body.innerHTML = '<div class="glass-panel"><p class="invite-hint">Yuklanmoqda...</p></div>';
             try {
                 const resp = await fetch(API_BASE + '/owner/users/' + id + '/detail?owner_id=' + userId);
                 if (!resp.ok) throw new Error('Yuklab bo\'lmadi');
@@ -3778,15 +3751,15 @@
                     <div class="uactions">${friendsHtml}</div>
                     <div class="ud-sec">🎮 OXIRGI O'YINLAR</div>
                     ${gamesHtml}
+                    </div>
                 `;
             } catch (e) {
-                body.innerHTML = '<div class="oempty">' + esc(e.message) + '</div>';
+                body.innerHTML = '<div class="glass-panel"><p class="invite-hint">' + esc(e.message) + '</p></div>';
             }
         }
 
-        function closeUserDetail() {
-            document.getElementById('user-detail-overlay').classList.remove('show');
-            ownerSelectedId = null;
+        function closeUserEdit() {
+            showScreen(_userEditReturn || 'owner');
             renderOwnerUsers();
         }
 
@@ -3809,7 +3782,7 @@
                 if (!confirm(name + " HAMMA xona va o'yindan chiqariladi. Davom etamizmi?")) return;
             }
             await _ownerPost('/owner/users/' + id + '/disconnect', { owner_id: userId, room_code: code, reason: code ? undefined : "Admin tomonidan chiqarildingiz" }, 'Chiqarildi');
-            openUserDetail(id);
+            openUserEdit(id, _userEditReturn);
         }
 
         // ---------- Owner panel: tabs + rooms/chat/games/log ----------
@@ -4202,6 +4175,7 @@
                 const resp = await fetch(API_BASE + '/owner/users/' + id + '?owner_id=' + userId, { method: 'DELETE' });
                 if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'O\'chirilmadi');
                 showToast('🗑 ' + name + ' o\'chirildi');
+                showScreen(_userEditReturn || 'owner');
                 ownerLoadUsers();
                 ownerLoadPanel();
             } catch (e) {
