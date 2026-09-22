@@ -1578,6 +1578,127 @@ async def owner_cleanup(owner_id: int, session=Depends(get_session)):
         return {"ok": True, "removed": removed}
 
 
+@router.get("/owner/tournaments")
+async def owner_tournaments(owner_id: int, session=Depends(get_session)):
+    """Barcha turnirlar (open/running/finished) — MO boshqaruvi uchun."""
+    async with session() as db:
+        await _require_owner(owner_id, db)
+        rows = (await db.execute(
+            select(Tournament).order_by(Tournament.created_at.desc()).limit(50)
+        )).scalars().all()
+        out = []
+        for t in rows:
+            w = await db.get(OnlineUser, t.winner_id) if t.winner_id else None
+            out.append({
+                "code": t.code, "status": t.status, "entry_fee": t.entry_fee,
+                "prize": t.prize or 0, "players": len(t.players or []),
+                "winner_id": t.winner_id, "winner_name": _display_name(w) if w else None,
+                "host_id": t.host_id,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+            })
+        return {"tournaments": out}
+
+
+async def _owner_tournament(code: str, owner_id: int, db) -> Tournament:
+    t = (await db.execute(select(Tournament).where(Tournament.code == code))).scalars().first()
+    if not t:
+        raise HTTPException(404, "Turnir topilmadi")
+    return t
+
+
+@router.post("/owner/tournaments/{code}/start")
+async def owner_tournament_start(code: str, owner_id: int, session=Depends(get_session)):
+    """MO turnirni host o'rniga boshlaydi."""
+    import random
+    async with session() as db:
+        actor = await _require_owner(owner_id, db)
+        t = await _owner_tournament(code, owner_id, db)
+        if t.status != "open":
+            raise HTTPException(400, "Turnir allaqachon boshlangan")
+        ps = t.players or []
+        if len(ps) < 2:
+            raise HTTPException(400, "Kamida 2 o'yinchi kerak")
+        random.shuffle(ps)
+        ids = [p["id"] for p in ps]
+        t.matches = [{"round": 1, "p1": ids[i], "p2": ids[i + 1], "winner_id": None}
+                     for i in range(0, len(ids) - 1, 2)]
+        t.status = "running"
+        await db.commit()
+        await _broadcast({"type": "panel_refresh", "scope": "tournaments"})
+        await _modlog(db, actor, "tournament", f"▶️ Turnir {code} boshlatildi ({len(ps)} o'yinchi)")
+        return {"ok": True, "matches": t.matches}
+
+
+@router.post("/owner/tournaments/{code}/cancel")
+async def owner_tournament_cancel(code: str, owner_id: int, session=Depends(get_session)):
+    """MO turnirni bekor qiladi — kirish coinlari qaytariladi."""
+    async with session() as db:
+        actor = await _require_owner(owner_id, db)
+        t = await _owner_tournament(code, owner_id, db)
+        if t.status == "finished":
+            raise HTTPException(400, "Tugagan turnir bekor qilinmaydi")
+        refunded = 0
+        if t.entry_fee > 0:
+            for p in (t.players or []):
+                u = await db.get(OnlineUser, p.get("id"))
+                if u:
+                    u.coins = (u.coins or 0) + t.entry_fee
+                    await _broadcast_stats_update(db, u.id)
+                    refunded += 1
+        t.status = "cancelled"
+        t.finished_at = now_local()
+        await db.commit()
+        await _broadcast({"type": "panel_refresh", "scope": "tournaments"})
+        await _modlog(db, actor, "tournament", f"✖️ Turnir {code} bekor qilindi ({refunded} ta refund)")
+        return {"ok": True, "refunded": refunded}
+
+
+@router.post("/owner/tournaments/{code}/finish")
+async def owner_tournament_finish(code: str, owner_id: int, session=Depends(get_session)):
+    """MO turnirni shu zahoti tugatadi; aniq g'olib bo'lsa prize beriladi."""
+    async with session() as db:
+        actor = await _require_owner(owner_id, db)
+        t = await _owner_tournament(code, owner_id, db)
+        if t.status != "running":
+            raise HTTPException(400, "Faol turnirgina tugatiladi")
+        # Aniq g'olib: final matchda winner bo'lsa shu
+        winner_id = None
+        if t.matches:
+            last_round = max(m["round"] for m in t.matches)
+            finals = [m for m in t.matches if m["round"] == last_round]
+            if len(finals) == 1 and finals[0]["winner_id"]:
+                winner_id = finals[0]["winner_id"]
+        t.status = "finished"
+        t.winner_id = winner_id or t.winner_id
+        t.finished_at = now_local()
+        winner_name = None
+        if t.winner_id and (t.prize or 0) > 0:
+            w = await db.get(OnlineUser, t.winner_id)
+            if w:
+                w.coins = (w.coins or 0) + (t.prize or 0)
+                winner_name = _display_name(w)
+                await _broadcast_stats_update(db, w.id)
+        await db.commit()
+        await _broadcast({"type": "panel_refresh", "scope": "tournaments"})
+        await _modlog(db, actor, "tournament", f"🏁 Turnir {code} tugatildi (g'olib: {winner_name or 'aniqlanmagan'})")
+        return {"ok": True, "winner_id": t.winner_id, "winner_name": winner_name}
+
+
+@router.delete("/owner/tournaments/{code}")
+async def owner_tournament_delete(code: str, owner_id: int, session=Depends(get_session)):
+    """MO turnirni butunlay o'chiradi (faqat main_owner)."""
+    async with session() as db:
+        actor = await _require_owner(owner_id, db)
+        if actor.role != "main_owner":
+            raise HTTPException(403, "Faqat MAIN OWNER turnirni o'chiradi")
+        t = await _owner_tournament(code, owner_id, db)
+        await db.delete(t)
+        await db.commit()
+        await _broadcast({"type": "panel_refresh", "scope": "tournaments"})
+        await _modlog(db, actor, "tournament", f"🗑 Turnir {code} butunlay o'chirildi")
+        return {"ok": True}
+
+
 @router.get("/owner/modlog")
 async def owner_modlog(owner_id: int, session=Depends(get_session)):
     """Latest moderation actions (log) — panel shows the last 80."""

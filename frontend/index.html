@@ -1642,6 +1642,7 @@
             <div class="mhead-tabs">
                 <button class="mtab active" id="motab-users" onclick="moTab('users')">👥 Userlar</button>
                 <button class="mtab" id="motab-rooms" onclick="moTab('rooms')">🚪 Xonalar</button>
+                <button class="mtab" id="motab-tour" onclick="moTab('tour')">🏁 Turnirlar</button>
                 <button class="mtab" id="motab-chat" onclick="moTab('chat')">💬 Chat</button>
                 <button class="mtab" id="motab-games" onclick="moTab('games')">🎮 O'yinlar</button>
                 <button class="mtab" id="motab-log" onclick="moTab('log')">📜 Log</button>
@@ -1703,6 +1704,11 @@
                 <div id="mo-ws-list"><div class="oempty">Yuklanmoqda...</div></div>
                 <div class="ud-sec">📜 TARIX</div>
                 <div id="mo-games-list"><p class="invite-hint">Yuklanmoqda...</p></div>
+            </div>
+
+            <div id="mo-tab-tour" style="display:none">
+                <div class="panel-head"><span>Turnirlar boshqaruvi</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="moLoadTournaments()">🔄</button></div>
+                <div id="mo-tournaments-list"><p class="invite-hint">Yuklanmoqda...</p></div>
             </div>
 
             <div id="mo-tab-log" style="display:none">
@@ -4548,13 +4554,14 @@
         }
 
         function moTab(name) {
-            ['users', 'rooms', 'chat', 'games', 'log'].forEach(t => {
+            ['users', 'rooms', 'tour', 'chat', 'games', 'log'].forEach(t => {
                 const el = document.getElementById('mo-tab-' + t);
                 if (el) el.style.display = (t === name) ? 'block' : 'none';
                 const tab = document.getElementById('motab-' + t);
                 if (tab) tab.classList.toggle('active', t === name);
             });
             if (name === 'rooms') moLoadRooms();
+            if (name === 'tour') moLoadTournaments();
             if (name === 'chat') moLoadChat();
             if (name === 'games') moLoadGames();
             if (name === 'log') moLoadLog();
@@ -4661,6 +4668,79 @@
             } catch (e) {
                 box.innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
             }
+        }
+
+        // ---------- 💎 MO: Turnirlar boshqaruvi (barcha statuslar + amallar) ----------
+        async function moLoadTournaments() {
+            const box = document.getElementById('mo-tournaments-list');
+            try {
+                // Barcha turnirlar: open + running + finished (admin uchun kengaytirilgan endpoint)
+                const resp = await fetch(API_BASE + '/owner/tournaments?owner_id=' + userId);
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                const list = data.tournaments || [];
+                if (!list.length) { box.innerHTML = '<div class="oempty">Hozircha turnir yo\'q</div>'; return; }
+                const stCls = { open: 'blue', running: 'gold', finished: 'ghost', cancelled: 'ghost' };
+                const stName = { open: '🔓 OCHIQ', running: '🔴 O\'YNALMOQDA', finished: '🏁 TUGAGAN', cancelled: '✖️ BEKOR' };
+                box.innerHTML = list.map(t => `
+                    <div class="ucard">
+                        <div class="uc-main">
+                            <div class="uc-name">🏁 ${esc(t.code)} <span class="role-tag">${stName[t.status] || t.status}</span></div>
+                            <div class="uc-meta">${t.players} o'yinchi · 💰 Prize: ${t.prize}🪙 · kirish: ${t.entry_fee}🪙${t.winner_name ? ' · 🥇 ' + esc(t.winner_name) : ''}</div>
+                        </div>
+                        <div class="uact">
+                            <button class="icon-btn" onclick="openTournament('${t.code}')">👁</button>
+                            ${t.status === 'open' ? `<button class="icon-btn gold" title="Boshlash (host o'rniga)" onclick="moTournamentStart('${t.code}')">▶️</button>
+                            <button class="icon-btn gold" title="Bekor qilish (coin qaytariladi)" onclick="moTournamentCancel('${t.code}')">✖️</button>` : ''}
+                            ${t.status === 'running' ? `<button class="icon-btn gold" title="Tugatish (prize berilmaydi)" onclick="moTournamentForceFinish('${t.code}')">🏁</button>` : ''}
+                            <button class="icon-btn danger" title="Butunlay o'chirish" onclick="moTournamentDelete('${t.code}')">🗑</button>
+                        </div>
+                    </div>`).join('');
+            } catch (e) {
+                box.innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
+            }
+        }
+
+        async function moTournamentStart(code) {
+            if (!confirm(code + ' turnirini boshlaymizmi? (Bracket hosil bo\'ladi)')) return;
+            try {
+                const resp = await fetch(API_BASE + '/owner/tournaments/' + code + '/start?owner_id=' + userId, { method: 'POST' });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Boshlanmadi');
+                showToast('▶️ Turnir boshlandi');
+                moLoadTournaments();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function moTournamentCancel(code) {
+            if (!confirm(code + ' bekor qilinadi. Qatnashchilarga coin qaytariladi. Davom etamizmi?')) return;
+            try {
+                const resp = await fetch(API_BASE + '/owner/tournaments/' + code + '/cancel?owner_id=' + userId, { method: 'POST' });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Bekor qilinmadi');
+                const r = await resp.json();
+                showToast('✖️ Bekor qilindi — ' + (r.refunded ?? 0) + ' ta qatnashchiga coin qaytarildi');
+                moLoadTournaments();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function moTournamentForceFinish(code) {
+            if (!confirm(code + ' shu zahoti tugatiladi? Prize faqat aniq g\'olib bo\'lsa beriladi.')) return;
+            try {
+                const resp = await fetch(API_BASE + '/owner/tournaments/' + code + '/finish?owner_id=' + userId, { method: 'POST' });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Tugatilmadi');
+                const r = await resp.json();
+                showToast('🏁 Tugadi' + (r.winner_name ? ' — 🥇 ' + r.winner_name : ''));
+                moLoadTournaments();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function moTournamentDelete(code) {
+            if (!confirm(code + ' turniri TARIXI BILAN butunlay o\'chiriladi. Ishonchingiz komilmi?')) return;
+            try {
+                const resp = await fetch(API_BASE + '/owner/tournaments/' + code + '?owner_id=' + userId, { method: 'DELETE' });
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'O\'chirilmadi');
+                showToast('🗑 Turnir o\'chirildi');
+                moLoadTournaments();
+            } catch (e) { showToast('❌ ' + e.message); }
         }
 
         async function moLoadLog() {
