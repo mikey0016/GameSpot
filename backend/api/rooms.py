@@ -33,6 +33,11 @@ async def _broadcast(code: str, message: dict):
     from ..main import manager
     await manager.broadcast(code, message)
 
+async def _broadcast_global(message: dict):
+    """Panel live-refresh uchun global kanalga broadcast."""
+    from .social import _broadcast as _gb
+    await _gb(message)
+
 def _generate_code(length: int = 6) -> str:
     alphabet = string.ascii_uppercase + string.digits
     return "".join(random.choice(alphabet) for _ in range(length))
@@ -98,6 +103,10 @@ async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
         db.add(room)
         await db.commit()
         await db.refresh(room)
+        try:
+            await _broadcast_global({"type": "panel_refresh", "scope": "rooms"})
+        except Exception:
+            pass
         return RoomResponse(
             code=room.id,
             host_id=room.host_id,
@@ -136,6 +145,10 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
             "type": "player_joined",
             "room": {"code": room.id, "host_id": room.host_id, "players": enriched},
         })
+        try:
+            await _broadcast_global({"type": "panel_refresh", "scope": "rooms"})
+        except Exception:
+            pass
         return RoomResponse(
             code=room.id,
             host_id=room.host_id,
@@ -175,6 +188,10 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
             await db.delete(room)
             await db.commit()
             await _broadcast(code, {"type": "room_closed"})
+            try:
+                await _broadcast_global({"type": "panel_refresh", "scope": "rooms"})
+            except Exception:
+                pass
             raise HTTPException(status_code=404, detail="Room closed")
 
         if was_host:
@@ -188,6 +205,10 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
             "type": "room_left",
             "room": {"code": room.id, "host_id": room.host_id, "players": enriched},
         })
+        try:
+            await _broadcast_global({"type": "panel_refresh", "scope": "rooms"})
+        except Exception:
+            pass
         return RoomResponse(
             code=room.id,
             host_id=room.host_id,

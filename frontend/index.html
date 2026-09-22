@@ -2886,6 +2886,33 @@
             const u = usersCache[id];
             return u ? roleTag(u.role, u.blocked) : '';
         }
+        // 🔴 Live refresh: faqat KO'RINIB TURGAN panel/tab yangilanadi (spam yo'q)
+        function refreshVisiblePanels(scope) {
+            const vis = (id) => document.getElementById(id)?.classList.contains('active');
+            if (scope === 'users' || !scope) {
+                if (vis('screen-useredit') && _userEditCurrentId && typeof openUserEdit === 'function') openUserEdit(_userEditCurrentId, _userEditReturn);
+                if (vis('screen-mainowner')) { if (typeof moLoadUsers === 'function') moLoadUsers(); }
+                if (vis('screen-owner') && typeof ownerLoadUsers === 'function') ownerLoadUsers();
+                if (vis('screen-admin') && typeof adminLoadUsers === 'function') adminLoadUsers();
+            }
+            if (scope === 'rooms' || !scope) {
+                if (vis('screen-mainowner')) { if (typeof moLoadRooms === 'function') moLoadRooms(); if (typeof moLoadPanel === 'function') moLoadPanel(); }
+                if (vis('screen-owner')) { if (typeof ownerLoadRooms === 'function') ownerLoadRooms(); if (typeof ownerLoadPanel === 'function') ownerLoadPanel(); }
+            }
+            if (scope === 'chat' || !scope) {
+                if (vis('screen-mainowner') && typeof moLoadChat === 'function') moLoadChat();
+                if (vis('screen-owner') && typeof ownerLoadChat === 'function') ownerLoadChat();
+            }
+            if (scope === 'games' || !scope) {
+                if (vis('screen-mainowner') && typeof moLoadGames === 'function') moLoadGames();
+                if (vis('screen-owner') && typeof ownerLoadGames === 'function') ownerLoadGames();
+            }
+            if (scope === 'log' || !scope) {
+                if (vis('screen-mainowner') && typeof moLoadLog === 'function') moLoadLog();
+                if (vis('screen-owner') && typeof ownerLoadLog === 'function') ownerLoadLog();
+            }
+        }
+
         function applyStatsUpdate(d) {
             const u = d.user || {};
             usersCache[d.user_id] = { ...(usersCache[d.user_id] || {}), ...u, id: d.user_id };
@@ -3365,6 +3392,11 @@
                     if (data.type === 'stats_update' && data.user_id) {
                         applyStatsUpdate(data);
                     }
+                    // 🔴 To'liq live: backend har bir o'zgarishda panel_refresh yuboradi
+                    if (data.type === 'panel_refresh') refreshVisiblePanels(data.scope);
+                    if (data.type === 'modlog_new') refreshVisiblePanels('log');
+                    if (data.type === 'chat_cleared') refreshVisiblePanels('chat');
+                    if (data.type === 'chat' && data.room === 'global') refreshVisiblePanels('chat');
                     if (data.type === 'toast' && data.name) {
                         if (data.user_id !== userId) showToast((data.name || "O'yinchi") + ' ' + (data.emoji || ''));
                     }
@@ -3372,9 +3404,19 @@
                         // bu o'zimni o'chirish — server yo'l qo'ymaydi, lekin xavfsizlik uchun
                         location.reload();
                     }
+                    if (data.type === 'user_deleted' && data.user_id !== userId) {
+                        if (typeof _userEditCurrentId !== 'undefined' && _userEditCurrentId === data.user_id) {
+                            showToast('🗑 User o\'chirildi');
+                            closeUserEdit();
+                        }
+                        refreshVisiblePanels('users');
+                    }
                     if (data.type === 'room_deleted' && data.code && data.code === currentRoom) {
                         showToast('🚪 Xona moderator tomonidan yopildi');
                         leaveLobby();
+                    }
+                    if (data.type === 'room_deleted') {
+                        refreshVisiblePanels('rooms');
                     }
                     if (data.type === 'muted' && data.user_id === userId) {
                         myMuted = true;
@@ -3382,6 +3424,7 @@
                     }
                     if (data.type === 'chat_deleted' && data.id) {
                         document.querySelectorAll('[data-msg-id="' + data.id + '"]').forEach(el => el.remove());
+                        refreshVisiblePanels('chat');
                     }
                     if (data.type === 'user_warned' && data.user_id === userId) {
                         showToast('⚠️ ADMIN OGOHLANTIRISHI: ' + (data.warning || ''));

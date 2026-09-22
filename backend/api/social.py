@@ -142,7 +142,7 @@ def _owner_action(actor: OnlineUser, target: OnlineUser) -> bool:
 
 async def _modlog(db, actor: OnlineUser | None, action: str, text: str,
                   target_id: int | None = None):
-    """Persist a moderation event and show it in the panel's So'rovlar/Log tab."""
+    """Persist a moderation event and push it live to open panel Log tabs."""
     db.add(ModLogEntry(
         actor_id=actor.id if actor else None,
         actor_name=_display_name(actor) if actor else "SYSTEM",
@@ -151,6 +151,10 @@ async def _modlog(db, actor: OnlineUser | None, action: str, text: str,
         text=text[:220],
     ))
     await db.commit()
+    try:
+        await _broadcast({"type": "modlog_new"})
+    except Exception:
+        pass
 
 
 async def _cleanup_rooms(db) -> int:
@@ -751,6 +755,10 @@ async def record_result_server(room_code: str, winner_id: int | None, winner_nam
             coin_by_place = {1: 50, 2: 25, 3: 15}
             u.coins = (u.coins or 0) + coin_by_place.get(place, 5)
         await db.commit()
+    try:
+        await _broadcast({"type": "panel_refresh", "scope": "games"})
+    except Exception:
+        pass
 
 
 # ---------- Game results (client fallback, idempotent per room) ----------
@@ -797,7 +805,11 @@ async def record_game_result(req: GameResultIn, session=Depends(get_session)):
             u.level = 1 + (u.xp or 0) // 50
 
         await db.commit()
-        return {"ok": True}
+    try:
+        await _broadcast({"type": "panel_refresh", "scope": "games"})
+    except Exception:
+        pass
+    return {"ok": True}
 
 
 # ---------- Owner panel (only role='owner') ----------
@@ -1297,6 +1309,7 @@ async def owner_close_room(code: str, owner_id: int, session=Depends(get_session
     from ..main import manager
     await manager.broadcast(code, {"type": "room_closed"})
     await _broadcast({"type": "room_deleted", "code": code})
+    await _broadcast({"type": "panel_refresh", "scope": "rooms"})
     return {"ok": True}
 
 
@@ -1347,6 +1360,7 @@ async def owner_clear_chat(owner_id: int, session=Depends(get_session)):
         await _require_owner(owner_id, db)
         await db.execute(delete(ChatMessage))
         await db.commit()
+    await _broadcast({"type": "chat_cleared"})
     return {"ok": True}
 
 
