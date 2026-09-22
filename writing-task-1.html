@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IELTS Task 1 - Shalton Village (1910 vs 2010)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(145deg, #f0f7ff 0%, #dce8f5 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            transition: background 0.5s ease;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(145deg, #0f1a24 0%, #1a2a38 100%);
+        }
+
+        body.dark-mode .card {
+            background: rgba(25, 40, 55, 0.92);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 35px 70px rgba(0, 0, 0, 0.4);
+        }
+
+        body.dark-mode .card:hover {
+            box-shadow: 0 45px 90px rgba(0, 0, 0, 0.5);
+        }
+
+        body.dark-mode .title {
+            color: #e8f0f8;
+        }
+
+        body.dark-mode .subtitle {
+            color: #8aabbf;
+            background: rgba(59, 143, 194, 0.08);
+        }
+
+        body.dark-mode .essay p {
+            color: #c8dae8;
+        }
+
+        body.dark-mode .essay strong {
+            color: #e0edf5;
+        }
+
+        body.dark-mode .highlight {
+            background: #1a3a4a;
+            color: #7bb9da;
+        }
+
+        body.dark-mode .highlight:hover {
+            background: #1f4a5a;
+        }
+
+        body.dark-mode .vocab-box {
+            background: rgba(20, 40, 55, 0.7);
+            border-color: rgba(59, 143, 194, 0.15);
+        }
+
+        body.dark-mode .vocab-box .tags span {
+            background: #1a3040;
+            border-color: #2a4a5a;
+            color: #aac0d0;
+        }
+
+        body.dark-mode .vocab-box .tags span:hover {
+            background: #1a3a4a;
+            border-color: #4a8aaa;
+        }
+
+        body.dark-mode .stats-row {
+            border-top-color: rgba(255,255,255,0.06);
+        }
+
+        body.dark-mode .stats-row .stat {
+            color: #7a9aaf;
+        }
+
+        body.dark-mode .stats-row .stat strong {
+            color: #b0c8d8;
+        }
+
+        body.dark-mode .footer-note {
+            color: #5a7a8f;
+        }
+
+        body.dark-mode .footer-note span {
+            background: #1a3040;
+            color: #7a9aaf;
+        }
+
+        body.dark-mode .divider {
+            background: linear-gradient(90deg, #2a4a5a, transparent);
+        }
+
+        body.dark-mode .badge {
+            background: #1a3a5a;
+            color: #7bb9da;
+        }
+
+        body.dark-mode .badge-task {
+            background: #4a3a0a;
+            color: #fbbf24;
+        }
+
+        body.dark-mode .word-count {
+            background: #0a3a2a;
+            color: #6ee7b7;
+        }
+
+        body.dark-mode .band-estimate {
+            background: linear-gradient(135deg, #b45309, #d97706);
+            color: #fef3c7;
+        }
+
+        body.dark-mode .map-section {
+            background: rgba(20, 40, 55, 0.5);
+            border-color: rgba(59, 143, 194, 0.15);
+        }
+
+        body.dark-mode .map-item {
+            background: #1a3040;
+            border-color: #2a4a5a;
+        }
+
+        body.dark-mode .map-item .map-year {
+            color: #e8f0f8;
+        }
+
+        body.dark-mode .map-item .map-desc {
+            color: #8aabbf;
+        }
+
+        body.dark-mode .map-item .change-tag {
+            background: #0a3a2a;
+            color: #6ee7b7;
+        }
+
+        body.dark-mode .map-item .change-tag.removed {
+            background: #3a1a1a;
+            color: #f87171;
+        }
+
+        body.dark-mode .theme-toggle {
+            background: rgba(30, 60, 80, 0.7);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .card {
+            max-width: 980px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 44px;
+            padding: 50px 55px;
+            box-shadow: 0 35px 70px rgba(0, 20, 30, 0.13), 0 12px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: 0 45px 90px rgba(0, 20, 30, 0.17);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(59, 143, 194, 0.03) 0%, transparent 60%);
+            pointer-events: none;
+            animation: glowMove 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes glowMove {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(10%, 10%) rotate(5deg); }
+        }
+
+        .header {
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 16px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #d4e9ff;
+            color: #1a5a8c;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 6px 18px;
+            border-radius: 100px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .badge-task {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 6px 18px;
+            border-radius: 100px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .word-count {
+            display: inline-block;
+            background: #e8f3e8;
+            color: #2a6b3a;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 5px 16px;
+            border-radius: 100px;
+            transition: all 0.3s ease;
+        }
+
+        .word-count span {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0b1e2e;
+            line-height: 1.3;
+            letter-spacing: -0.4px;
+            margin-top: 4px;
+            transition: color 0.3s ease;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            font-weight: 400;
+            color: #4d6a7f;
+            margin-top: 8px;
+            border-left: 4px solid #3b8fc2;
+            padding-left: 16px;
+            background: rgba(59, 143, 194, 0.06);
+            border-radius: 0 8px 8px 0;
+            padding: 6px 16px;
+            transition: all 0.3s ease;
+        }
+
+        .band-estimate {
+            display: inline-block;
+            margin-top: 12px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1e293b;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 6px 20px;
+            border-radius: 100px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .band-estimate:hover {
+            transform: scale(1.03);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(15deg) scale(1.05);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+        }
+
+        .divider {
+            height: 2px;
+            background: linear-gradient(90deg, #b8d4e8, transparent);
+            margin: 26px 0 28px 0;
+            border: 0;
+            transition: all 0.3s ease;
+        }
+
+        /* ===== MAP SECTION ===== */
+        .map-section {
+            margin: 24px 0 28px 0;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 24px;
+            padding: 24px 28px;
+            border: 1px solid rgba(59, 143, 194, 0.12);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .map-section .map-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f4b66;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: color 0.3s ease;
+        }
+
+        body.dark-mode .map-section .map-title {
+            color: #8aabbf;
+        }
+
+        .map-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .map-item {
+            background: white;
+            border-radius: 18px;
+            padding: 18px 16px 16px 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+            border: 1px solid #eaf2f8;
+            transition: all 0.3s ease;
+        }
+
+        .map-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+        }
+
+        .map-item .map-year {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0b2a44;
+            margin-bottom: 10px;
+            transition: color 0.3s ease;
+        }
+
+        .map-item .map-year .icon {
+            margin-right: 6px;
+        }
+
+        .map-item .map-desc {
+            font-size: 13px;
+            line-height: 1.7;
+            color: #4d6a7f;
+            transition: color 0.3s ease;
+        }
+
+        .map-item .map-desc .item-tag {
+            display: inline-block;
+            background: #e6f2fa;
+            padding: 1px 8px;
+            border-radius: 6px;
+            font-weight: 500;
+            color: #1a5f8a;
+            font-size: 12px;
+            margin: 2px 2px;
+        }
+
+        body.dark-mode .map-item .map-desc .item-tag {
+            background: #1a3a4a;
+            color: #7bb9da;
+        }
+
+        .change-tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 100px;
+            margin-top: 6px;
+            background: #e8f3e8;
+            color: #2a6b3a;
+        }
+
+        .change-tag.removed {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .change-tag.added {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        /* ===== ESSAY ===== */
+        .essay {
+            position: relative;
+            z-index: 1;
+        }
+
+        .essay p {
+            font-size: 17px;
+            line-height: 1.85;
+            color: #1a2e3f;
+            margin-bottom: 20px;
+            font-weight: 400;
+            letter-spacing: 0.15px;
+            transition: color 0.3s ease;
+        }
+
+        .essay p:last-child {
+            margin-bottom: 0;
+        }
+
+        .essay strong {
+            color: #0b2a44;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .highlight {
+            display: inline-block;
+            background: #e6f2fa;
+            padding: 0 6px;
+            border-radius: 6px;
+            font-weight: 500;
+            color: #1a5f8a;
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+
+        .highlight:hover {
+            background: #cde4f2;
+            transform: scale(1.02);
+        }
+
+        /* ===== VOCAB BOX ===== */
+        .vocab-box {
+            margin-top: 34px;
+            padding: 22px 28px;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 26px;
+            border: 1px solid rgba(59, 143, 194, 0.16);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .vocab-box .label {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #3e6e8c;
+            margin-bottom: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .vocab-box .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .vocab-box .tags span {
+            background: #ffffff;
+            padding: 6px 18px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f4b66;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border: 1px solid #d7e6f0;
+            transition: all 0.15s ease;
+            cursor: default;
+        }
+
+        .vocab-box .tags span:hover {
+            background: #d4e9ff;
+            border-color: #7bb9da;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 143, 194, 0.12);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #3b8fc2;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(59, 143, 194, 0.25);
+        }
+
+        .copy-btn:hover {
+            background: #2a7aaa;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(59, 143, 194, 0.35);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        .print-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .print-btn:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+        body.dark-mode .copy-btn {
+            background: #2a7aaa;
+            box-shadow: 0 4px 16px rgba(59, 143, 194, 0.2);
+        }
+
+        body.dark-mode .copy-btn:hover {
+            background: #3b8fc2;
+        }
+
+        body.dark-mode .copy-btn.copied {
+            background: #10b981;
+        }
+
+        body.dark-mode .print-btn {
+            background: #4a5a6a;
+        }
+
+        body.dark-mode .print-btn:hover {
+            background: #3a4a5a;
+        }
+
+        .stats-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 30px;
+            margin-top: 26px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-row .stat {
+            font-size: 14px;
+            color: #3d637c;
+            transition: color 0.3s ease;
+        }
+
+        .stats-row .stat strong {
+            color: #0b2a44;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .footer-note {
+            margin-top: 22px;
+            font-size: 13px;
+            color: #5f7e94;
+            text-align: right;
+            letter-spacing: 0.2px;
+            position: relative;
+            z-index: 1;
+            transition: color 0.3s ease;
+        }
+
+        .footer-note span {
+            background: #eef4f8;
+            padding: 3px 14px;
+            border-radius: 100px;
+            font-weight: 500;
+            color: #2d5b78;
+            transition: all 0.3s ease;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 700px) {
+            .map-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .card {
+                padding: 30px 22px;
+                border-radius: 30px;
+            }
+
+            .title {
+                font-size: 22px;
+            }
+
+            .essay p {
+                font-size: 16px;
+                line-height: 1.75;
+            }
+
+            .vocab-box {
+                padding: 16px 18px;
+            }
+
+            .vocab-box .tags span {
+                font-size: 12px;
+                padding: 4px 14px;
+            }
+
+            .badge {
+                font-size: 10px;
+                padding: 4px 14px;
+            }
+
+            .band-estimate {
+                font-size: 13px;
+                padding: 4px 16px;
+            }
+
+            .stats-row {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .theme-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+                top: 14px;
+                right: 16px;
+            }
+
+            .copy-btn, .print-btn {
+                font-size: 12px;
+                padding: 6px 16px;
+            }
+
+            .map-section {
+                padding: 16px 14px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .card {
+                padding: 20px 14px;
+                border-radius: 24px;
+            }
+
+            .title {
+                font-size: 18px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+                padding: 4px 12px;
+            }
+        }
+
+        /* ===== PRINT ===== */
+        @media print {
+            body {
+                background: white !important;
+                padding: 20px !important;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                backdrop-filter: none !important;
+                background: white !important;
+            }
+
+            .theme-toggle, .copy-btn, .print-btn {
+                display: none !important;
+            }
+
+            body.dark-mode .card {
+                background: white !important;
+            }
+
+            body.dark-mode .essay p {
+                color: #1a2e3f !important;
+            }
+
+            body.dark-mode .title {
+                color: #0b1e2e !important;
+            }
+
+            body.dark-mode .subtitle {
+                color: #4d6a7f !important;
+                background: rgba(59, 143, 194, 0.06) !important;
+            }
+
+            body.dark-mode .highlight {
+                background: #e6f2fa !important;
+                color: #1a5f8a !important;
+            }
+
+            body.dark-mode .vocab-box {
+                background: rgba(255, 255, 255, 0.65) !important;
+            }
+
+            body.dark-mode .vocab-box .tags span {
+                background: white !important;
+                color: #1f4b66 !important;
+                border-color: #d7e6f0 !important;
+            }
+
+            body.dark-mode .stats-row .stat {
+                color: #3d637c !important;
+            }
+
+            body.dark-mode .stats-row .stat strong {
+                color: #0b2a44 !important;
+            }
+
+            body.dark-mode .map-section {
+                background: rgba(255, 255, 255, 0.6) !important;
+            }
+
+            body.dark-mode .map-item {
+                background: white !important;
+                border-color: #eaf2f8 !important;
+            }
+
+            body.dark-mode .map-item .map-year {
+                color: #0b2a44 !important;
+            }
+
+            body.dark-mode .map-item .map-desc {
+                color: #4d6a7f !important;
+            }
+
+            .band-estimate {
+                background: #fbbf24 !important;
+                color: #1e293b !important;
+            }
+
+            .card::before {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+
+    <!-- Dark Mode Toggle -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        🌙
+    </button>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="badge-row">
+            <div class="badge">📊 IELTS Task 1</div>
+        </div>
+
+        <h1 class="title">Shalton Village: 1910 vs 2010</h1>
+        <div class="subtitle">
+            Changes in part of a village over 100 years
+        </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Map Section -->
+    <div class="map-section">
+        <div class="map-title">🗺️ Key changes in Shalton village</div>
+        <div class="map-grid">
+
+            <!-- 1910 -->
+            <div class="map-item">
+                <div class="map-year"><span class="icon">🏡</span> Shalton in 1910</div>
+                <div class="map-desc">
+                    <span class="item-tag">School</span>
+                    <span class="item-tag">Butcher</span>
+                    <span class="item-tag">Grocer</span>
+                    <span class="item-tag">Baker</span>
+                    <span class="item-tag">Post office</span>
+                    <span class="item-tag">Large house</span>
+                    <span class="item-tag">Trees</span>
+                    <span class="item-tag">Houses (few)</span>
+                </div>
+                <div class="change-tag removed">🏚️ Old shops &amp; large house</div>
+            </div>
+
+            <!-- 2010 -->
+            <div class="map-item">
+                <div class="map-year"><span class="icon">🏘️</span> Shalton in 2010</div>
+                <div class="map-desc">
+                    <span class="item-tag">School</span>
+                    <span class="item-tag">Supermarket</span>
+                    <span class="item-tag">Parking</span>
+                    <span class="item-tag">Bank</span>
+                    <span class="item-tag">Post office</span>
+                    <span class="item-tag">Café</span>
+                    <span class="item-tag">Many houses</span>
+                    <span class="item-tag">No trees</span>
+                </div>
+                <div class="change-tag added">🏗️ New shops &amp; housing</div>
+            </div>
+
+        </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Essay (NO CONCLUSION - Task 1 standard) -->
+    <div class="essay" id="essayContent">
+
+        <p>
+            The two maps illustrate how a part of Shalton village changed between 1910 and 2010. <span class="highlight">Overall,</span> the village underwent significant development over the 100-year period, with many old buildings replaced by new commercial and residential facilities, and a large increase in the number of houses.
+        </p>
+
+        <p>
+            <span class="highlight">In 1910,</span> the area was mainly residential and agricultural, with a school, a butcher, a grocer, a baker, a post office, and a large house surrounded by trees. The main roads, School Road and London Road, had very few buildings along them. <span class="highlight">By 2010, however,</span> the butcher, grocer, and baker had all been replaced by a supermarket and a parking area on School Road, while a bank was built near the post office.
+        </p>
+
+        <p>
+            The most striking change was in housing. <span class="highlight">In 1910,</span> there were only a few houses, mainly along High Street. <span class="highlight">By 2010,</span> however, numerous houses had been built along both London Road and the side streets, transforming the area into a much more densely populated residential zone. The large house and the trees in the centre of the village were removed to make way for these new homes.
+        </p>
+
+        <p>
+            <span class="highlight">In addition,</span> a café appeared on High Street in 2010, replacing some of the older buildings. <span class="highlight">Overall,</span> the maps show a clear shift from a small rural village with local shops to a more modern, urbanised settlement with larger commercial facilities and significantly more housing.
+        </p>
+
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-container">
+        <button class="copy-btn" id="copyBtn">📋 Copy Essay</button>
+        <button class="print-btn" id="printBtn">🖨️ Print</button>
+    </div>
+
+    <!-- Vocabulary / linking words -->
+    <div class="vocab-box">
+        <div class="label">🔗 Linking words used in this essay</div>
+        <div class="tags">
+            <span>Overall</span>
+            <span>In 1910</span>
+            <span>By 2010, however</span>
+            <span>In addition</span>
+            <span>the most striking change</span>
+            <span>replaced by</span>
+            <span>to make way for</span>
+            <span>transforming</span>
+            <span>clear shift</span>
+            <span>significantly more</span>
+            <span>densely populated</span>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-note">
+    </div>
+
+</div>
+
+<script>
+    // ===== DARK MODE =====
+    const themeToggle = document.getElementById('themeToggle');
+    let darkMode = false;
+
+    themeToggle.addEventListener('click', () => {
+        darkMode = !darkMode;
+        document.body.classList.toggle('dark-mode', darkMode);
+        themeToggle.textContent = darkMode ? '☀️' : '🌙';
+        localStorage.setItem('darkMode', darkMode);
+    });
+
+    if (localStorage.getItem('darkMode') === 'true') {
+        darkMode = true;
+        document.body.classList.add('dark-mode');
+        themeToggle.textContent = '☀️';
+    }
+
+    // ===== COPY ESSAY =====
+    const copyBtn = document.getElementById('copyBtn');
+    const essayContent = document.getElementById('essayContent');
+
+    copyBtn.addEventListener('click', async () => {
+        const text = essayContent.textContent.trim();
+
+        try {
+            await navigator.clipboard.writeText(text);
+            copyBtn.textContent = '✅ Copied!';
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+                copyBtn.textContent = '📋 Copy Essay';
+                copyBtn.classList.remove('copied');
+            }, 2500);
+        } catch (err) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            copyBtn.textContent = '✅ Copied!';
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+                copyBtn.textContent = '📋 Copy Essay';
+                copyBtn.classList.remove('copied');
+            }, 2500);
+        }
+    });
+
+    // ===== PRINT =====
+    const printBtn = document.getElementById('printBtn');
+    printBtn.addEventListener('click', () => {
+        window.print();
+    });
+
+    // ===== WORD COUNT =====
+    function updateWordCount() {
+        const text = essayContent.textContent.trim();
+        const words = text.split(/\s+/).filter(word => word.length > 0);
+        const count = words.length;
+        document.getElementById('wordCount').textContent = count;
+        document.getElementById('statWords').textContent = count;
+    }
+
+    updateWordCount();
+
+    // ===== KEYBOARD SHORTCUTS =====
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+            e.preventDefault();
+            themeToggle.click();
+        }
+    });
+
+    console.log('✅ IELTS Task 1 - Shalton Village loaded!');
+    console.log(`📄 Word count: ${document.getElementById('statWords').textContent}`);
+    console.log('💡 No conclusion - only overview (Task 1 standard)');
+</script>
+
+</body>
+</html>

@@ -6,3 +6,4 @@ We expose the routers here so that main.py can import them cleanly.
 
 from .rooms import router as rooms_router
 from .social import router as social_router
+from .fun import router as fun_router

@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, func, delete
 from datetime import datetime, timedelta
 
-from ..models.social import OnlineUser, GameRecord, ChatMessage, Friendship, ModLogEntry
+from ..models.social import OnlineUser, GameRecord, ChatMessage, Friendship, ModLogEntry, Tournament
 from ..database import async_session_maker
 from ..tz import now_local
 from ..config import settings

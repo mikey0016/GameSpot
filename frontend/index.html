@@ -1328,9 +1328,30 @@
                     🤝 Do'stlar
                 </button>
             </div>
-            <button class="btn btn-outline" onclick="showScreen('about')">
-                ℹ️ Qanday O'ynash
-            </button>
+            <div class="menu-row">
+                <button class="btn btn-outline" id="daily-bonus-btn" onclick="claimDailyBonus()">
+                    🎁 Kunlik Bonus
+                </button>
+                <button class="btn btn-outline" onclick="showScreen('shop')">
+                    🛍 Do'kon
+                </button>
+            </div>
+            <div class="menu-row">
+                <button class="btn btn-outline" onclick="showScreen('tournaments')">
+                    🏁 Turnirlar
+                </button>
+                <button class="btn btn-outline" onclick="showScreen('achievements')">
+                    🏆 Yutuqlar
+                </button>
+            </div>
+            <div class="menu-row">
+                <button class="btn btn-outline" onclick="openRefModal()">
+                    🤝 Referal
+                </button>
+                <button class="btn btn-outline" onclick="showScreen('about')">
+                    ℹ️ Qoidalar
+                </button>
+            </div>
             <button class="btn btn-outline" id="owner-panel-btn" style="display:none; border-color:var(--yellow); color:var(--yellow);" onclick="showScreen('owner')">
                 👑 Owner Panel
             </button>
@@ -1370,6 +1391,69 @@
     </div>
 
     <!-- ===== ABOUT / HOW TO PLAY ===== -->
+    <!-- ===== SHOP ===== -->
+    <div id="screen-shop" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">DO'KON</div>
+            <div class="subtitle">Skinlar — coin'larga sotib oling</div>
+        </div>
+        <div class="glass-panel">
+            <div class="panel-head"><span>🪙 Coiningiz</span><b id="shop-coins" style="color:var(--yellow); font-family:'Orbitron';">0</b></div>
+            <div class="ud-sec">🎮 STOL / DOSKA SKINI</div>
+            <div class="uactions" id="shop-boards"><p class="invite-hint">Yuklanmoqda...</p></div>
+            <div class="ud-sec">🖼 AVATAR RAMKALARI</div>
+            <div class="uactions" id="shop-frames"><p class="invite-hint">Yuklanmoqda...</p></div>
+        </div>
+    </div>
+
+    <!-- ===== TOURNAMENTS ===== -->
+    <div id="screen-tournaments" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">TURNIRLAR</div>
+            <div class="subtitle">Coin uchun musobaqa — g'olib hammasini oladi</div>
+        </div>
+        <div class="glass-panel">
+            <div class="panel-head"><span>🏁 Yangi turnir</span></div>
+            <div class="uactions">
+                <button class="ubtn blue" onclick="tournamentCreate(0)">➕ Bepul turnir</button>
+                <button class="ubtn gold" onclick="tournamentCreate(50)">💎 50🪙 kirish</button>
+                <button class="ubtn gold" onclick="tournamentCreate(100)">👑 100🪙 kirish</button>
+            </div>
+        </div>
+        <div class="glass-panel">
+            <div class="panel-head"><span>🔓 Ochiq turnirlar</span><button class="icon-btn" onclick="loadTournaments()">🔄</button></div>
+            <div id="tournaments-list"><p class="invite-hint">Yuklanmoqda...</p></div>
+        </div>
+        <div class="glass-panel" id="tournament-detail-panel" style="display:none;">
+            <div class="panel-head"><span>📋 Bracket</span><b id="td-code" style="font-family:'Orbitron';"></b></div>
+            <div id="tournament-detail"></div>
+        </div>
+    </div>
+
+    <!-- ===== ACHIEVEMENTS ===== -->
+    <div id="screen-achievements" class="screen">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="header">
+            <div class="logo">YUTUQLAR</div>
+            <div class="subtitle">Nishonlaringiz</div>
+        </div>
+        <div class="glass-panel">
+            <div id="achievements-list"><p class="invite-hint">Yuklanmoqda...</p></div>
+        </div>
+    </div>
+
+    <!-- ===== REF / BONUS MODAL ===== -->
+    <div id="ref-overlay" class="block-overlay" onclick="if(event.target===this)closeRefModal()">
+        <div style="width:100%; max-width:340px; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
+            <div class="ud-name" style="justify-content:center;">🤝 Referal tizimi</div>
+            <div class="ud-sub" style="text-align:center; margin-bottom:10px;">Do'stingizni taklif qiling — har bir do'st uchun <b style="color:var(--yellow);">+100🪙</b></div>
+            <div id="ref-body"><div class="oempty">Yuklanmoqda...</div></div>
+            <button class="ubtn ghost" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeRefModal()">✕ Yopish</button>
+        </div>
+    </div>
+
     <div id="screen-about" class="screen">
         <button class="back-btn" onclick="showScreen('home')">←</button>
         <div class="header">
@@ -2060,6 +2144,9 @@
             if (name === 'online') loadOnline();
             if (name === 'open-rooms') loadOpenRooms();
             if (name === 'friends') loadFriends();
+            if (name === 'shop') loadShop();
+            if (name === 'tournaments') loadTournaments();
+            if (name === 'achievements') loadAchievements();
             if (name === 'owner') ownerLoadPanel();
             if (name === 'mainowner') moLoadPanel();
             if (name === 'admin') adminLoadPanel();
@@ -4768,6 +4855,236 @@
             } catch (e) {
                 showToast('❌ ' + e.message);
             }
+        }
+
+        // =====================================================================
+        // ===== 🆕 QIZIQARLI FUNKSIYALAR (bonus, do'kon, turnir, referal, badges)
+        // =====================================================================
+
+        // ---------- 🎁 Kunlik bonus ----------
+        async function claimDailyBonus() {
+            try {
+                const resp = await fetch(API_BASE + '/bonus/daily', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId })
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Olinmadi');
+                showToast(`🎁 +${d.amount}🪙 kunlik bonus! Streak: ${d.streak} kun`);
+                if (tg) tg.HapticFeedback?.notificationOccurred('success');
+                loadProfile();
+            } catch (e) { showToast('🎁 ' + e.message); }
+        }
+
+        // ---------- 🛍 Do'kon ----------
+        let _shopCatalog = null;
+        async function loadShop() {
+            try {
+                if (!_shopCatalog) _shopCatalog = await (await fetch(API_BASE + '/shop/catalog')).json();
+                const own = await (await fetch(API_BASE + '/shop/owned/' + userId)).json();
+                document.getElementById('shop-coins').textContent = own.coins ?? 0;
+                const eq = own.equipped || {};
+                const renderKind = (kind, boxId, equippedId) => {
+                    const box = document.getElementById(boxId);
+                    box.innerHTML = (_shopCatalog[kind] || []).map(s => {
+                        const owned = s.price === 0 || eq[kind] === s.id;
+                        const isEq = eq[kind] === s.id;
+                        const swatch = kind === 'frame'
+                            ? `<span style="display:inline-block; width:26px; height:26px; border-radius:50%; border:3px solid ${s.css === '' ? 'var(--glass-border)' : s.css};"></span>`
+                            : `<span style="display:inline-block; width:26px; height:26px; border-radius:6px; background:${s.css ? s.css.split(';')[0].replace('--board-bg:', '') : 'var(--glass-border)'}; border:2px solid ${s.css ? (s.css.split(';')[1] || '').replace('--board-border:', '') : 'var(--glass-border)'};"></span>`;
+                        const btn = isEq
+                            ? '<span class="ubtn gold" style="pointer-events:none;">✅ Kiyilgan</span>'
+                            : (owned
+                                ? `<button class="ubtn blue" onclick="shopEquip('${kind}','${s.id}')">Kiyish</button>`
+                                : `<button class="ubtn gold" onclick="shopBuy('${kind}','${s.id}',${s.price})">🪙 ${s.price}</button>`);
+                        return `<div class="ucard"><div class="uc-main"><div class="uc-name">${swatch} ${esc(s.name)}</div></div>${btn}</div>`;
+                    }).join('');
+                };
+                renderKind('board', 'shop-boards', 'skin_board');
+                renderKind('frame', 'shop-frames', 'skin_frame');
+            } catch (e) { showToast('❌ Do\'kon yuklanmadi'); }
+        }
+
+        async function shopBuy(kind, skinId, price) {
+            try {
+                const resp = await fetch(API_BASE + '/shop/buy', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, kind, skin_id: skinId })
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Sotib olinmadi');
+                showToast(`🛍 Skin olindi! Qoldi: ${d.coins}🪙`);
+                if (tg) tg.HapticFeedback?.notificationOccurred('success');
+                loadShop();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function shopEquip(kind, skinId) {
+            // tanlash = qayta "sotib olish" (0 = bepul skinlar ham kiyiladi)
+            await shopBuy(kind, skinId, 0);
+        }
+
+        // ---------- 🏁 Turnirlar ----------
+        async function tournamentCreate(fee) {
+            try {
+                const resp = await fetch(API_BASE + '/tournaments/create', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ host_id: userId, entry_fee: fee })
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Yaratilmadi');
+                showToast('🏁 Turnir yaratildi: ' + d.code);
+                loadTournaments();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function loadTournaments() {
+            try {
+                const d = await (await fetch(API_BASE + '/tournaments/open/list')).json();
+                const box = document.getElementById('tournaments-list');
+                if (!(d.tournaments || []).length) {
+                    box.innerHTML = '<div class="oempty">Hozircha turnir yo\'q — o\'zingiz yarating!</div>';
+                    return;
+                }
+                box.innerHTML = d.tournaments.map(t => `
+                    <div class="ucard" onclick="openTournament('${t.code}')">
+                        <div class="uc-main">
+                            <div class="uc-name">🏁 ${esc(t.code)} ${t.entry_fee ? '· 💰 ' + t.entry_fee + '🪙' : '· Bepul'}</div>
+                            <div class="uc-meta">${t.players} o'yinchi · Prize: ${t.prize}🪙</div>
+                        </div>
+                        <span class="ubtn blue" style="pointer-events:none;">👁</span>
+                    </div>`).join('');
+            } catch (e) {
+                document.getElementById('tournaments-list').innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
+            }
+        }
+
+        async function openTournament(code) {
+            try {
+                const t = await (await fetch(API_BASE + '/tournaments/' + code)).json();
+                document.getElementById('tournament-detail-panel').style.display = 'block';
+                document.getElementById('td-code').textContent = t.code;
+                const isHost = t.host_id === userId;
+                const joined = (t.players || []).some(p => p.id === userId);
+                const playersHtml = (t.players || []).map(p => `<span class="ubtn ghost" style="pointer-events:none;">${esc(p.name)}</span>`).join(' ');
+                const matchesHtml = (t.matches || []).map(m => {
+                    const nameOf = (pid) => { const p = (t.players || []).find(x => x.id === pid); return p ? esc(p.name) : '🤖 ' + pid; };
+                    const w = m.winner_id;
+                    return `<div class="ulog-row" style="border-left-color:${w ? 'var(--green)' : 'var(--magenta)'};">
+                        <b>${nameOf(m.p1)}</b> VS <b>${nameOf(m.p2)}</b> ${w ? '— 🥇 ' + nameOf(w) : ''}
+                    </div>`;
+                }).join('') || '<div class="oempty" style="padding:4px;">Bracket boshlanmagan</div>';
+                let actionHtml = '';
+                if (t.status === 'open' && !joined) {
+                    actionHtml = `<button class="ubtn blue" style="width:100%; justify-content:center;" onclick="tournamentJoin('${t.code}')">➕ Qo'shilish${t.entry_fee ? ' (' + t.entry_fee + '🪙)' : ''}</button>`;
+                }
+                if (t.status === 'open' && isHost && (t.players || []).length >= 2) {
+                    actionHtml += `<button class="ubtn gold" style="width:100%; justify-content:center; margin-top:6px;" onclick="tournamentStart('${t.code}')">🎮 Bracketni boshlash</button>`;
+                }
+                document.getElementById('tournament-detail').innerHTML = `
+                    <div class="ud-sub" style="text-align:center; margin-bottom:6px;">${t.status === 'open' ? '🔓 Ochiq' : t.status === 'running' ? '🔴 O\'ynalmoqda' : '🏁 Tugagan'} · Prize: <b style="color:var(--yellow);">${t.prize}🪙</b>${t.winner_id ? ' · 🥇 g\'olib bor' : ''}</div>
+                    <div class="ud-sec">👥 O'YINCHILAR (${(t.players || []).length}/8)</div>
+                    <div class="uactions">${playersHtml || '<span class="oempty" style="padding:4px;">Hech kim yo\'q</span>'}</div>
+                    <div class="ud-sec">⚔️ MATCHLAR</div>
+                    ${matchesHtml}
+                    ${actionHtml}
+                `;
+            } catch (e) { showToast('❌ Turnir topilmadi'); }
+        }
+
+        async function tournamentJoin(code) {
+            try {
+                const resp = await fetch(API_BASE + '/tournaments/join/' + code, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId })
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Qo\'shilmadi');
+                showToast('✅ Turnirga qo\'shildingiz!');
+                openTournament(code); loadTournaments();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function tournamentStart(code) {
+            try {
+                const resp = await fetch(API_BASE + '/tournaments/start/' + code, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId })
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Boshlanmadi');
+                showToast('⚔️ Bracket boshlandi! Matchlarni o\'ynang');
+                openTournament(code);
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        // ---------- 🏆 Yutuqlar ----------
+        async function loadAchievements() {
+            try {
+                const [all, mine] = await Promise.all([
+                    (await fetch(API_BASE + '/achievements/list')).json(),
+                    (await fetch(API_BASE + '/achievements/' + userId)).json(),
+                ]);
+                const have = new Set((mine.achievements || []).map(a => a.id));
+                const box = document.getElementById('achievements-list');
+                box.innerHTML = (all.achievements || []).map(a => {
+                    const got = have.has(a.id);
+                    return `<div class="ucard" style="${got ? 'border-color:var(--yellow);' : 'opacity:.55;'}">
+                        <div class="uc-main">
+                            <div class="uc-name">${a.icon} ${esc(a.name)} ${got ? '<span class="role-tag role-owner">OLINGAN</span>' : ''}</div>
+                            <div class="uc-meta">${esc(a.desc)}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                document.getElementById('achievements-list').innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
+            }
+        }
+
+        // ---------- 🤝 Referal ----------
+        async function openRefModal() {
+            document.getElementById('ref-overlay').classList.add('show');
+            const body = document.getElementById('ref-body');
+            body.innerHTML = '<div class="oempty">Yuklanmoqda...</div>';
+            try {
+                const d = await (await fetch(API_BASE + '/ref/my', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId })
+                })).json();
+                body.innerHTML = `
+                    <div class="ud-sec">📢 SIZNING KODINGIZ</div>
+                    <div class="room-code" onclick="copyText('${d.code}');showToast('📋 Kod nusxalandi')" style="cursor:pointer;">${esc(d.code)}</div>
+                    <p class="invite-hint" style="text-align:center;">Bosing — nusxalanadi. Do'stingiz kirgach shu kodni kiritsin: sizga <b>+100🪙</b>, unga <b>+50🪙</b>!</p>
+                    <div class="ud-sec">🤝 TAKLIF QILGANLARINGIZ: ${d.count} ta</div>
+                    <div class="ud-sec">✅ KOD KIRITISH (agar do'stingiz bergan bo'lsa)</div>
+                    <div class="chat-input-row">
+                        <input type="text" class="input-field" id="ref-input" placeholder="Masalan: A7X2K9" maxlength="8" style="text-align:center; text-transform:uppercase;">
+                        <button class="chat-send" onclick="applyRefCode()">➤</button>
+                    </div>
+                `;
+            } catch (e) {
+                body.innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
+            }
+        }
+
+        function closeRefModal() {
+            document.getElementById('ref-overlay').classList.remove('show');
+        }
+
+        async function applyRefCode() {
+            const inp = document.getElementById('ref-input');
+            const code = (inp?.value || '').trim().toUpperCase();
+            if (!code) { showToast('⚠️ Kod kiriting'); return; }
+            try {
+                const resp = await fetch(API_BASE + '/ref/apply', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId, nickname: code })
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Qabul qilinmadi');
+                showToast(`🤝 ${d.inviter} bilan do'st bo'ldingiz! +${d.bonus}🪙`);
+                closeRefModal();
+            } catch (e) { showToast('❌ ' + e.message); }
         }
 
         // ---------- escape helper ----------

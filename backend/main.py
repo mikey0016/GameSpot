@@ -14,7 +14,7 @@ from .config import settings
 from .database import async_session_maker, init_db
 from .tz import now_local
 
-from .api import rooms_router, social_router  # import routers
+from .api import rooms_router, social_router, fun_router  # import routers
 from .game.uno import GameState
 from .models.room import Room
 from .api.social import _broadcast as social_broadcast  # noqa: E402  (owner force-leave notifications)
@@ -74,6 +74,121 @@ async def cleanup_stale_rooms():
 # Register API routers
 app.include_router(rooms_router)
 app.include_router(social_router)
+app.include_router(fun_router)
+
+
+# =====================================================================
+# ===== BOT AI (bo'sh o'rinlarni to'ldirish) =====
+# =====================================================================
+
+BOT_IDS = {-9001: "🤖 Robo", -9002: "🤖 Byte", -9003: "🤖 Nova", -9004: "🤖 Zeta"}
+
+
+def _bot_play(state, bot_id: int):
+    """Bot uchun oddiy AI: mos kartani topib tashla, bo'lmasa ol."""
+    from .game.cards import Card, Color
+    player = state._find_player(bot_id)
+    top = state.discard_pile[-1]
+    tc = (top.chosen_color or top.color)
+    # Pending +2/+4 bo'lsa majburiy oladi
+    if state.pending_draw > 0:
+        state.draw_cards(bot_id)
+        return {"moved": True, "drew": True}
+    card = next((c for c in player.hand if c.color == tc or c.value == top.value), None)
+    if card is None and any(c.color == Color.WILD for c in player.hand):
+        card = next(c for c in player.hand if c.color == Color.WILD)
+    if card is None:
+        state.draw_cards(bot_id)
+        # Olgan karta mosa bo'lsa tashlashga harakat qilamiz (draw-then-play)
+        if state.drew_playable:
+            drawn = player.hand[-1]
+            try:
+                chosen = Color.RED if drawn.color == Color.WILD else None
+                state.play_card(bot_id, drawn, chosen)
+                return {"moved": True, "played": drawn.value}
+            except ValueError:
+                state.drew_playable = False
+                state._advance_turn()
+        return {"moved": True, "drew": True}
+    chosen = Color.RED if card.color == Color.WILD else None
+    state.play_card(bot_id, card, chosen)
+    return {"moved": True, "played": card.value}
+
+
+async def _maybe_bot_turn(room_code: str, state):
+    """Navbat botda bo'lsa 1.2s kutib o'ynatadi (chanzli rekursiya)."""
+    import asyncio as _asyncio
+    if state.winner_id:
+        return
+    cur = state._current_player().user_id
+    if cur not in BOT_IDS:
+        return
+    await _asyncio.sleep(1.2)
+    if games.get(room_code) is not state or state.winner_id:
+        return
+    try:
+        _bot_play(state, cur)
+    except ValueError:
+        pass
+    await manager.broadcast(room_code, {"type": "game_update"})
+    await _send_personalized_state(room_code, state)
+    if state.winner_id:
+        await _finish_game(room_code, state)
+        return
+    await _maybe_bot_turn(room_code, state)
+
+
+# =====================================================================
+# ===== BLITZ REJIM (turn timer) =====
+# =====================================================================
+
+# room_code -> asyncio.TimerHandle (blitz vaqt tugashi)
+_blitz_timers: dict = {}
+BLITZ_SECONDS = 10
+
+
+async def _blitz_timeout(room_code: str, user_id: int):
+    """Vaqt tugadi: avtomatik karta oladi (yoki pending penalty)."""
+    state = games.get(room_code)
+    if not state or state.winner_id:
+        return
+    if state._current_player().user_id != user_id:
+        return
+    try:
+        if state.pending_draw > 0:
+            state.draw_cards(user_id)
+        else:
+            state.draw_cards(user_id)
+            if state.drew_playable:
+                state.drew_playable = False
+                state._advance_turn()
+    except ValueError:
+        pass
+    _blitz_timers.pop(room_code, None)
+    await manager.broadcast(room_code, {
+        "type": "blitz_timeout", "user_id": user_id,
+        "message": "⏱ Vaqt tugadi — karta avtomatik olindi",
+    })
+    await manager.broadcast(room_code, {"type": "game_update"})
+    await _send_personalized_state(room_code, state)
+
+
+def _blitz_arm(room_code: str, state):
+    """Blitz timer'ni navbatdagi userga o'rnatadi (agar blitz rejim bo'lsa)."""
+    import asyncio as _asyncio
+    if room_code in _blitz_timers:
+        _blitz_timers[room_code].cancel()
+        _blitz_timers.pop(room_code, None)
+    blitz_on = getattr(state, "blitz", False)
+    if not blitz_on or state.winner_id:
+        return
+    cur = state._current_player().user_id
+    if cur in BOT_IDS:
+        return  # botlar tez o'ynaydi
+    loop = _asyncio.get_event_loop()
+    _blitz_timers[room_code] = loop.call_later(
+        BLITZ_SECONDS, lambda: _asyncio.ensure_future(_blitz_timeout(room_code, cur))
+    )
 
 
 # Public config for the WebApp (no secrets) – used for building share/invite links
@@ -317,11 +432,31 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                     await manager.broadcast(room_code, {"type": "game_start"})
                     continue
                 try:
-                    state = GameState(player_ids=list(room.player_ids))
+                    ids = list(room.player_ids)
+                    # 🤖 Bo'sh o'rinlarni bot to'ldirish (host so'ragan bo'lsa yoki 2tadan kam)
+                    want_bots = bool(data.get("with_bots")) or data.get("fill_bots")
+                    if want_bots and len(ids) < 4:
+                        import random as _r
+                        bot_ids = _r.sample(sorted(BOT_IDS.keys()), min(4 - len(ids), 4 - len(ids)))
+                        for bid in bot_ids:
+                            ids.append(bid)
+                            manager.user_names.setdefault(bid, BOT_IDS[bid])
+                    # ⚡ Blitz rejim
+                    blitz = bool(data.get("blitz"))
+                except ValueError:
+                    continue
+                try:
+                    state = GameState(player_ids=ids)
                 except ValueError:
                     continue
                 state.started_at = now_local()
+                state.blitz = blitz
                 games[room_code] = state
+                if blitz:
+                    _blitz_arm(room_code, state)
+                if any(i in BOT_IDS for i in ids):
+                    import asyncio as _a
+                    _a.ensure_future(_maybe_bot_turn(room_code, state))
                 await manager.broadcast(room_code, {"type": "game_start"})
                 await _send_personalized_state(room_code, state)
                 continue
@@ -348,6 +483,10 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                 await _send_personalized_state(room_code, state)
                 if state.winner_id:
                     await _finish_game(room_code, state)
+                else:
+                    _blitz_arm(room_code, state)
+                    import asyncio as _a
+                    _a.ensure_future(_maybe_bot_turn(room_code, state))
                 continue
 
             if action == "draw_card" and user_id is not None:
@@ -363,6 +502,9 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                     continue
                 await manager.broadcast(room_code, {"type": "game_update"})
                 await _send_personalized_state(room_code, state)
+                _blitz_arm(room_code, state)
+                import asyncio as _a
+                _a.ensure_future(_maybe_bot_turn(room_code, state))
                 continue
 
             # Drawn card is playable -> player throws it immediately (draw-then-play)
@@ -386,6 +528,10 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                 await _send_personalized_state(room_code, state)
                 if state.winner_id:
                     await _finish_game(room_code, state)
+                else:
+                    _blitz_arm(room_code, state)
+                    import asyncio as _a
+                    _a.ensure_future(_maybe_bot_turn(room_code, state))
                 continue
 
             # Keep (drawn) card: end the drawing player's turn
@@ -397,6 +543,9 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                 state._advance_turn()
                 await manager.broadcast(room_code, {"type": "game_update"})
                 await _send_personalized_state(room_code, state)
+                _blitz_arm(room_code, state)
+                import asyncio as _a
+                _a.ensure_future(_maybe_bot_turn(room_code, state))
                 continue
 
             if action == "call_uno" and user_id is not None:

@@ -48,6 +48,24 @@ class OnlineUser(Base):
     # Pending/processed in-app invites stored as JSON list
     invites = Column(JSONList, default=list)
 
+    # ===== 🆕 Qiziqarli funksiyalar =====
+    # Kunlik bonus: streak
+    daily_last = Column(DateTime, nullable=True)      # oxirgi bonus olingan kun
+    daily_streak = Column(Integer, default=0, nullable=False)
+    # Yutuqlar: JSON list [{id, name, icon, at}]
+    achievements = Column(JSONList, default=list)
+    # Referal: kimni taklif qildi
+    ref_code = Column(String(10), nullable=True, index=True)
+    referred_by = Column(BigInteger, nullable=True)
+    ref_count = Column(Integer, default=0, nullable=False)
+    # Skin: kiygan skin id (do'kon katalogi STATIK_FRONTEND'da)
+    skin_board = Column(String(24), nullable=True)    # stol/doska skini
+    skin_frame = Column(String(24), nullable=True)    # avatar ramkasi
+    # Blitz hisoblagichlari
+    blitz_wins = Column(Integer, default=0, nullable=False)
+    # Do'stona so'rov + achievements unlock broadcast uchun
+    badges = Column(JSONList, default=list)  # deprecated, achievements ishlatiladi
+
 
 class GameRecord(Base):
     __tablename__ = "game_records"
@@ -63,6 +81,22 @@ class GameRecord(Base):
     duration_sec = Column(Integer, nullable=True)
     draw_count = Column(Integer, nullable=True)   # jami deckdan olingan kartalar
     turn_count = Column(Integer, nullable=True)   # jami tashlangan kartalar
+
+
+class Tournament(Base):
+    __tablename__ = "tournaments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(8), unique=True, index=True)
+    host_id = Column(BigInteger, nullable=False)
+    entry_fee = Column(Integer, default=0)
+    prize = Column(Integer, default=0)  # jamg'arma (entry x n)
+    status = Column(String(16), default="open")  # open | running | finished | cancelled
+    players = Column(JSONList, default=list)   # [{id, name}]
+    matches = Column(JSONList, default=list)   # bracket: [{round, p1, p2, winner_id}]
+    winner_id = Column(BigInteger, nullable=True)
+    created_at = Column(DateTime, default=now_local)
+    finished_at = Column(DateTime, nullable=True)
 
 
 class ModLogEntry(Base):

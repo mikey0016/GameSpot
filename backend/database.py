@@ -89,6 +89,43 @@ async def init_db():
             await conn.execute(text(
                 "ALTER TABLE friendships ALTER COLUMN friend_id TYPE BIGINT"
             ))
+            # Qiziqarli funksiyalar ustunlari
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS daily_last TIMESTAMP"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS daily_streak INTEGER DEFAULT 0"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS achievements JSON DEFAULT '[]'"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS ref_code VARCHAR(10)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS referred_by BIGINT"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS ref_count INTEGER DEFAULT 0"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS skin_board VARCHAR(24)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS skin_frame VARCHAR(24)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS blitz_wins INTEGER DEFAULT 0"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS badges JSON DEFAULT '[]'"
+            ))
+            # turnirs: bracket o'yinlari
+            await conn.execute(text(
+                "CREATE TABLE IF NOT EXISTS tournaments (id SERIAL PRIMARY KEY, code VARCHAR(8) UNIQUE, "
+                "host_id BIGINT, entry_fee INTEGER DEFAULT 0, prize INTEGER DEFAULT 0, status VARCHAR(16) DEFAULT 'open', "
+                "players JSON DEFAULT '[]', matches JSON DEFAULT '[]', winner_id BIGINT, created_at TIMESTAMP, finished_at TIMESTAMP)"
+            ))
             # game_records: to'liq o'yin ma'lumoti (detail modal)
             await conn.execute(text(
                 "ALTER TABLE game_records ADD COLUMN IF NOT EXISTS started_at TIMESTAMP"
