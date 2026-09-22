@@ -193,6 +193,10 @@ def _record_public(r: GameRecord) -> dict:
         "winner_name": r.winner_name,
         "players": r.players or [],
         "finished_at": r.finished_at.isoformat() if r.finished_at else None,
+        "started_at": r.started_at.isoformat() if r.started_at else None,
+        "duration_sec": r.duration_sec,
+        "draw_count": r.draw_count,
+        "turn_count": r.turn_count,
     }
 
 
@@ -718,9 +722,11 @@ async def global_chat_history(session=Depends(get_session)):
 
 # ---------- Game results (server-side) ----------
 
-async def record_result_server(room_code: str, winner_id: int | None, winner_name: str | None, players: list):
+async def record_result_server(room_code: str, winner_id: int | None, winner_name: str | None, players: list,
+                               started_at=None, duration_sec: int | None = None,
+                               draw_count: int | None = None, turn_count: int | None = None):
     """Called by the WS layer exactly once per finished game.
-    players: [{id, name, place}] — place 1 = winner.
+    players: [{id, name, place, cards_left}] — place 1 = winner.
     XP: 1st +25, 2nd +12, 3rd +7, others +3.
     """
     xp_by_place = {1: 25, 2: 12, 3: 7}
@@ -730,6 +736,10 @@ async def record_result_server(room_code: str, winner_id: int | None, winner_nam
             winner_id=winner_id,
             winner_name=winner_name,
             players=players,
+            started_at=started_at,
+            duration_sec=duration_sec,
+            draw_count=draw_count,
+            turn_count=turn_count,
         )
         db.add(rec)
         for p in players:
@@ -1379,6 +1389,36 @@ async def owner_games(owner_id: int, session=Depends(get_session)):
             )
         ).scalars().all()
         return {"games": [_record_public(r) for r in rows]}
+
+
+@router.get("/owner/games/{game_id}/detail")
+async def owner_game_detail(game_id: int, owner_id: int, session=Depends(get_session)):
+    """Full game info for the panel: players with places, duration, activity."""
+    async with session() as db:
+        await _require_owner(owner_id, db)
+        r = await db.get(GameRecord, game_id)
+        if not r:
+            raise HTTPException(404, "O'yin topilmadi")
+        # Hozirgi user ma'lumotlari bilan boyitish (role/level/XP)
+        enriched = []
+        for p in (r.players or []):
+            pid = p.get("id")
+            u = await db.get(OnlineUser, pid) if pid is not None else None
+            enriched.append({
+                **p,
+                "username": u.username if u else None,
+                "role": (u.role if u else None),
+                "level": (u.level if u else None),
+                "xp": (u.xp if u else None),
+                "online": bool(u and u.last_online and (now_local() - u.last_online).total_seconds() < 60),
+                "still_exists": bool(u),
+            })
+        return {
+            "game": {
+                **_record_public(r),
+                "players_enriched": enriched,
+            }
+        }
 
 
 @router.post("/owner/users/{user_id}/reset-stats")

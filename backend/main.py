@@ -4,7 +4,7 @@
 It registers REST API routers, WebSocket endpoint and includes CORS configuration.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,7 +57,7 @@ async def cleanup_stale_rooms():
     """Delete rooms abandoned before a restart/crash so no ghost rooms linger.
     A room that is still WAITING and has not been touched for a while is stale.
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timedelta
     from sqlalchemy import delete
     from .models.room import Room, RoomStatus
 
@@ -182,7 +182,7 @@ async def _chat_meta(db, user_id) -> dict:
         return {"role": None, "blocked": False, "blocked_until": None, "block_reason": None,
                 "muted": False, "muted_until": None}
     from .models.social import OnlineUser
-    from datetime import datetime as _dt
+    from datetime import datetime, timedelta as _dt
     u = await db.get(OnlineUser, user_id)
     blocked = bool(u and u.blocked)
     # Muddati chiqqan blokni avtomatik o'chirish
@@ -320,6 +320,7 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                     state = GameState(player_ids=list(room.player_ids))
                 except ValueError:
                     continue
+                state.started_at = now_local()
                 games[room_code] = state
                 await manager.broadcast(room_code, {"type": "game_start"})
                 await _send_personalized_state(room_code, state)
@@ -492,11 +493,18 @@ async def _finish_game(room_code: str, state: GameState):
     # DB: one GameRecord per game, stats updated server-side once
     try:
         from .api.social import record_result_server
+        duration = None
+        if state.started_at:
+            duration = int((now_local() - state.started_at).total_seconds())
         await record_result_server(
             room_code=room_code,
             winner_id=winner["user_id"] if winner else None,
             winner_name=winner["name"] if winner else None,
-            players=[{"id": s["user_id"], "name": s["name"], "place": s["place"]} for s in standings],
+            players=[{"id": s["user_id"], "name": s["name"], "place": s["place"], "cards_left": s["cards_left"]} for s in standings],
+            started_at=state.started_at,
+            duration_sec=duration,
+            draw_count=getattr(state, "draw_count", 0),
+            turn_count=getattr(state, "turn_count", 0),
         )
     except Exception:
         import logging, traceback

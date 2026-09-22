@@ -56,8 +56,13 @@ class GameRecord(Base):
     room_code = Column(String, nullable=False, index=True)
     winner_id = Column(BigInteger, nullable=True, index=True)
     winner_name = Column(String, nullable=True)
-    players = Column(JSONList, default=list)  # [{id, name}]
+    players = Column(JSONList, default=list)  # [{id, name, place}]
     finished_at = Column(DateTime, default=now_local, index=True)
+    # 🆕 To'liq o'yin ma'lumoti (detail modal uchun)
+    started_at = Column(DateTime, nullable=True)
+    duration_sec = Column(Integer, nullable=True)
+    draw_count = Column(Integer, nullable=True)   # jami deckdan olingan kartalar
+    turn_count = Column(Integer, nullable=True)   # jami tashlangan kartalar
 
 
 class ModLogEntry(Base):

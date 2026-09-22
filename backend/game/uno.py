@@ -36,6 +36,10 @@ class GameState:
         self.winner_id: Optional[int] = None
         # Finish order (1st, 2nd, ...) as players empty their hands
         self.finish_order: List[int] = []
+        # 📊 Statistika: davomiylik va faollik hisoblagichlari
+        self.started_at = None  # datetime (UTC+5) — main.py o'rnatadi
+        self.draw_count: int = 0
+        self.turn_count: int = 0
         self._deal_initial_hands()
         self._start_discard()
 
@@ -147,6 +151,7 @@ class GameState:
                 raise ValueError("Wild card requires colour selection")
             card = Card(color=card.color, value=card.value, chosen_color=chosen_color)
         self.discard_pile.append(card)
+        self.turn_count += 1
 
         # Apply card effects
         self._apply_card_effect(card)
@@ -188,11 +193,13 @@ class GameState:
         # Pending +2/+4: take the whole penalty, turn ends
         if self.pending_draw > 0:
             player.hand.extend(self.deck.draw(self.pending_draw))
+            self.draw_count += self.pending_draw
             self.pending_draw = 0
             self._advance_turn()
             return self.serialize()
         # Normal draw: exactly one card, then the player may play it if it matches
         player.hand.extend(self.deck.draw(1))
+        self.draw_count += 1
         drawn = player.hand[-1]
         self.drew_playable = self._is_playable_now(player_id, drawn)
         # Turn passes only if the drawn card is NOT playable

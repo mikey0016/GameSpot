@@ -1111,6 +1111,14 @@
         </div>
     </div>
 
+    <!-- ===== GAME DETAIL MODAL (owner panel tarixi) ===== -->
+    <div id="game-detail-overlay" class="block-overlay" onclick="if(event.target===this)closeGameDetail()">
+        <div style="width:100%; max-width:380px; max-height:80vh; overflow-y:auto; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
+            <div id="game-detail-body"><div class="oempty">Yuklanmoqda...</div></div>
+            <button class="ubtn ghost" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeGameDetail()">✕ Yopish</button>
+        </div>
+    </div>
+
     <!-- ===== INVITE FRIEND PICKER ===== -->
     <div id="invite-overlay" class="block-overlay" onclick="if(event.target===this)closeInvitePicker()">
         <div style="width:100%; max-width:360px; max-height:78vh; overflow-y:auto; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:20px; padding:16px;">
@@ -3675,6 +3683,69 @@
             document.getElementById('mini-profile-overlay').classList.remove('show');
         }
 
+        // ---------- 🎮 Game detail modal (owner/MO panellari tarixi) ----------
+        async function openGameDetail(gameId) {
+            const ov = document.getElementById('game-detail-overlay');
+            const body = document.getElementById('game-detail-body');
+            ov.classList.add('show');
+            body.innerHTML = '<div class="oempty">Yuklanmoqda...</div>';
+            try {
+                const resp = await fetch(API_BASE + '/owner/games/' + gameId + '/detail?owner_id=' + userId);
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Yuklab bo\'lmadi');
+                const g = (await resp.json()).game;
+                const dur = g.duration_sec != null
+                    ? (g.duration_sec >= 3600
+                        ? Math.floor(g.duration_sec / 3600) + ' soat ' + Math.floor(g.duration_sec % 3600 / 60) + ' daqiqa'
+                        : Math.floor(g.duration_sec / 60) + ' daqiqa ' + (g.duration_sec % 60) + ' sekund')
+                    : null;
+                const fmt = (iso) => iso ? new Date(iso).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '?';
+                const players = (g.players_enriched || g.players || []);
+                const rows = players.map(p => {
+                    const medal = p.place === 1 ? '🥇' : p.place === 2 ? '🥈' : p.place === 3 ? '🥉' : (p.place || '?');
+                    const name = esc(p.name || '?');
+                    const sub = [
+                        p.username ? '@' + esc(p.username) : null,
+                        p.role ? (p.role === 'main_owner' ? '💎' : p.role === 'co_owner' ? '💠' : p.role === 'owner' ? '👑' : p.role === 'moderator' ? '🛡' : p.role === 'deputy' ? '⭐' : p.role === 'admin' ? '🎖' : null) : null,
+                        p.level != null ? 'Lvl ' + p.level : null,
+                        p.cards_left != null ? '🂠 ' + p.cards_left + ' karta qoldi' : null,
+                        !p.still_exists && p.still_exists !== undefined ? '🚫 o\'chirilgan' : null,
+                    ].filter(Boolean).join(' · ');
+                    const clickable = p.id ? ` onclick="closeGameDetail();openUserEdit(${p.id}, '${amMainOwner ? 'mainowner' : 'owner'}')"` : '';
+                    return `
+                    <div class="urow" style="cursor:pointer;"${clickable}>
+                        <div class="online-row" style="border:none;padding:0;">
+                            <span style="font-size:1.3rem; width:28px; text-align:center;">${medal}</span>
+                            <div class="online-name">${name}
+                                <div class="ustats">${sub || '—'}</div>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+                body.innerHTML = `
+                    <div class="ud-name" style="justify-content:center;">🎮 Xona ${esc(g.room_code)}</div>
+                    <div class="ud-sub" style="text-align:center; margin-bottom:8px;">${esc(g.winner_name || '—')} g'olib bo'ldi</div>
+                    <div class="ud-stats">
+                        <div class="ud-stat"><b>⏱ ${dur || '—'}</b><span>Davomiyligi</span></div>
+                        <div class="ud-stat"><b>${players.length}</b><span>O'yinchi</span></div>
+                    </div>
+                    <div class="ud-stats">
+                        <div class="ud-stat"><b>🂠 ${g.draw_count ?? '—'}</b><span>Olingan karta</span></div>
+                        <div class="ud-stat"><b>➤ ${g.turn_count ?? '—'}</b><span>Tashlangan karta</span></div>
+                    </div>
+                    <div class="ud-sec">🕒 BOSHLANGAN: ${fmt(g.started_at)}</div>
+                    <div class="ud-sec">🏁 TUGAGAN: ${fmt(g.finished_at)}</div>
+                    <div class="ud-sec">👥 QATNASHCHILAR (bosib ko'rish)</div>
+                    ${rows}
+                `;
+            } catch (e) {
+                body.innerHTML = '<div class="oempty">' + esc(e.message) + '</div>';
+            }
+        }
+
+        function closeGameDetail() {
+            document.getElementById('game-detail-overlay').classList.remove('show');
+        }
+
         async function miniAddFriend(id) {
             try {
                 const resp = await fetch(API_BASE + '/friends', {
@@ -4060,14 +4131,18 @@
                 if (!resp.ok) throw new Error();
                 const games = (await resp.json()).games || [];
                 if (!games.length) { box.innerHTML = '<div class="oempty">Hali o\'yin yo\'q</div>'; return; }
-                box.innerHTML = games.map(g => `
-                    <div class="hist-row">
+                box.innerHTML = games.map(g => {
+                    const dur = g.duration_sec ? Math.floor(g.duration_sec / 60) + 'd ' + (g.duration_sec % 60) + 's' : '';
+                    return `
+                    <div class="hist-row" style="cursor:pointer;" onclick="openGameDetail(${g.id})">
                         <div class="hist-icon">🏆</div>
                         <div class="hist-info">
-                            <div class="hist-title">Xona ${esc(g.room_code)}</div>
-                            <div class="hist-sub">${esc(g.winner_name || '—')} g\'olib · ${(g.players || []).length} o\'yinchi · ${g.finished_at ? new Date(g.finished_at).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                            <div class="hist-title">Xona ${esc(g.room_code)}${dur ? ' · ⏱ ' + dur : ''}</div>
+                            <div class="hist-sub">🥇 ${esc(g.winner_name || '—')} · ${(g.players || []).length} o'yinchi · ${g.finished_at ? new Date(g.finished_at).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
                         </div>
-                    </div>`).join('');
+                        <span class="ubtn ghost" style="pointer-events:none;">👁</span>
+                    </div>`;
+                }).join('');
             } catch (e) {
                 box.innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
             }
@@ -4341,14 +4416,18 @@
                 if (!resp.ok) throw new Error();
                 const games = (await resp.json()).games || [];
                 if (!games.length) { box.innerHTML = '<div class="oempty">Hali o\'yin yo\'q</div>'; return; }
-                box.innerHTML = games.map(g => `
-                    <div class="hist-row">
+                box.innerHTML = games.map(g => {
+                    const dur = g.duration_sec ? Math.floor(g.duration_sec / 60) + 'd ' + (g.duration_sec % 60) + 's' : '';
+                    return `
+                    <div class="hist-row" style="cursor:pointer;" onclick="openGameDetail(${g.id})">
                         <div class="hist-icon">🏆</div>
                         <div class="hist-info">
-                            <div class="hist-title">Xona ${esc(g.room_code)}</div>
-                            <div class="hist-sub">${esc(g.winner_name || '—')} g\'olib · ${(g.players || []).length} o\'yinchi · ${g.finished_at ? new Date(g.finished_at).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                            <div class="hist-title">Xona ${esc(g.room_code)}${dur ? ' · ⏱ ' + dur : ''}</div>
+                            <div class="hist-sub">🥇 ${esc(g.winner_name || '—')} · ${(g.players || []).length} o'yinchi · ${g.finished_at ? new Date(g.finished_at).toLocaleString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
                         </div>
-                    </div>`).join('');
+                        <span class="ubtn ghost" style="pointer-events:none;">👁</span>
+                    </div>`;
+                }).join('');
             } catch (e) {
                 box.innerHTML = '<div class="oempty">Yuklab bo\'lmadi</div>';
             }
