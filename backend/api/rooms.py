@@ -10,8 +10,10 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import select
 import string
 import random
+from datetime import datetime, timedelta
 
 from ..models.room import Room, RoomStatus
 from ..database import async_session_maker
@@ -57,15 +59,19 @@ class RoomResponse(BaseModel):
 
 
 async def _enrich_players(db, player_ids: list) -> list:
-    """Convert player id list to [{id, name}] using online_users names."""
+    """Convert player id list to [{id, name, role, blocked}] using online_users."""
     from ..models.social import OnlineUser
     out = []
     for pid in player_ids:
         name = None
+        role = None
+        blocked = False
         u = await db.get(OnlineUser, pid)
         if u:
-            name = u.first_name or u.username
-        out.append({"id": pid, "name": name or f"O'yinchi {pid % 1000}"})
+            name = u.nickname or u.first_name or u.username
+            role = u.role
+            blocked = bool(u.blocked)
+        out.append({"id": pid, "name": name or f"O'yinchi {pid % 1000}", "role": role, "blocked": blocked})
     return out
 
 @router.post("/create", response_model=RoomResponse)
@@ -105,6 +111,11 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
             raise HTTPException(status_code=400, detail="Room is full")
         if req.user_id in room.player_ids:
             raise HTTPException(status_code=400, detail="User already in room")
+        # Blocked users may not join rooms
+        from ..models.social import OnlineUser
+        bu = await db.get(OnlineUser, req.user_id)
+        if bu and bu.blocked:
+            raise HTTPException(status_code=403, detail="Siz bloklangansiz")
         room.player_ids.append(req.user_id)
         # If enough players, status can move to READY automatically (optional)
         if len(room.player_ids) >= 2:
@@ -204,6 +215,35 @@ async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
             players=enriched,
             max_players=room.max_players,
         )
+
+@router.get("/open", response_model=list[RoomResponse])
+async def open_rooms(session=Depends(get_session)):
+    """Public lobbies that are still WAITING for players (created in the last 30 min)."""
+    from ..models.social import OnlineUser
+    cutoff = datetime.utcnow() - timedelta(minutes=30)
+    async with session() as db:
+        rooms = (
+            await db.execute(
+                select(Room)
+                .where(
+                    Room.status == RoomStatus.WAITING,
+                    Room.created_at >= cutoff,
+                )
+                .order_by(Room.created_at.desc())
+                .limit(50)
+            )
+        ).scalars().all()
+        out = []
+        for r in rooms:
+            out.append(RoomResponse(
+                code=r.id,
+                host_id=r.host_id,
+                status=r.status.value,
+                players=await _enrich_players(db, r.player_ids),
+                max_players=r.max_players,
+            ))
+        return out
+
 
 @router.get("/{code}", response_model=RoomResponse)
 async def get_room(code: str, session=Depends(get_session)):

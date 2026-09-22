@@ -28,7 +28,8 @@ class GameState:
         self.direction: Direction = Direction.CLOCKWISE
         self.deck = Deck()
         self.discard_pile: List[Card] = []
-        self.pending_draw: int = 0  # for Draw Two / Wild Draw Four
+        self.pending_draw: int = 0  # for Draw Two / Wild Draw Four (stackable)
+        self.pending_draw_value: str = "draw_two"  # value of the stacked card
         self.pending_skip: bool = False
         self.winner_id: Optional[int] = None
         self._deal_initial_hands()
@@ -61,6 +62,7 @@ class GameState:
             self._reverse_direction()
         elif card.value == Value.DRAW_TWO:
             self.pending_draw += 2
+            self.pending_draw_value = card.value.value
         # Wild cards are never the first card by construction above
 
     def _current_player(self) -> PlayerState:
@@ -96,6 +98,10 @@ class GameState:
         if card not in player.hand:
             return False
 
+        # Stacked +2/+4: next player MUST either stack another +2/+4 or draw
+        if self.pending_draw > 0:
+            return self._can_stack(card)
+
         top = self.discard_pile[-1]
         # If top is a wild with chosen color, treat that as its effective color
         effective_top = Card(
@@ -107,6 +113,16 @@ class GameState:
             return True
         # Normal matching rules
         return card.color == effective_top.color or card.value == effective_top.value
+
+    def _can_stack(self, card: Card) -> bool:
+        """While a +2/+4 stack is pending, only a matching penalty card may be played:
+        +2 on +2; +4 on +4 (house rule: any wild_draw_four on wild_draw_four);
+        +4 may always be stacked on +2.
+        """
+        if self.pending_draw_value == Value.DRAW_TWO.value:
+            return card.value in {Value.DRAW_TWO, Value.WILD_DRAW_FOUR}
+        # pending +4: only another +4 can be stacked
+        return card.value == Value.WILD_DRAW_FOUR
 
     def play_card(
         self,
@@ -134,6 +150,12 @@ class GameState:
             card = Card(color=card.color, value=card.value, chosen_color=chosen_color)
         self.discard_pile.append(card)
 
+        # Remember what kind of penalty card is on top while stacking
+        if card.value == Value.DRAW_TWO:
+            self.pending_draw_value = Value.DRAW_TWO.value
+        elif card.value == Value.WILD_DRAW_FOUR:
+            self.pending_draw_value = Value.WILD_DRAW_FOUR.value
+
         # Apply card effects
         self._apply_card_effect(card)
 
@@ -158,7 +180,9 @@ class GameState:
         return self.serialize()
 
     def draw_cards(self, player_id: int, count: int = 1) -> Dict:
-        """Player draws `count` cards; this may also satisfy pending draw penalties.
+        """Player draws cards; this also satisfies pending +2/+4 stacks.
+        While a stack is pending the current player MUST draw the whole
+        accumulated amount (or stack another penalty card instead).
         Returns updated state.
         """
         if self.winner_id:
@@ -166,9 +190,11 @@ class GameState:
         if self._current_player().user_id != player_id:
             raise ValueError("Not this player's turn")
         player = self._find_player(player_id)
-        draw_amount = max(count, self.pending_draw)
+        # If a +2/+4 stack is pending, the player takes the whole accumulated amount
+        draw_amount = self.pending_draw if self.pending_draw > 0 else count
         player.hand.extend(self.deck.draw(draw_amount))
         self.pending_draw = 0
+        self.pending_draw_value = "draw_two"
         # After drawing, turn passes to next player
         self._advance_turn()
         return self.serialize()
@@ -212,6 +238,8 @@ class GameState:
             "top_card": self.discard_pile[-1].serialize() if self.discard_pile else None,
             "deck_remaining": self.deck.remaining(),
             "winner_id": self.winner_id,
+            # Stacked +2/+4 info so clients can show "take N cards / stack"
+            "pending_draw": self.pending_draw,
         }
 
     @classmethod

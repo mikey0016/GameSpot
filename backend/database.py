@@ -26,3 +26,20 @@ async def init_db():
         await conn.run_sync(GameBase.metadata.create_all)
         await conn.run_sync(SocialBase.metadata.create_all)
 
+    # Lightweight migration: add columns that appeared after the tables were
+    # first created (create_all does not alter existing tables).
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS nickname VARCHAR(24)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS role VARCHAR(16)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS blocked INTEGER DEFAULT 0"
+            ))
+    except Exception:
+        pass  # SQLite or already migrated
+

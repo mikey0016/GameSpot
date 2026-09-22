@@ -30,7 +30,23 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup():
     await init_db()
+    await ensure_owner()
     await cleanup_stale_rooms()
+
+
+async def ensure_owner():
+    """The Telegram id in ADMIN_ID is always the app owner (creates row if needed)."""
+    from .models.social import OnlineUser
+    admin_id = settings.ADMIN_ID
+    if not admin_id:
+        return
+    async with async_session_maker() as db:
+        u = await db.get(OnlineUser, admin_id)
+        if not u:
+            u = OnlineUser(id=admin_id, role="owner")
+            db.add(u)
+        u.role = "owner"
+        await db.commit()
 
 
 async def cleanup_stale_rooms():
@@ -112,6 +128,15 @@ manager = ConnectionManager()
 # parameterized route captures "global" as a room code.
 
 # Global chat WebSocket: every WebApp client connects here for worldwide chat
+async def _chat_meta(db, user_id) -> dict:
+    """Role tag + blocked flag for chat payloads (DB lookup, cheap at this scale)."""
+    if user_id is None:
+        return {"role": None, "blocked": False}
+    from .models.social import OnlineUser
+    u = await db.get(OnlineUser, user_id)
+    return {"role": (u.role if u else None), "blocked": bool(u and u.blocked)}
+
+
 @app.websocket("/ws/global")
 async def global_websocket(websocket: WebSocket):
     await manager.connect("global", websocket)
@@ -121,11 +146,17 @@ async def global_websocket(websocket: WebSocket):
             if data.get("action") == "chat":
                 text = str(data.get("text", ""))[:300]
                 if text.strip():
+                    uid = data.get("user_id")
+                    async with async_session_maker() as db:
+                        meta = await _chat_meta(db, uid)
+                    if meta["blocked"]:
+                        continue  # blocked users cannot chat
                     await manager.broadcast("global", {
                         "type": "chat",
                         "room": "global",
-                        "user_id": data.get("user_id"),
+                        "user_id": uid,
                         "name": data.get("name") or "O'yinchi",
+                        "role": meta["role"],
                         "text": text.strip(),
                     })
     except WebSocketDisconnect:
@@ -253,11 +284,16 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
             if action == "chat":
                 text = str(data.get("text", ""))[:300]
                 if text.strip():
+                    async with async_session_maker() as db:
+                        meta = await _chat_meta(db, user_id)
+                    if meta["blocked"]:
+                        continue  # blocked users cannot chat
                     await manager.broadcast(room_code, {
                         "type": "chat",
                         "room": room_code,
                         "user_id": data.get("user_id") or user_id,
                         "name": data.get("name") or manager.user_names.get(user_id, "O'yinchi") if user_id else (data.get("name") or "O'yinchi"),
+                        "role": meta["role"],
                         "text": text.strip(),
                     })
                 continue
@@ -266,6 +302,10 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
     except WebSocketDisconnect:
         manager.disconnect(room_code, websocket)
     except Exception:
+        import logging, traceback
+        logging.getLogger("uvicorn.error").error(
+            "WS handler error in room %s: %s", room_code, traceback.format_exc()
+        )
         manager.disconnect(room_code, websocket)
 
 
@@ -307,6 +347,7 @@ async def _send_personalized_state(room_code: str, state: GameState):
                 "top_card": top,
                 "deck_remaining": state.deck.remaining(),
                 "winner_id": state.winner_id,
+                "pending_draw": state.pending_draw,
             },
         }
         await manager.send_to_user(room_code, p.user_id, payload)
