@@ -2290,7 +2290,8 @@
             <div class="chat-box" id="global-chat-box"></div>
             <div class="chat-input-row">
                 <input type="text" class="input-field" id="global-chat-input"
-                       placeholder="Xabar yozing..." maxlength="300">
+                       placeholder="Xabar yozing..." maxlength="300"
+                       onkeydown="if(event.key==='Enter')sendGlobalChat()">
                 <button class="chat-send" onclick="sendGlobalChat()">➤</button>
             </div>
         </div>
