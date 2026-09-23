@@ -910,6 +910,20 @@
         .like-heart { display:inline-block; animation:heartpop 0.35s ease; }
         @keyframes heartpop { 0%{transform:scale(0.4);} 60%{transform:scale(1.3);} 100%{transform:scale(1);} }
         .cos-frame-wrap .cos-frame { position:absolute; inset:-4px; width:40px; height:40px; object-fit:contain; z-index:2; pointer-events:none; }
+        /* ===== TOURNAMENT FIX — telefon uchun ixcham, buzilmasligi uchun ===== */
+        #screen-tournaments .glass-panel, #tournament-detail-panel, #screen-create-room .glass-panel { max-width:400px; width:100%; box-sizing:border-box; }
+        #tournaments-list .ucard { flex-wrap:wrap; min-width:0; padding:8px 10px; }
+        #tournaments-list .ucard .uc-main { min-width:0; flex:1 1 0; }
+        #tournaments-list .ucard .uc-name { font-size:0.82rem; word-break:break-word; }
+        #tournaments-list .ucard .uc-meta { word-break:break-word; }
+        #tournament-detail { word-break:break-word; overflow-wrap:anywhere; }
+        #tournament-detail .ulog-row { font-size:0.68rem; padding:6px 8px; word-break:break-word; }
+        #tournament-detail .uactions { gap:5px; }
+        #tournaments-list + .glass-panel, #mo-tournaments-list .ucard { min-width:0; }
+        #mo-tournaments-list .ucard { flex-wrap:wrap; }
+        #mo-tournaments-list .uact { flex-wrap:wrap; gap:4px; }
+        #screen-tournaments .uactions { gap:5px; }
+        #screen-tournaments .uactions .ubtn { font-size:0.70rem; padding:7px 10px; flex:1 1 auto; min-width:0; }
 
         /* ===== COLOR PICKER (wild) ===== */
         .color-picker {
