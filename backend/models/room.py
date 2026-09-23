@@ -33,6 +33,9 @@ class Room(Base):
     game_id = Column(String, nullable=True, index=True)
     # Optional join password (plaintext is fine for a casual game lobby)
     password = Column(String(24), nullable=True)
+    # Entry fee mode: 0 = free, >0 = coins required to join; prize = entry_fee * player_count
+    entry_fee = Column(Integer, default=0, nullable=False)
+    prize = Column(Integer, default=0, nullable=False)
 
     def __repr__(self):
         return f"<Room {self.id} status={self.status}>"

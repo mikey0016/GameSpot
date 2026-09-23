@@ -1617,34 +1617,6 @@
         </div>
     </div>
 
-    <!-- ===== TOURNAMENTS ===== -->
-    <div id="screen-tournaments" class="screen">
-        <button class="back-btn" onclick="showScreen('home')">←</button>
-        <div class="header">
-            <div class="logo">TURNIRLAR</div>
-            <div class="subtitle">Coin uchun musobaqa — g'olib hammasini oladi</div>
-        </div>
-        <div class="glass-panel">
-            <div class="input-group">
-                <label>Turnir turi — kirish narxi</label>
-                <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-                    <button class="btn btn-primary mp-btn" onclick="tournamentCreate(0)" style="min-width:92px;">🆓 Bepul</button>
-                    <button class="btn btn-outline mp-btn" onclick="tournamentCreate(50)" style="min-width:92px;">💎 50🪙</button>
-                    <button class="btn btn-outline mp-btn" onclick="tournamentCreate(100)" style="min-width:92px;">👑 100🪙</button>
-                </div>
-            </div>
-            <p class="invite-hint">O'yinchilar coin to'lab qo'shiladi — g'olib jamg'armani oladi</p>
-        </div>
-        <div class="glass-panel">
-            <div class="panel-head"><span>🔓 Ochiq turnirlar</span><button class="icon-btn" onclick="loadTournaments()">🔄</button></div>
-            <div id="tournaments-list"><p class="invite-hint">Yuklanmoqda...</p></div>
-        </div>
-        <div class="glass-panel" id="tournament-detail-panel" style="display:none;">
-            <div class="panel-head"><span>📋 Bracket</span><b id="td-code" style="font-family:'Orbitron';"></b></div>
-            <div id="tournament-detail"></div>
-        </div>
-    </div>
-
     <!-- ===== ACHIEVEMENTS ===== -->
     <div id="screen-achievements" class="screen">
         <button class="back-btn" onclick="showScreen('home')">←</button>
@@ -1737,15 +1709,14 @@
 
         <div class="glass-panel" style="margin-top:12px;">
             <div class="input-group">
-                <label>🏁 Yoki turnir yaratish</label>
+                <label>💰 Xona rejimi — kirish to'lovi</label>
                 <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-                    <button class="btn btn-primary mp-btn" onclick="tournamentCreate(0)" style="min-width:88px;">🆓 Bepul</button>
-                    <button class="btn btn-outline mp-btn" onclick="tournamentCreate(50)" style="min-width:88px;">💎 50🪙</button>
-                    <button class="btn btn-outline mp-btn" onclick="tournamentCreate(100)" style="min-width:88px;">👑 100🪙</button>
+                    <button class="btn btn-primary mp-btn" onclick="setEntryFee(0)" id="ef-0" style="min-width:88px;">🆓 Bepul</button>
+                    <button class="btn btn-outline mp-btn" onclick="setEntryFee(50)" id="ef-50" style="min-width:88px;">💎 50🪙</button>
+                    <button class="btn btn-outline mp-btn" onclick="setEntryFee(100)" id="ef-100" style="min-width:88px;">👑 100🪙</button>
                 </div>
-                <p class="invite-hint" style="margin-top:8px;">Coin kirish — g'olib hammasini oladi</p>
+                <p class="invite-hint" style="margin-top:8px;">Har bir o'yinchi shuncha coin to'laydi — g'olib hamma coinlarni oladi</p>
             </div>
-            <button class="btn btn-outline" style="margin-top:8px;" onclick="showScreen('tournaments')">📋 Ochiq turnirlar ro'yxati</button>
         </div>
 
         <div class="loader" id="create-loader">
@@ -1891,7 +1862,6 @@
             <div class="sp-tabs">
                 <button class="sp-tab active" id="motab-users" onclick="moTab('users')">👥 Userlar</button>
                 <button class="sp-tab" id="motab-rooms" onclick="moTab('rooms')">🚪 Xonalar</button>
-                <button class="sp-tab" id="motab-tour" onclick="moTab('tour')">🏁 Turnirlar</button>
                 <button class="sp-tab" id="motab-chat" onclick="moTab('chat')">💬 Chat</button>
                 <button class="sp-tab" id="motab-games" onclick="moTab('games')">🎮 O'yinlar</button>
                 <button class="sp-tab" id="motab-log" onclick="moTab('log')">📜 Log</button>
@@ -1949,11 +1919,6 @@
                 <div id="mo-ws-list"><div class="oempty">Yuklanmoqda...</div></div>
                 <div class="ud-sec">📜 TARIX</div>
                 <div id="mo-games-list"><p class="invite-hint">Yuklanmoqda...</p></div>
-            </div>
-
-            <div id="mo-tab-tour" style="display:none">
-                <div class="panel-head"><span>Turnirlar boshqaruvi</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="moLoadTournaments()">🔄</button></div>
-                <div id="mo-tournaments-list"><p class="invite-hint">Yuklanmoqda...</p></div>
             </div>
 
             <div id="mo-tab-log" style="display:none">
@@ -2060,6 +2025,7 @@
                 <button class="icon-btn" onclick="copyRoomCode()" title="Nusxa olish">📋</button>
             </div>
             <p class="invite-hint">Kodni nusxalab do'stlaringizga yuboring yoki pastdagi tugma bilan taklif qiling</p>
+            <div id="lobby-prize" style="text-align:center; font-size:0.78rem; font-weight:700; color:var(--yellow); margin-top:6px;"></div>
         </div>
 
         <div class="glass-panel">
@@ -2361,6 +2327,8 @@
         let pollTimer = null;
         let backHandler = null;
         let lobbyHostId = null;
+        let lobbyEntryFee = 0;
+        let lobbyPrize = 0;
         let globalWs = null;  // global chat/live events socket (declared early: registerMe uses it)
 
         // Game state kept client-side for clear rendering
@@ -2409,7 +2377,6 @@
             if (name === 'open-rooms') loadOpenRooms();
             if (name === 'friends') loadFriends();
             if (name === 'shop') loadShop();
-            if (name === 'tournaments') loadTournaments();
             if (name === 'achievements') loadAchievements();
             if (name === 'owner') ownerLoadPanel();
             if (name === 'mainowner') moLoadPanel();
@@ -2632,6 +2599,7 @@
         }
 
         let roomLocked = false;
+        let entryFee = 0;
         function setRoomPrivacy(locked) {
             roomLocked = locked;
             const open = document.getElementById('pw-open');
@@ -2639,6 +2607,13 @@
             open.className = locked ? 'btn btn-outline mp-btn' : 'btn btn-primary mp-btn';
             lock.className = locked ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
             document.getElementById('create-password-group').style.display = locked ? 'block' : 'none';
+        }
+        function setEntryFee(fee) {
+            entryFee = fee;
+            [0,50,100].forEach(v => {
+                const btn = document.getElementById('ef-' + v);
+                if (btn) btn.className = v === fee ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
+            });
         }
 
         // ===== Room Creation =====
@@ -2657,17 +2632,17 @@
                 const resp = await fetch(API_BASE + '/rooms/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ host_id: userId || 1, max_players: maxPlayers, password: pw || null })
+                    body: JSON.stringify({ host_id: userId || 1, max_players: maxPlayers, password: pw || null, entry_fee: entryFee })
                 });
                 if (!resp.ok) throw new Error('Server xatosi');
                 const data = await resp.json();
                 currentRoom = data.code || data.room_code;
                 maxPlayers = data.max_players || maxPlayers;
                 lobbyHostId = data.host_id ?? userId;
-                showLobby(currentRoom, [{ id: userId, name: myName() }], data.host_id);
+                showLobby(currentRoom, [{ id: userId, name: myName() }], data.host_id, data.entry_fee || 0, data.prize || 0);
                 showScreen('lobby');
                 playSfx('join');
-                showToast('✅ Xona yaratildi!' + (pw ? ' 🔒 Parolli' : ''));
+                showToast('✅ Xona yaratildi!' + (pw ? ' 🔒 Parolli' : '') + ((data.entry_fee||0) ? ` · 💰 ${data.entry_fee}🪙` : ' · 🆓 Bepul'));
             } catch (e) {
                 showToast('❌ Xato: ' + e.message);
             } finally {
@@ -2699,10 +2674,10 @@
                 currentRoom = code;
                 maxPlayers = data.max_players || maxPlayers;
                 lobbyHostId = data.host_id;
-                showLobby(code, data.players || [], data.host_id);
+                showLobby(code, data.players || [], data.host_id, data.entry_fee || 0, data.prize || 0);
                 showScreen('lobby');
                 playSfx('join');
-                showToast('✅ Xonaga qo\'shildingiz!');
+                showToast('✅ Xonaga qo\'shildingiz!' + ((data.entry_fee||0) ? ` · 💰 ${data.entry_fee}🪙` : ''));
             } catch (e) {
                 showToast('❌ ' + e.message);
             }
@@ -2726,6 +2701,9 @@
                     const members = names.slice(1);
                     const full = (r.players || []).length >= r.max_players;
                     const locked = !!r.has_password;
+                    const fee = r.entry_fee || 0;
+                    const prize = r.prize || (fee * (r.players || []).length);
+                    const mode = fee ? `💰 ${fee}🪙 · 🎁 ${prize}🪙` : '🆓 Bepul';
                     return `
                     <div class="open-room">
                         <div class="or-info">
@@ -2733,6 +2711,7 @@
                             <div class="or-meta">
                                 👑 ${esc(host)}${members.length ? ' · ' + members.map(n => esc(n)).join(', ') : ''}
                             </div>
+                            <div class="or-meta" style="color:${fee ? 'var(--yellow)' : 'var(--text-dim)'};">${mode}</div>
                         </div>
                         <div style="text-align:right; flex-shrink:0;">
                             <div class="or-count">${(r.players || []).length}/${r.max_players}</div>
@@ -2784,9 +2763,21 @@
         }
 
         // ===== Lobby =====
-        function showLobby(code, players, hostId) {
+        function updateLobbyPrize(fee, prize) {
+            const el = document.getElementById('lobby-prize');
+            if (!el) return;
+            if (fee && fee > 0) {
+                el.textContent = `💰 Kirish: ${fee}🪙 · 🎁 Jamg'arma: ${prize || 0}🪙 · G'olib hammasini oladi!`;
+            } else {
+                el.textContent = '🆓 Bepul xona — coin to\'lanmaydi';
+            }
+        }
+        function showLobby(code, players, hostId, entryFee, prize) {
             document.getElementById('lobby-code').textContent = code;
             document.getElementById('lobby-chat-box').innerHTML = '';
+            lobbyEntryFee = entryFee || 0;
+            lobbyPrize = prize || 0;
+            updateLobbyPrize(lobbyEntryFee, lobbyPrize);
             updateLobbyPlayers(players, hostId);
             updateStartButton();
             connectWebSocket(code);
@@ -2819,6 +2810,7 @@
                     }
                     const prevCount = document.querySelectorAll('#lobby-slots .slot.filled').length;
                     const prevHost = lobbyHostId;
+                    if (room.entry_fee !== undefined) { lobbyEntryFee = room.entry_fee || 0; lobbyPrize = room.prize || 0; updateLobbyPrize(lobbyEntryFee, lobbyPrize); }
                     updateLobbyPlayers(room.players, room.host_id);
                     updateStartButton();
                     if (room.players && room.players.length > prevCount) {
@@ -3057,12 +3049,14 @@
         function handleGameMessage(data) {
             if (data.type === 'player_joined') {
                 if (data.room) {
+                    if (data.room.entry_fee !== undefined) { lobbyEntryFee = data.room.entry_fee||0; lobbyPrize = data.room.prize||0; updateLobbyPrize(lobbyEntryFee,lobbyPrize); }
                     updateLobbyPlayers(data.room.players, data.room.host_id);
                     updateStartButton();
                 }
                 showToast('👤 Yangi o\'yinchi qo\'shildi');
             }
             if (data.type === 'player_kicked' && data.room) {
+                if (data.room.entry_fee !== undefined) { lobbyEntryFee = data.room.entry_fee||0; lobbyPrize = data.room.prize||0; updateLobbyPrize(lobbyEntryFee,lobbyPrize); }
                 updateLobbyPlayers(data.room.players, data.room.host_id);
                 updateStartButton();
                 if (data.kicked === userId) {
@@ -3073,6 +3067,7 @@
                 }
             }
             if (data.type === 'room_left' && data.room) {
+                if (data.room.entry_fee !== undefined) { lobbyEntryFee = data.room.entry_fee||0; lobbyPrize = data.room.prize||0; updateLobbyPrize(lobbyEntryFee,lobbyPrize); }
                 updateLobbyPlayers(data.room.players, data.room.host_id);
                 updateStartButton();
                 if (data.room.host_id === userId) showToast('👑 Siz yangi host bo\'ldingiz!');
@@ -3107,7 +3102,7 @@
                 showScreen('home');
             }
             if (data.type === 'game_over') {
-                showResult(data.winner, data.standings);
+                showResult(data.winner, data.standings, data.prize);
             }
             // (chat yuqorida handleRoomChat orqali bir marta ishlanadi)
         }
@@ -3487,13 +3482,14 @@
         }
 
         // ===== Result =====
-        function showResult(winner, standings) {
+        function showResult(winner, standings, prize) {
             showScreen('result');
             const isWinner = winner?.user_id === userId || winner?.id === userId;
             document.getElementById('result-icon').textContent = isWinner ? '🏆' : '😢';
             document.getElementById('result-title').textContent = isWinner ? 'Tabriklaymiz!' : 'Keyingi safar!';
-            document.getElementById('result-subtitle').textContent = isWinner ?
-                'Siz g\'olib bo\'ldingiz!' : (winner?.name || 'Raqib') + ' g\'olib bo\'ldi';
+            let sub = isWinner ? 'Siz g\'olib bo\'ldingiz!' : (winner?.name || 'Raqib') + ' g\'olib bo\'ldi';
+            if (prize && prize > 0) sub += ` · 🎁 ${prize}🪙`;
+            document.getElementById('result-subtitle').textContent = sub;
             if (isWinner) { spawnConfetti(); playSfx('win'); } else { playSfx('lose'); }
             // Standings table (1st, 2nd, ...)
             const panel = document.getElementById('result-standings-panel');
@@ -5098,14 +5094,13 @@
         }
 
         function moTab(name) {
-            ['users', 'rooms', 'tour', 'chat', 'games', 'log'].forEach(t => {
+            ['users', 'rooms', 'chat', 'games', 'log'].forEach(t => {
                 const el = document.getElementById('mo-tab-' + t);
                 if (el) el.style.display = (t === name) ? 'block' : 'none';
                 const tab = document.getElementById('motab-' + t);
                 if (tab) tab.classList.toggle('active', t === name);
             });
             if (name === 'rooms') moLoadRooms();
-            if (name === 'tour') moLoadTournaments();
             if (name === 'chat') moLoadChat();
             if (name === 'games') moLoadGames();
             if (name === 'log') moLoadLog();

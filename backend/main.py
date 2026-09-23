@@ -651,10 +651,36 @@ async def _finish_game(room_code: str, state: GameState):
             "cards_left": next((len(p.hand) for p in state.players if p.user_id == uid), 0),
         })
     winner = standings[0] if standings else None
+    # Rejimli xona prize: g'olib hammasini oladi
+    prize = 0
+    try:
+        async with async_session_maker() as db:
+            from .models.room import Room
+            from .models.social import OnlineUser
+            room = await db.get(Room, room_code)
+            if room and getattr(room, 'prize', 0):
+                prize = getattr(room, 'prize', 0) or 0
+                if prize > 0 and winner:
+                    w = await db.get(OnlineUser, winner["user_id"])
+                    if w:
+                        w.coins = (w.coins or 0) + prize
+                        from .api.social import _broadcast_stats_update as _bsu_prize
+                        try:
+                            await _bsu_prize(db, winner["user_id"])
+                        except Exception:
+                            pass
+                # prize berilgandan keyin xona prize'ni nollaymiz (takror berilmasligi uchun)
+                if room:
+                    room.prize = 0
+                    await db.commit()
+    except Exception:
+        import logging, traceback
+        logging.getLogger("uvicorn.error").error("prize distribute failed: %s", traceback.format_exc())
     await manager.broadcast(room_code, {
         "type": "game_over",
         "winner": winner,
         "standings": standings,
+        "prize": prize,
     })
     # DB: one GameRecord per game, stats updated server-side once
     try:

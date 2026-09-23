@@ -157,6 +157,13 @@ async def init_db():
             await conn.execute(text(
                 "ALTER TABLE game_records ADD COLUMN IF NOT EXISTS turn_count INTEGER"
             ))
+            # Rooms: entry_fee / prize for rejimli xonalar
+            await conn.execute(text(
+                "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS entry_fee INTEGER DEFAULT 0"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS prize INTEGER DEFAULT 0"
+            ))
             # Backfill: old rows have NULL player_ids; seed with host id so they stay joinable
             await conn.execute(text(
                 "UPDATE rooms SET player_ids = json_build_array(host_id) WHERE player_ids IS NULL"
