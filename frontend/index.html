@@ -782,43 +782,44 @@
             box-shadow: 0 3px 10px rgba(0,0,0,0.35), 0 0 20px rgba(0, 212, 255, 0.6);
         }
 
-        /* ===== MODERN STAFF PANEL — ultra ixcham (tepa to'rtburchak kichik) ===== */
-        .sp-shell { display:flex; flex-direction:column; gap:6px; }
+        /* ===== MODERN STAFF PANEL — telefon uchun max ixcham, lenta bo'lmasligi uchun ===== */
+        .sp-shell { display:flex; flex-direction:column; gap:6px; max-width:400px; width:100%; margin:0 auto; }
         .sp-hero {
-            position:relative; overflow:hidden; border-radius:14px; padding:9px 11px 8px;
+            position:relative; overflow:hidden; border-radius:12px; padding:8px 10px 7px;
             border:1px solid var(--glass-border);
             background:
                 radial-gradient(120% 140% at 0% 0%, rgba(0,212,255,0.14), transparent 55%),
                 radial-gradient(120% 140% at 100% 0%, rgba(255,0,110,0.12), transparent 55%),
                 linear-gradient(160deg, rgba(20,20,34,0.94), rgba(12,12,22,0.97));
-            box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            width:100%; box-sizing:border-box; max-width:400px; margin:0 auto;
         }
         .sp-hero::after {
-            content:''; position:absolute; inset:0; pointer-events:none;
+            content:''; position:absolute; inset:0; border-radius:12px; pointer-events:none;
             background:linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.045) 50%, transparent 70%);
             transform:translateX(-100%); animation: spsheen 5.5s ease infinite;
         }
         @keyframes spsheen { 0%{transform:translateX(-100%);} 45%,100%{transform:translateX(160%);} }
         .sp-hero .sp-role {
-            font-family:'Orbitron'; font-weight:900; letter-spacing:1px; font-size:0.92rem;
-            display:flex; align-items:center; gap:6px;
+            font-family:'Orbitron'; font-weight:900; letter-spacing:0.8px; font-size:0.86rem;
+            display:flex; align-items:center; gap:5px; flex-wrap:wrap;
         }
-        .sp-hero .sp-role .sp-glow { font-size:1.02rem; filter:drop-shadow(0 0 6px currentColor); animation:spfloat 3s ease-in-out infinite; }
+        .sp-hero .sp-role .sp-glow { font-size:0.96rem; filter:drop-shadow(0 0 5px currentColor); animation:spfloat 3s ease-in-out infinite; }
         @keyframes spfloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-3px);} }
-        .sp-hero .sp-sub { font-size:0.60rem; color:var(--text-dim); margin-top:1px; letter-spacing:0.2px; line-height:1.2; }
+        .sp-hero .sp-sub { font-size:0.56rem; color:var(--text-dim); margin-top:2px; letter-spacing:0.2px; line-height:1.15; max-width:75%; }
         .sp-hero .sp-pill {
-            position:absolute; top:8px; right:8px; font-size:0.46rem; font-weight:800;
-            padding:2px 6px; border-radius:20px; letter-spacing:0.7px;
+            position:absolute; top:7px; right:7px; font-size:0.42rem; font-weight:800;
+            padding:1.5px 5px; border-radius:20px; letter-spacing:0.6px;
             background:rgba(0,212,255,0.12); color:var(--cyan); border:1px solid rgba(0,212,255,0.35);
         }
-        .sp-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; margin-top:7px; }
+        .sp-stats { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:3px; margin-top:6px; width:100%; }
         .sp-stat {
-            background:rgba(255,255,255,0.045); border:1px solid var(--glass-border); border-radius:8px;
-            padding:5px 2px; text-align:center; position:relative; overflow:hidden;
+            background:rgba(255,255,255,0.045); border:1px solid var(--glass-border); border-radius:7px;
+            padding:4px 1px; text-align:center; position:relative; overflow:hidden; min-width:0;
         }
-        .sp-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--cyan), transparent); }
-        .sp-stat .v { font-family:'Orbitron'; font-weight:800; font-size:0.78rem; }
-        .sp-stat .l { font-size:0.44rem; color:var(--text-dim); margin-top:0px; letter-spacing:0.4px; text-transform:uppercase; }
+        .sp-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:1.5px; background:linear-gradient(90deg, var(--cyan), transparent); }
+        .sp-stat .v { font-family:'Orbitron'; font-weight:800; font-size:0.72rem; line-height:1; }
+        .sp-stat .l { font-size:0.40rem; color:var(--text-dim); margin-top:1px; letter-spacing:0.3px; text-transform:uppercase; line-height:1; }
         .sp-tabs { display:flex; gap:7px; overflow-x:auto; padding:2px; scrollbar-width:none; }
         .sp-tabs::-webkit-scrollbar { display:none; }
         .sp-tab {
