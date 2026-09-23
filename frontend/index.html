@@ -1625,12 +1625,15 @@
             <div class="subtitle">Coin uchun musobaqa — g'olib hammasini oladi</div>
         </div>
         <div class="glass-panel">
-            <div class="panel-head"><span>🏁 Yangi turnir</span></div>
-            <div class="uactions">
-                <button class="ubtn blue" onclick="tournamentCreate(0)">➕ Bepul turnir</button>
-                <button class="ubtn gold" onclick="tournamentCreate(50)">💎 50🪙 kirish</button>
-                <button class="ubtn gold" onclick="tournamentCreate(100)">👑 100🪙 kirish</button>
+            <div class="input-group">
+                <label>Turnir turi — kirish narxi</label>
+                <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+                    <button class="btn btn-primary mp-btn" onclick="tournamentCreate(0)" style="min-width:92px;">🆓 Bepul</button>
+                    <button class="btn btn-outline mp-btn" onclick="tournamentCreate(50)" style="min-width:92px;">💎 50🪙</button>
+                    <button class="btn btn-outline mp-btn" onclick="tournamentCreate(100)" style="min-width:92px;">👑 100🪙</button>
+                </div>
             </div>
+            <p class="invite-hint">O'yinchilar coin to'lab qo'shiladi — g'olib jamg'armani oladi</p>
         </div>
         <div class="glass-panel">
             <div class="panel-head"><span>🔓 Ochiq turnirlar</span><button class="icon-btn" onclick="loadTournaments()">🔄</button></div>
@@ -1733,14 +1736,16 @@
         </div>
 
         <div class="glass-panel" style="margin-top:12px;">
-            <div class="panel-head"><span>🏁 Yoki turnir yaratish</span></div>
-            <p class="invite-hint">O'yinchilar coin kirisi bilan qo'shiladi — g'olib barcha jamg'armani oladi</p>
-            <div class="menu-row">
-                <button class="ubtn blue" style="justify-content:center;" onclick="tournamentCreate(0)">🆓 Bepul</button>
-                <button class="ubtn gold" style="justify-content:center;" onclick="tournamentCreate(50)">💰 50🪙</button>
-                <button class="ubtn gold" style="justify-content:center;" onclick="tournamentCreate(100)">👑 100🪙</button>
+            <div class="input-group">
+                <label>🏁 Yoki turnir yaratish</label>
+                <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+                    <button class="btn btn-primary mp-btn" onclick="tournamentCreate(0)" style="min-width:88px;">🆓 Bepul</button>
+                    <button class="btn btn-outline mp-btn" onclick="tournamentCreate(50)" style="min-width:88px;">💎 50🪙</button>
+                    <button class="btn btn-outline mp-btn" onclick="tournamentCreate(100)" style="min-width:88px;">👑 100🪙</button>
+                </div>
+                <p class="invite-hint" style="margin-top:8px;">Coin kirish — g'olib hammasini oladi</p>
             </div>
-            <button class="ubtn ghost" style="width:100%; justify-content:center;" onclick="showScreen('tournaments')">📋 Ochiq turnirlar ro'yxati</button>
+            <button class="btn btn-outline" style="margin-top:8px;" onclick="showScreen('tournaments')">📋 Ochiq turnirlar ro'yxati</button>
         </div>
 
         <div class="loader" id="create-loader">
