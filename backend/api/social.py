@@ -474,6 +474,8 @@ async def leaderboard(session=Depends(get_session)):
                     "wins": u.wins,
                     "games": u.games_played,
                     "level": u.level,
+                    "likes": u.likes or 0,
+                    "coins": u.coins or 0,
                     **_market_public(_equipped_market(u)),
                 }
                 for i, u in enumerate(rows)
