@@ -1419,6 +1419,35 @@
         .owss-row .live { color: var(--green); font-weight: 800; animation: pulse 1.2s infinite; }
         @keyframes pulse { 50% { opacity: 0.4; } }
         .oempty { color: var(--text-dim); font-size: 0.75rem; text-align: center; padding: 16px 8px; }
+        /* ===== FULL MODERN UI — barcha HTML ekranlar uchun ===== */
+        .screen { gap:6px; }
+        .floating-cards { filter: drop-shadow(0 8px 20px rgba(0,0,0,0.35)); }
+        .floating-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .floating-card:hover { transform: translateY(-6px) rotate(var(--r,0deg)) scale(1.04); }
+        .user-card { background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border:1px solid var(--glass-border); border-radius:14px; padding:10px 12px; }
+        .user-avatar { box-shadow: 0 4px 16px rgba(0,212,255,0.25), inset 0 1px 0 rgba(255,255,255,0.15); }
+        .stats-row .stat-box { background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); backdrop-filter: blur(8px); border-radius:12px; }
+        .stat-box .stat-val { background: linear-gradient(135deg, var(--cyan), var(--green)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .lobby-code-row { background: rgba(255,255,255,0.04); border:1px solid var(--glass-border); border-radius:12px; padding:8px 12px; }
+        .room-code { text-shadow: 0 2px 12px rgba(0,212,255,0.35); }
+        .slots .slot { transition: all 0.2s ease; }
+        .slots .slot.filled { background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); }
+        .slots .slot.filled.me { box-shadow: 0 0 16px rgba(0,212,255,0.22); }
+        .game-area .game-top-bar { backdrop-filter: blur(12px); background: rgba(255,255,255,0.04); border:1px solid var(--glass-border); border-radius:12px; padding:6px 10px; }
+        .chip { backdrop-filter: blur(8px); }
+        .pile-card { transition: transform 0.25s cubic-bezier(0.22,0.9,0.3,1.15), box-shadow 0.25s ease; }
+        .pile-card:hover { transform: translateY(-2px); }
+        .hand .card { box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15); }
+        .hand-nav { backdrop-filter: blur(8px); transition: all 0.2s ease; }
+        .hand-nav:hover { background: rgba(255,255,255,0.10); transform: scale(1.05); }
+        .chat-box { scrollbar-width:thin; scrollbar-color: rgba(0,212,255,0.3) transparent; }
+        .chat-bubble { backdrop-filter: blur(8px); border:1px solid rgba(255,255,255,0.06); }
+        .lb-row, .hist-row, .online-row, .open-room, .invite-chip { transition: transform 0.2s ease, background 0.2s ease; }
+        .lb-row:hover, .hist-row:hover, .online-row:hover, .open-room:hover { transform: translateY(-1px); background: rgba(255,255,255,0.06); }
+        .pf-banner { box-shadow: var(--shadow); }
+        .shop-tabs .shop-tab { backdrop-filter: blur(8px); }
+        .mcard:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+        .block-overlay > div { backdrop-filter: blur(16px); box-shadow: 0 20px 60px rgba(0,0,0,0.45); }
     </style>
 </head>
 <body>
