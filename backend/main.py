@@ -314,6 +314,14 @@ async def _chat_meta(db, user_id) -> dict:
         u.muted_until = None
         await db.commit()
         muted = False
+    # Cosmetics for chat/display everywhere
+    cosmetics = None
+    if u:
+        try:
+            from .api.social import _cosmetics_of as _c_of
+            cosmetics = _c_of(u)
+        except Exception:
+            cosmetics = None
     return {
         "role": (u.role if u else None),
         "blocked": blocked,
@@ -321,6 +329,7 @@ async def _chat_meta(db, user_id) -> dict:
         "block_reason": (u.block_reason if u else None),
         "muted": muted,
         "muted_until": (u.muted_until.isoformat() if u and u.muted_until else None),
+        "cosmetics": cosmetics,
     }
 
 
@@ -377,6 +386,7 @@ async def global_websocket(websocket: WebSocket):
                         "user_id": uid,
                         "name": data.get("name") or "O'yinchi",
                         "role": meta["role"],
+                        "cosmetics": meta.get("cosmetics"),
                         "text": text.strip(),
                         "ts": now_local().isoformat(),
                     })
@@ -596,6 +606,7 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                         "user_id": data.get("user_id") or user_id,
                         "name": data.get("name") or manager.user_names.get(user_id, "O'yinchi") if user_id else (data.get("name") or "O'yinchi"),
                         "role": meta["role"],
+                        "cosmetics": meta.get("cosmetics"),
                         "text": text.strip(),
                     })
                 continue
@@ -668,12 +679,30 @@ async def _finish_game(room_code: str, state: GameState):
 
 async def _user_info(user_id: int) -> dict:
     name = manager.user_names.get(user_id)
+    cosmetics = None
     if not name:
         async with async_session_maker() as db:
             from .models.social import OnlineUser
             u = await db.get(OnlineUser, user_id)
             name = (u.first_name or u.username) if u else None
-    return {"id": user_id, "name": name or "O'yinchi"}
+            if u:
+                try:
+                    from .api.social import _cosmetics_of as _c_of
+                    cosmetics = _c_of(u)
+                except Exception:
+                    cosmetics = None
+    else:
+        # also fetch cosmetics even if name cached
+        async with async_session_maker() as db:
+            from .models.social import OnlineUser
+            u = await db.get(OnlineUser, user_id)
+            if u:
+                try:
+                    from .api.social import _cosmetics_of as _c_of
+                    cosmetics = _c_of(u)
+                except Exception:
+                    cosmetics = None
+    return {"id": user_id, "name": name or "O'yinchi", "cosmetics": cosmetics}
 
 
 async def _send_personalized_state(room_code: str, state: GameState):
@@ -687,6 +716,7 @@ async def _send_personalized_state(room_code: str, state: GameState):
             "username": info["name"],
             "hand_count": len(p.hand),
             "called_uno": p.called_uno,
+            "cosmetics": info.get("cosmetics"),
         })
     for p in state.players:
         payload = {

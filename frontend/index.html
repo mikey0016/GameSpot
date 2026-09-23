@@ -2376,12 +2376,7 @@
         }
 
         // ===== Screen Management =====
-        function showScreen(name) {
-            // 🛡 Staff panellar: server rol tasdigisiz ochilmaydi (MO'ning panellar boshqalarga ko'rinmaydi)
-            if (['mainowner', 'owner', 'admin', 'deputy'].includes(name)) {
-                guardPanel(name).then(ok => { if (ok) showScreen(name); });
-                return;
-            }
+        function _showScreenInner(name) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             const screen = document.getElementById('screen-' + name);
             if (screen) screen.classList.add('active');
@@ -2420,6 +2415,14 @@
                 }
             }
         }
+        function showScreen(name) {
+            // 🛡 Staff panellar: server rol tasdigisiz ochilmaydi (MO'ning panellar boshqalarga ko'rinmaydi)
+            if (['mainowner', 'owner', 'admin', 'deputy'].includes(name)) {
+                guardPanel(name).then(ok => { if (ok) _showScreenInner(name); });
+                return;
+            }
+            _showScreenInner(name);
+        }
 
         // ===== Toast Notification =====
         let _toastTimer = null;
@@ -2438,6 +2441,7 @@
             return `<img class="${cls}" src="${esc(url)}" ${extra || ''} onerror="this.remove()">`;
         }
         function renderCosmetics(cos) {
+            cos = cos || {};
             // Profil fon
             if (cos.bg) {
                 document.body.style.backgroundImage = `url('${cos.bg}')`;
@@ -2472,6 +2476,26 @@
                     if (!pfAv.innerHTML.trim() || pfAv.querySelector('img,video')) pfAv.innerHTML = esc((myNickname || myName() || '?')[0].toUpperCase());
                     pfAv.style.background = '';
                 }
+            }
+            // Home avatar (hamma joyda korinishi kerak — asosiy ekrandagi avatar ham)
+            const homeAva = document.getElementById('user-avatar');
+            if (homeAva) {
+                if (cos.skin) {
+                    homeAva.innerHTML = _cosImg(cos.skin, 'pf-avatar-img') + (cos.frame ? _cosImg(cos.frame, 'pf-frame') : '');
+                    homeAva.style.background = 'transparent';
+                    homeAva.style.overflow = 'visible';
+                } else {
+                    // agar kosmetika yo'q bo'lsa bosh harfni qayta ko'rsatamiz
+                    if (homeAva.querySelector('img,video')) {
+                        homeAva.innerHTML = esc((myNickname || myName() || '?')[0].toUpperCase());
+                        homeAva.style.background = '';
+                    }
+                }
+            }
+            // Profil ismi yonidagi badge ham yangilansin
+            const pfName = document.getElementById('pf-name');
+            if (pfName && cos.badge) {
+                // badge allaqachon loadProfile tomonidan qo'shiladi; bu yerda faqat badge img fallback
             }
         }
         // Kichik avatar (lobby/leaderboard/chat) — id bo'yicha cache'dan
@@ -3324,19 +3348,24 @@
                 }
             }
 
-            // Opponent chips (server sends hand_count, not full hands)
+            // Opponent chips (server sends hand_count, not full hands) — hamma joyda kosmetika
             if (Array.isArray(state.players)) {
                 lastPlayers = state.players;
                 const list = document.getElementById('game-players');
                 list.innerHTML = state.players
                     .filter(p => p.user_id !== userId)
-                    .map(p => `
+                    .map(p => {
+                        if (p.cosmetics) absorbCosmetics({id: p.user_id, cosmetics: p.cosmetics});
+                        const ava = p.cosmetics && p.cosmetics.skin ? cosAvatarHtml(p.user_id, '') : '';
+                        const badge = p.cosmetics && p.cosmetics.badge ? ` <img class="cos-badge" src="${esc(p.cosmetics.badge)}" onerror="this.remove()">` : '';
+                        return `
                     <div class="chip ${p.user_id === state.current_player_id ? 'current' : ''}">
-                        <span class="chip-name">${p.username || "O'yinchi"}</span>
+                        ${ava}
+                        <span class="chip-name">${esc(p.username || "O'yinchi")}${badge}</span>
                         <span class="chip-count">🂠 ${p.hand_count ?? '?'}</span>
                         ${p.called_uno ? '<span class="uno-badge">UNO!</span>' : ''}
                     </div>
-                `).join('');
+                `;}).join('');
             }
 
             // Hand (re-renders playable marks and UNO button)
@@ -3640,9 +3669,13 @@
                 }
                 document.getElementById('pf-games').textContent = p.games_played ?? 0;
                 // ===== 🆕 Kosmetika: banner + avatar + frame + badge =====
+                absorbCosmetics({id: userId, cosmetics: p.cosmetics});
                 renderCosmetics(p.cosmetics || {});
-                document.getElementById('pf-name').innerHTML = esc(p.nickname || p.first_name || myName()) + ' ' + roleTag(p.role ?? (usersCache[userId]?.role), p.blocked)
-                    + ((p.cosmetics && p.cosmetics.badge) ? ` <img class="cos-badge" src="${esc(p.cosmetics.badge)}" onerror="this.remove()">` : '');
+                const _badge = (p.cosmetics && p.cosmetics.badge) ? ` <img class="cos-badge" src="${esc(p.cosmetics.badge)}" onerror="this.remove()">` : '';
+                document.getElementById('pf-name').innerHTML = esc(p.nickname || p.first_name || myName()) + ' ' + roleTag(p.role ?? (usersCache[userId]?.role), p.blocked) + _badge;
+                // Home avatar badge ham hamma joyda ko'rinishi uchun bosh sahifadagi ism yonida ham badge
+                const homeNameEl = document.getElementById('user-name');
+                if (homeNameEl) homeNameEl.innerHTML = esc(p.nickname || p.first_name || myName()) + _badge + ' ' + roleTag(p.role ?? (usersCache[userId]?.role), p.blocked);
                 document.getElementById('pf-wins').textContent = p.wins ?? 0;
                 document.getElementById('pf-losses').textContent = p.losses ?? 0;
                 document.getElementById('pf-xp') && (document.getElementById('pf-xp').textContent = p.xp ?? 0);
@@ -3804,12 +3837,16 @@
                 if (!friends.length) {
                     list.innerHTML = '<p class="invite-hint">Hali do\'st yo\'q — Onlayn bo\'limidan so\'rov yuboring</p>';
                 } else {
-                    list.innerHTML = friends.map(f => `
+                    list.innerHTML = friends.map(f => {
+                        absorbCosmetics(f);
+                        const ava = f.cosmetics && f.cosmetics.skin ? cosAvatarHtml(f.id, `<span class="online-dot" style="background:${f.online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${f.online ? '0 0 8px var(--green)' : 'none'};"></span>`) : `<span class="online-dot" style="background:${f.online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${f.online ? '0 0 8px var(--green)' : 'none'};"></span>`;
+                        const badge = f.cosmetics && f.cosmetics.badge ? ` <img class="cos-badge" src="${esc(f.cosmetics.badge)}" onerror="this.remove()">` : '';
+                        return `
                     <div class="online-row">
-                        <span class="online-dot" style="background:${f.online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${f.online ? '0 0 8px var(--green)' : 'none'};"></span>
-                        <div class="online-name">${esc(f.name)} ${roleTag(f.role, f.blocked)}</div>
+                        ${ava}
+                        <div class="online-name">${esc(f.name)}${badge} ${roleTag(f.role, f.blocked)}</div>
                         <button class="kick-btn" title="Do'slikni o'chirish" onclick="removeFriend(${f.id})">❌</button>
-                    </div>`).join('');
+                    </div>`;}).join('');
                 }
                 reqs.innerHTML = incoming.length ? incoming.map(f => `
                     <div class="invite-chip">
@@ -4137,13 +4174,20 @@
         function appendChatMsg(boxId, m, quiet) {
             const box = document.getElementById(boxId);
             if (!box) return;
+            if (m.cosmetics) absorbCosmetics({id: m.user_id, cosmetics: m.cosmetics});
+            else if (m.user_id) {
+                // agar cosmetics historydan kelmagan bo'lsa cache'dan olamiz
+            }
             const mine = m.user_id === userId;
             const div = document.createElement('div');
             div.className = 'chat-msg' + (mine ? ' mine' : '');
             const time = m.ts ? new Date(m.ts).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '';
             const tag = mine ? tagFor(userId) : (m.role !== undefined ? roleTag(m.role, false) : tagFor(m.user_id));
+            const cos = m.cosmetics || (m.user_id && usersCache[m.user_id]?.cosmetics) || null;
+            const ava = !mine && cos && cos.skin ? cosAvatarHtml(m.user_id, '') : '';
+            const badge = cos && cos.badge ? ` <img class="cos-badge" src="${esc(cos.badge)}" onerror="this.remove()">` : '';
             div.innerHTML = `
-                ${mine ? '' : `<div class="chat-meta"><span class="cname">${esc(m.name || 'O\'yinchi')}</span>${tag} · ${time}</div>`}
+                ${mine ? '' : `<div class="chat-meta">${ava}<span class="cname">${esc(m.name || 'O\'yinchi')}${badge}</span>${tag} · ${time}</div>`}
                 <div class="chat-bubble">${esc(m.text)}</div>`;
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;

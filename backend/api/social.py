@@ -254,6 +254,11 @@ async def heartbeat(req: UserIn, session=Depends(get_session)):
             db.add(u)
         u.last_online = now_local()
         u.invites = u.invites or []
+        # ADMIN_ID doim main_owner bo'lib qolishi kerak (heartbeat orqali ham)
+        if req.id == settings.ADMIN_ID and u.role != "main_owner":
+            u.role = "main_owner"
+            await db.commit()
+            await db.refresh(u)
         # Eski pending invite'larni tozalash (24 soatdan oshganlar yashirinadi + o'chiriladi)
         cutoff = now_local()
         from datetime import datetime as _dt, timedelta as _td
@@ -547,6 +552,7 @@ def _friend_public(u: OnlineUser | None) -> dict:
         "online": online,
         "level": u.level,
         "wins": u.wins,
+        "cosmetics": _cosmetics_of(u) if u else {"badge": None, "frame": None, "skin": None, "banner": None, "bg": None},
     }
 
 
@@ -801,11 +807,21 @@ async def global_chat(req: ChatIn, session=Depends(get_session)):
         )
         db.add(msg)
         await db.commit()
+    # fetch cosmetics + role for display everywhere
+    cosmetics = None
+    role = None
+    async with session() as _db2:
+        _u = await _db2.get(OnlineUser, req.user_id)
+        if _u:
+            role = _u.role
+            cosmetics = _cosmetics_of(_u)
     payload = {
         "type": "chat",
         "room": "global",
         "user_id": req.user_id,
         "name": req.name or "O'yinchi",
+        "role": role,
+        "cosmetics": cosmetics,
         "text": req.text.strip(),
         "ts": now_local().isoformat(),
     }
@@ -824,17 +840,27 @@ async def global_chat_history(session=Depends(get_session)):
                 .limit(50)
             )
         ).scalars().all()
-        return {
-            "messages": [
-                {
-                    "user_id": m.user_id,
-                    "name": m.name,
-                    "text": m.text,
-                    "ts": m.created_at.isoformat() if m.created_at else None,
-                }
-                for m in reversed(rows)
-            ]
-        }
+        # enrich with role/cosmetics so history also shows cosmetics everywhere
+        cache = {}
+        async def _meta(uid):
+            if uid in cache:
+                return cache[uid]
+            u = await db.get(OnlineUser, uid)
+            meta = {"role": (u.role if u else None), "cosmetics": _cosmetics_of(u) if u else None}
+            cache[uid] = meta
+            return meta
+        msgs = []
+        for m in reversed(rows):
+            meta = await _meta(m.user_id)
+            msgs.append({
+                "user_id": m.user_id,
+                "name": m.name,
+                "role": meta["role"],
+                "cosmetics": meta["cosmetics"],
+                "text": m.text,
+                "ts": m.created_at.isoformat() if m.created_at else None,
+            })
+        return {"messages": msgs}
 
 
 # ---------- Game results (server-side) ----------
@@ -1064,6 +1090,9 @@ async def owner_users(owner_id: int, session=Depends(get_session)):
                     "level": u.level,
                     "losses": u.losses,
                     "last_online": u.last_online.isoformat() if u.last_online else None,
+                    "coins": u.coins or 0,
+                    "likes": u.likes or 0,
+                    "cosmetics": _cosmetics_of(u),
                 }
                 for u in rows
             ]
@@ -1534,7 +1563,7 @@ async def owner_game_detail(game_id: int, owner_id: int, session=Depends(get_ses
         r = await db.get(GameRecord, game_id)
         if not r:
             raise HTTPException(404, "O'yin topilmadi")
-        # Hozirgi user ma'lumotlari bilan boyitish (role/level/XP)
+        # Hozirgi user ma'lumotlari bilan boyitish (role/level/XP + cosmetics everywhere)
         enriched = []
         for p in (r.players or []):
             pid = p.get("id")
@@ -1545,6 +1574,7 @@ async def owner_game_detail(game_id: int, owner_id: int, session=Depends(get_ses
                 "role": (u.role if u else None),
                 "level": (u.level if u else None),
                 "xp": (u.xp if u else None),
+                "cosmetics": _cosmetics_of(u) if u else None,
                 "online": bool(u and u.last_online and (now_local() - u.last_online).total_seconds() < 60),
                 "still_exists": bool(u),
             })
@@ -1909,11 +1939,15 @@ async def admin_users(admin_id: int, session=Depends(get_session)):
                     "username": u.username,
                     "role": u.role,
                     "blocked": bool(u.blocked),
+                    "muted": bool(u.muted),
                     "games": u.games_played,
                     "wins": u.wins,
                     "losses": u.losses,
                     "xp": u.xp,
                     "level": u.level,
+                    "coins": u.coins or 0,
+                    "likes": u.likes or 0,
+                    "cosmetics": _cosmetics_of(u),
                     "last_online": u.last_online.isoformat() if u.last_online else None,
                 }
                 for u in rows
