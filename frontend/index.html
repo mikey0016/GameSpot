@@ -1,5 +1,5 @@
     <!DOCTYPE html>
-<!-- BUILD 2026-09-23-v5 modern UI + likes + no-cache -->
+<!-- BUILD 2026-09-23-v7 BOSHQA STYLE - GOLD MODERN -->
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
@@ -15,21 +15,21 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-primary: #080810;
-            --bg-secondary: #141428;
-            --bg-card: #182040;
-            --cyan: #00d4ff;
-            --magenta: #ff006e;
-            --green: #00ff88;
-            --yellow: #ffd60a;
+            --bg-primary: #070a14;
+            --bg-secondary: #12182e;
+            --bg-card: #1a2450;
+            --cyan: #00eaff;
+            --magenta: #ff2b6b;
+            --green: #00ffb8;
+            --yellow: #ffc300;
             --orange: #ff6b35;
-            --text: #e8e8ff;
-            --text-dim: #8a8ab0;
-            --glass: rgba(255, 255, 255, 0.06);
-            --glass-border: rgba(255, 255, 255, 0.12);
-            --radius: 16px;
-            --shadow: 0 8px 32px rgba(0,0,0,0.35);
-            --blur: 24px;
+            --text: #eaf0ff;
+            --text-dim: #8c90b8;
+            --glass: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.14);
+            --radius: 18px;
+            --shadow: 0 12px 36px rgba(0,0,0,0.45);
+            --blur: 22px;
         }
 
         * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
@@ -117,16 +117,16 @@
         }
         .header .logo {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.65rem;
+            font-size: 1.7rem;
             font-weight: 900;
-            background: linear-gradient(135deg, var(--cyan) 0%, #7b5cff 45%, var(--magenta) 100%);
+            background: linear-gradient(135deg, #ffe600 0%, #ff7a00 45%, #ff2b6b 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 2px 12px rgba(0,212,255,0.25));
-            letter-spacing: 2.5px;
-            animation: logoShine 4s ease-in-out infinite;
+            filter: drop-shadow(0 3px 14px rgba(255,195,0,0.35));
+            letter-spacing: 3px;
+            animation: logoShine 3s ease-in-out infinite;
         }
-        @keyframes logoShine { 0%,100%{ filter: drop-shadow(0 2px 12px rgba(0,212,255,0.25)); } 50%{ filter: drop-shadow(0 4px 20px rgba(255,0,110,0.30)); } }
+        @keyframes logoShine { 0%,100%{ filter: drop-shadow(0 3px 14px rgba(255,195,0,0.30)); } 50%{ filter: drop-shadow(0 6px 24px rgba(255,43,107,0.35)); } }
         .header .subtitle {
             font-size: 0.68rem;
             color: var(--text-dim);
@@ -1545,6 +1545,7 @@
         <div class="header">
             <div class="logo">GAME SPOT</div>
             <div class="subtitle">UNO Multiplayer</div>
+            <div style="font-size:0.58rem; color:var(--yellow); letter-spacing:2px; margin-top:3px; font-family:'Orbitron'; font-weight:700;">✦ MODERN v7 — YANGI DIZAYN ✦</div>
         </div>
 
         <div class="floating-cards">
