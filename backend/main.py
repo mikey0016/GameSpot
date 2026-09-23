@@ -336,6 +336,8 @@ async def global_websocket(websocket: WebSocket):
                 if uid is not None:
                     manager.register_personal(uid, websocket)
                 continue
+            if data.get("action") == "ping":
+                continue
             if data.get("action") == "chat":
                 text = str(data.get("text", ""))[:300]
                 if text.strip():
@@ -396,6 +398,10 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
         while True:
             data = await websocket.receive_json()
             action = data.get("action")
+
+            # --- keepalive (client keepalive ping; javob shart emas) ---
+            if action == "ping":
+                continue
 
             # --- identify the connection ---
             if action == "hello":

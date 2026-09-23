@@ -115,7 +115,25 @@ async def init_db():
                 "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS skin_frame VARCHAR(24)"
             ))
             await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS skin_badge VARCHAR(24)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS skin_avatar VARCHAR(24)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS skin_banner VARCHAR(24)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS skin_bg VARCHAR(24)"
+            ))
+            await conn.execute(text(
                 "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS blitz_wins INTEGER DEFAULT 0"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS liked_by JSON DEFAULT '[]'"
             ))
             await conn.execute(text(
                 "ALTER TABLE online_users ADD COLUMN IF NOT EXISTS badges JSON DEFAULT '[]'"

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
@@ -165,7 +165,9 @@
             color: white;
             box-shadow: 0 0 16px rgba(0, 212, 255, 0.3);
             flex-shrink: 0;
+            overflow: visible;
         }
+        .user-avatar .pf-avatar-img { position:absolute; inset:0; }
         .user-info h2 { font-size: 1rem; font-weight: 600; }
         .user-info p { font-size: 0.72rem; color: var(--text-dim); }
 
@@ -746,6 +748,168 @@
             color: var(--text-dim);
             margin-top: 2px;
         }
+        /* Hand navigatsiya: o'q tugmalari + drag feedback */
+        .hand-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 430px;
+            margin: 0 auto;
+        }
+        .hand-row .hand { margin: 0; flex: 1 1 auto; max-width: 280px; }
+        .hand-nav {
+            flex: 0 0 auto;
+            width: 42px;
+            height: 76px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 1.05rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.12s ease, background 0.12s ease;
+        }
+        .hand-nav:active { background: rgba(255,255,255,0.14); transform: scale(0.93); }
+        .hand .card.drag-hot {
+            border-color: rgba(0, 212, 255, 0.85);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.35), 0 0 20px rgba(0, 212, 255, 0.6);
+        }
+
+        /* ===== MODERN STAFF PANEL ===== */
+        .sp-shell { display:flex; flex-direction:column; gap:12px; }
+        .sp-hero {
+            position:relative; overflow:hidden; border-radius:20px; padding:18px 16px 16px;
+            border:1px solid var(--glass-border);
+            background:
+                radial-gradient(120% 140% at 0% 0%, rgba(0,212,255,0.16), transparent 55%),
+                radial-gradient(120% 140% at 100% 0%, rgba(255,0,110,0.14), transparent 55%),
+                linear-gradient(160deg, rgba(20,20,34,0.94), rgba(12,12,22,0.97));
+            box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+        }
+        .sp-hero::after {
+            content:''; position:absolute; inset:0; pointer-events:none;
+            background:linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.045) 50%, transparent 70%);
+            transform:translateX(-100%); animation: spsheen 5.5s ease infinite;
+        }
+        @keyframes spsheen { 0%{transform:translateX(-100%);} 45%,100%{transform:translateX(160%);} }
+        .sp-hero .sp-role {
+            font-family:'Orbitron'; font-weight:900; letter-spacing:1.5px; font-size:1.28rem;
+            display:flex; align-items:center; gap:10px;
+        }
+        .sp-hero .sp-role .sp-glow { font-size:1.5rem; filter:drop-shadow(0 0 10px currentColor); animation:spfloat 3s ease-in-out infinite; }
+        @keyframes spfloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);} }
+        .sp-hero .sp-sub { font-size:0.7rem; color:var(--text-dim); margin-top:3px; letter-spacing:0.4px; }
+        .sp-hero .sp-pill {
+            position:absolute; top:14px; right:14px; font-size:0.6rem; font-weight:800;
+            padding:4px 10px; border-radius:20px; letter-spacing:1px;
+            background:rgba(0,212,255,0.12); color:var(--cyan); border:1px solid rgba(0,212,255,0.35);
+        }
+        .sp-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:14px; }
+        @media (max-width:380px){ .sp-stats { grid-template-columns:repeat(2, 1fr); } }
+        .sp-stat {
+            background:rgba(255,255,255,0.045); border:1px solid var(--glass-border); border-radius:14px;
+            padding:10px 6px; text-align:center; position:relative; overflow:hidden;
+        }
+        .sp-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--cyan), transparent); }
+        .sp-stat .v { font-family:'Orbitron'; font-weight:800; font-size:1.05rem; }
+        .sp-stat .l { font-size:0.58rem; color:var(--text-dim); margin-top:2px; letter-spacing:0.6px; text-transform:uppercase; }
+        .sp-tabs { display:flex; gap:7px; overflow-x:auto; padding:2px; scrollbar-width:none; }
+        .sp-tabs::-webkit-scrollbar { display:none; }
+        .sp-tab {
+            flex:0 0 auto; display:flex; align-items:center; gap:6px;
+            background:rgba(255,255,255,0.045); border:1px solid var(--glass-border); color:var(--text-dim);
+            border-radius:12px; padding:9px 14px; font-size:0.72rem; font-weight:700; cursor:pointer;
+            transition:all 0.18s ease; font-family:'Orbitron'; letter-spacing:0.5px; white-space:nowrap;
+        }
+        .sp-tab:active { transform:scale(0.96); }
+        .sp-tab.active {
+            background:linear-gradient(135deg, var(--cyan), #0088ff); color:#fff; border-color:transparent;
+            box-shadow:0 6px 20px rgba(0,212,255,0.35);
+        }
+        .sp-card {
+            background:rgba(255,255,255,0.04); border:1px solid var(--glass-border); border-radius:16px;
+            padding:12px; margin-bottom:10px; position:relative; overflow:hidden;
+            transition:border-color 0.15s, transform 0.15s;
+        }
+        .sp-card:active { transform:scale(0.995); }
+        .sp-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--sp-accent, var(--cyan)); opacity:0.85; }
+        .sp-row { display:flex; align-items:center; gap:10px; }
+        .sp-ava {
+            width:40px; height:40px; border-radius:12px; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center;
+            font-weight:800; font-size:0.95rem; font-family:'Orbitron';
+            background:linear-gradient(135deg, rgba(0,212,255,0.2), rgba(255,0,110,0.15));
+            border:1px solid var(--glass-border); position:relative;
+            overflow:visible;
+        }
+        .sp-ava .pf-avatar-img { position:absolute; inset:0; border-radius:12px; }
+        .sp-ava .pf-frame { width:60px; height:60px; left:50%; top:50%; transform:translate(-50%,-50%); }
+        .sp-ava .on-dot { position:absolute; bottom:-2px; right:-2px; width:11px; height:11px; border-radius:50%; background:var(--text-dim); border:2px solid var(--bg); }
+        .sp-ava .on-dot.on { background:var(--green); box-shadow:0 0 8px var(--green); }
+        .sp-info { flex:1; min-width:0; }
+        .sp-name { font-weight:700; font-size:0.86rem; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+        .sp-meta { font-size:0.63rem; color:var(--text-dim); margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; }
+        .sp-actions { display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; }
+        .sp-actions .ubtn { font-size:0.64rem; padding:6px 10px; }
+        .sp-tag { font-size:0.56rem; font-weight:800; padding:2.5px 8px; border-radius:14px; letter-spacing:0.7px; text-transform:uppercase; }
+        .sp-tag.t-mo { background:linear-gradient(90deg,#ffd700,#ff8c00); color:#14141f; }
+        .sp-tag.t-co { background:linear-gradient(90deg,#b088ff,#7b5cff); color:#fff; }
+        .sp-tag.t-owner { background:linear-gradient(90deg,var(--yellow),var(--orange)); color:#14141f; }
+        .sp-tag.t-mod { background:rgba(0,212,255,0.14); color:var(--cyan); border:1px solid rgba(0,212,255,0.3); }
+        .sp-tag.t-dep { background:rgba(77,255,136,0.12); color:#4dff88; border:1px solid rgba(77,255,136,0.3); }
+        .sp-tag.t-admin { background:rgba(255,0,110,0.12); color:var(--magenta); border:1px solid rgba(255,0,110,0.3); }
+        .sp-tag.t-player { background:rgba(255,255,255,0.07); color:var(--text-dim); }
+        .sp-tag.t-blocked { background:rgba(255,60,60,0.15); color:#ff6b6b; border:1px solid rgba(255,60,60,0.4); }
+        .sp-section-t { font-size:0.66rem; font-weight:800; letter-spacing:1.2px; color:var(--text-dim); text-transform:uppercase; margin:4px 0 8px; display:flex; align-items:center; gap:8px; }
+        .sp-section-t::after { content:''; flex:1; height:1px; background:linear-gradient(90deg, var(--glass-border), transparent); }
+        /* ===== SHOP TABS + MARKET GRID ===== */
+        .shop-tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px; }
+        .shop-tab {
+            flex:0 0 auto; padding:7px 12px; border-radius:20px; border:1px solid var(--glass-border);
+            background:var(--bg-card); color:var(--text-dim); font-size:0.72rem; font-weight:600; cursor:pointer;
+        }
+        .shop-tab.active { background:linear-gradient(135deg,var(--cyan),var(--magenta)); color:#fff; border-color:transparent; }
+        .mcard {
+            background:var(--bg-card); border:1px solid var(--glass-border); border-radius:14px;
+            padding:8px; display:flex; flex-direction:column; gap:6px; align-items:center; text-align:center;
+        }
+        .mcard .m-img { width:64px; height:64px; border-radius:12px; object-fit:cover; background:rgba(255,255,255,0.04); }
+        .mcard .m-badge { width:52px; height:52px; object-fit:contain; }
+        .mcard .m-frame-wrap { position:relative; width:64px; height:64px; display:flex; align-items:center; justify-content:center; }
+        .mcard .m-frame-wrap .m-frame { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:2; }
+        .mcard .m-frame-wrap .m-frame-ava { width:44px; height:44px; border-radius:50%; object-fit:cover; }
+        .mcard .m-name { font-size:0.7rem; font-weight:700; }
+        .mcard .m-price { font-size:0.65rem; color:var(--yellow); font-weight:700; }
+        .mcard video.m-img { object-fit:cover; }
+        /* profil banner + avatar ko'rinishi */
+        .pf-banner { position:relative; height:110px; border-radius:14px; overflow:visible; margin-bottom:46px; background:var(--bg-card); border:1px solid var(--glass-border); }
+        .pf-banner .pf-banner-clip { position:absolute; inset:0; border-radius:14px; overflow:hidden; }
+        .pf-banner img, .pf-banner video { width:100%; height:100%; object-fit:cover; display:block; }
+        .pf-banner .pf-ava-wrap { position:absolute; left:50%; transform:translateX(-50%); bottom:-38px; width:76px; height:76px; z-index:5; }
+        .pf-banner .pf-ava-wrap .pf-frame { position:absolute; inset:-16%; width:132%; height:132%; object-fit:contain; z-index:2; pointer-events:none; }
+        .pf-avatar-img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+        .user-avatar { position:relative; }
+        .user-avatar .pf-frame { position:absolute; inset:-18%; width:136%; height:136%; object-fit:contain; z-index:2; pointer-events:none; }
+        /* Ramka faqat avatar o'lchamida — konteynerdan chiqib ketib butun ekranni egallamasin.
+           Umumiy: .pf-frame har doim positioned parent ichida, o'lchami avatar bilan bog'langan. */
+        .pf-frame { position:absolute; z-index:2; pointer-events:none; object-fit:contain; }
+        .cos-badge { width:18px; height:18px; object-fit:contain; vertical-align:-3px; margin-left:3px; }
+        .cos-ava { width:32px; height:32px; border-radius:50%; object-fit:cover; vertical-align:middle; }
+        .cos-frame-wrap { display:inline-block; position:relative; width:32px; height:32px; vertical-align:middle; }
+        .cos-frame-wrap .cos-frame { position:absolute; inset:-14%; width:128%; height:128%; object-fit:contain; z-index:2; pointer-events:none; }
+        .like-btn { display:inline-flex; align-items:center; gap:5px; background:rgba(255,0,110,0.12); border:1px solid rgba(255,0,110,0.35); color:var(--magenta); border-radius:20px; padding:5px 12px; font-size:0.72rem; font-weight:700; cursor:pointer; transition:transform 0.12s ease, background 0.12s ease; }
+        .like-btn:active { transform:scale(0.92); }
+        .like-btn.liked { background:linear-gradient(135deg, var(--magenta), #ff6b9d); color:#fff; border-color:transparent; }
+        .like-heart { display:inline-block; animation:heartpop 0.35s ease; }
+        @keyframes heartpop { 0%{transform:scale(0.4);} 60%{transform:scale(1.3);} 100%{transform:scale(1);} }
+        .cos-frame-wrap .cos-frame { position:absolute; inset:-4px; width:40px; height:40px; object-fit:contain; z-index:2; pointer-events:none; }
 
         /* ===== COLOR PICKER (wild) ===== */
         .color-picker {
@@ -847,6 +1011,36 @@
             text-align: center;
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ===== INVITE TOP NOTIFICATION (tepadan tushadi) ===== */
+        .invite-toast {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-150%);
+            width: min(92vw, 380px);
+            background: var(--bg-card);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            border-radius: 16px;
+            padding: 12px 14px;
+            z-index: 120;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 0 24px rgba(0, 212, 255, 0.22);
+            transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .invite-toast.show { transform: translateX(-50%) translateY(0); }
+        .invite-toast .it-ic { font-size: 1.7rem; animation: itpulse 1.6s ease infinite; }
+        @keyframes itpulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        .invite-toast .it-info { flex: 1; min-width: 0; }
+        .invite-toast .it-t { font-size: 0.82rem; font-weight: 700; }
+        .invite-toast .it-s { font-size: 0.68rem; color: var(--text-dim); margin-top: 2px; }
+        .invite-toast .it-actions { display: flex; gap: 6px; }
+        .invite-toast .invite-yes, .invite-toast .invite-no {
+            width: 40px; height: 40px; border-radius: 11px; border: none;
+            font-size: 1.05rem; font-weight: 800; cursor: pointer;
+        }
 
         /* ===== REACTIONS ===== */
         .reaction-bar {
@@ -1157,7 +1351,10 @@
             background: linear-gradient(135deg, var(--cyan), var(--magenta));
             display: flex; align-items: center; justify-content: center;
             font-size: 1.4rem; font-weight: 900; color: #101020; font-family: 'Orbitron';
+            position: relative; overflow: visible;
         }
+        .ud-ava .pf-avatar-img { position:absolute; inset:0; border-radius:50%; }
+        .ud-ava .pf-frame { width:72px; height:72px; left:50%; top:50%; transform:translate(-50%,-50%); }
         .ud-name { font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .ud-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 3px; }
         .ud-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
@@ -1201,6 +1398,7 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
+    <div id="invite-toast" class="invite-toast"></div>
 
     <!-- ===== UNIVERSAL DIALOG (prompt o'rniga button-dialog) ===== -->
     <div id="dlg-overlay" class="block-overlay" onclick="if(event.target===this)closeDialog()">
@@ -1261,6 +1459,22 @@
         <div class="bo-title">SIZ BLOKLANGANSIZ</div>
         <div class="bo-reason" id="bo-reason">Sabab: Qoidabuzarlik</div>
         <div class="bo-until" id="bo-until">Blok muddati: doimiy</div>
+    </div>
+
+    <!-- ===== KANAL OBUNA GATE (WebApp) ===== -->
+    <div id="sub-gate" class="block-overlay" style="z-index:400;">
+        <div style="width:100%; max-width:320px; background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:18px; padding:24px 18px; text-align:center;">
+            <div class="bo-icon">📢</div>
+            <div class="bo-title" style="color:var(--cyan); font-size:1.1rem;">KANALGA OBUNA BO'LING</div>
+            <div style="color:var(--text-dim); font-size:0.82rem; margin:8px 0 16px;">Botdan foydalanish uchun avval kanalimizga a'zo bo'ling, so'ng tekshiring.</div>
+            <a id="sub-gate-link" href="#" target="_blank" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px; border-radius:12px; background:linear-gradient(135deg, #229ED9, #1c85b8); color:#fff; font-weight:700; text-decoration:none; font-size:0.9rem; margin-bottom:10px;">
+                📢 Kanalga Qo'shilish
+            </a>
+            <button onclick="checkSubscription()" style="width:100%; padding:13px; border-radius:12px; border:1px solid var(--glass-border); background:rgba(255,255,255,0.06); color:var(--text); font-weight:700; font-size:0.9rem; cursor:pointer;">
+                ✅ Tekshirish
+            </button>
+            <div id="sub-gate-status" style="margin-top:10px; font-size:0.75rem; color:var(--text-dim);"></div>
+        </div>
     </div>
 
     <!-- ===== HOME SCREEN ===== -->
@@ -1346,17 +1560,16 @@
     <!-- ===== ADMIN PANEL (owner + admin) ===== -->
     <div id="screen-admin" class="screen">
         <button class="back-btn" onclick="showScreen('home')">←</button>
-        <div class="header">
-            <div class="logo">ADMIN</div>
-            <div class="subtitle">Moderatsiya paneli</div>
-        </div>
-
-        <div class="glass-panel">
-            <div class="panel-head"><span>📊 Statistika</span></div>
-            <div class="stats-row">
-                <div class="stat-box"><div class="stat-val" id="ad-users">0</div><div class="stat-label">Userlar</div></div>
-                <div class="stat-box"><div class="stat-val" id="ad-online">0</div><div class="stat-label">Onlayn</div></div>
-                <div class="stat-box"><div class="stat-val" id="ad-games">0</div><div class="stat-label">O'yinlar</div></div>
+        <div class="sp-shell">
+            <div class="sp-hero" style="--sp-accent:var(--magenta);">
+                <span class="sp-pill" style="color:var(--magenta); border-color:rgba(255,0,110,0.4); background:rgba(255,0,110,0.1);">MODER</span>
+                <div class="sp-role" style="color:var(--magenta);"><span class="sp-glow">🎖</span> ADMIN</div>
+                <div class="sp-sub">Moderatsiya paneli — userlarni boshqarish</div>
+                <div class="sp-stats">
+                    <div class="sp-stat"><div class="v" id="ad-users">0</div><div class="l">Userlar</div></div>
+                    <div class="sp-stat"><div class="v" id="ad-online">0</div><div class="l">Onlayn</div></div>
+                    <div class="sp-stat"><div class="v" id="ad-games">0</div><div class="l">O'yinlar</div></div>
+                </div>
             </div>
         </div>
 
@@ -1376,10 +1589,17 @@
         </div>
         <div class="glass-panel">
             <div class="panel-head"><span>🪙 Coiningiz</span><b id="shop-coins" style="color:var(--yellow); font-family:'Orbitron';">0</b></div>
-            <div class="ud-sec">🎮 STOL / DOSKA SKINI</div>
+            <div class="shop-tabs" id="shop-tabs">
+                <button class="shop-tab active" data-cat="skin" onclick="shopTab('skin')">🧑‍🎨 Avatar</button>
+                <button class="shop-tab" data-cat="frame" onclick="shopTab('frame')">🖼 Ramka</button>
+                <button class="shop-tab" data-cat="badge" onclick="shopTab('badge')">🏅 Badge</button>
+                <button class="shop-tab" data-cat="banner" onclick="shopTab('banner')">🚩 Banner</button>
+                <button class="shop-tab" data-cat="bg" onclick="shopTab('bg')">🌌 Fon</button>
+                <button class="shop-tab" data-cat="board" onclick="shopTab('board')">🎮 Stol</button>
+            </div>
+            <div class="uactions" id="shop-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"><p class="invite-hint">Yuklanmoqda...</p></div>
+            <div class="ud-sec" style="margin-top:10px;">🎮 STOL / DOSKA SKINLARI (eski)</div>
             <div class="uactions" id="shop-boards"><p class="invite-hint">Yuklanmoqda...</p></div>
-            <div class="ud-sec">🖼 AVATAR RAMKALARI</div>
-            <div class="uactions" id="shop-frames"><p class="invite-hint">Yuklanmoqda...</p></div>
         </div>
     </div>
 
@@ -1553,17 +1773,24 @@
             <div class="subtitle">Boshqaruv paneli</div>
         </div>
 
-        <div class="mhead">
-            <div>
-                <div class="mh-role">💎 MAIN OWNER</div>
-                <div class="mh-sub">Boshqaruv paneli v2 — to'liq imkoniyatlar</div>
+        <div class="sp-shell">
+            <div class="sp-hero" style="--sp-accent:var(--yellow);">
+                <span class="sp-pill" style="color:var(--yellow); border-color:rgba(255,214,10,0.4); background:rgba(255,214,10,0.1);">PANEL V2</span>
+                <div class="sp-role" style="color:var(--yellow);"><span class="sp-glow">👑</span> OWNER</div>
+                <div class="sp-sub">Boshqaruv paneli — to'liq imkoniyatlar</div>
+                <div class="sp-stats">
+                    <div class="sp-stat"><div class="v" id="ow-users">0</div><div class="l">Userlar</div></div>
+                    <div class="sp-stat"><div class="v" id="ow-online">0</div><div class="l">Onlayn</div></div>
+                    <div class="sp-stat"><div class="v" id="ow-games">0</div><div class="l">O'yinlar</div></div>
+                    <div class="sp-stat"><div class="v" id="ow-rooms">0</div><div class="l">Xonalar</div></div>
+                </div>
             </div>
-            <div class="mhead-tabs">
-                <button class="mtab active" id="otab-users" onclick="ownerTab('users')">👥 Userlar</button>
-                <button class="mtab" id="otab-rooms" onclick="ownerTab('rooms')">🚪 Xonalar</button>
-                <button class="mtab" id="otab-chat" onclick="ownerTab('chat')">💬 Chat</button>
-                <button class="mtab" id="otab-games" onclick="ownerTab('games')">🎮 O'yinlar</button>
-                <button class="mtab" id="otab-log" onclick="ownerTab('log')">📜 Log</button>
+            <div class="sp-tabs">
+                <button class="sp-tab active" id="otab-users" onclick="ownerTab('users')">👥 Userlar</button>
+                <button class="sp-tab" id="otab-rooms" onclick="ownerTab('rooms')">🚪 Xonalar</button>
+                <button class="sp-tab" id="otab-chat" onclick="ownerTab('chat')">💬 Chat</button>
+                <button class="sp-tab" id="otab-games" onclick="ownerTab('games')">🎮 O'yinlar</button>
+                <button class="sp-tab" id="otab-log" onclick="ownerTab('log')">📜 Log</button>
             </div>
         </div>
 
@@ -1575,11 +1802,7 @@
                 </span>
             </div>
             <div class="stat-grid">
-                <div class="stat-box"><div class="stat-val" id="ow-users">0</div><div class="stat-label">Userlar</div></div>
-                <div class="stat-box"><div class="stat-val" id="ow-online">0</div><div class="stat-label">Onlayn</div></div>
-                <div class="stat-box"><div class="stat-val" id="ow-games">0</div><div class="stat-label">O'yinlar</div></div>
-                <div class="stat-box"><div class="stat-val" id="ow-rooms">0</div><div class="stat-label">Xonalar</div></div>
-                <div class="stat-box"><div class="stat-val" id="ow-rooms-open">0</div><div class="stat-label">Ochiq</div></div>
+                <div class="stat-box"><div class="stat-val" id="ow-rooms-open">0</div><div class="stat-label">Ochiq xonalar</div></div>
                 <div class="stat-box"><div class="stat-val" id="ow-msgs">0</div><div class="stat-label">Xabarlar</div></div>
             </div>
         </div>
@@ -1634,34 +1857,37 @@
     <!-- ===== MAIN OWNER PANEL (faqat main_owner) ===== -->
     <div id="screen-mainowner" class="screen">
         <button class="back-btn" onclick="showScreen('home')">←</button>
-        <div class="mhead" style="background:linear-gradient(135deg, rgba(255,215,0,.14), rgba(176,136,255,.12)); border:1px solid rgba(255,215,0,.35);">
-            <div>
-                <div class="mh-role" style="background:linear-gradient(90deg,#ffd700,#ff8c00); -webkit-background-clip:text; background-clip:text; color:transparent;">💎 MAIN OWNER</div>
-                <div class="mh-sub">Supreme boshqaruv — barcha imkoniyatlar</div>
+        <div class="sp-shell">
+            <div class="sp-hero" style="--sp-accent:#ffd700;">
+                <span class="sp-pill" style="color:#ffd700; border-color:rgba(255,215,0,0.4); background:rgba(255,215,0,0.1);">SUPREME</span>
+                <div class="sp-role" style="color:#ffd700;"><span class="sp-glow">💎</span> MAIN OWNER</div>
+                <div class="sp-sub">Supreme boshqaruv — barcha imkoniyatlar cheklovsiz</div>
+                <div class="sp-stats">
+                    <div class="sp-stat"><div class="v" id="mo-users">0</div><div class="l">Userlar</div></div>
+                    <div class="sp-stat"><div class="v" id="mo-online">0</div><div class="l">Onlayn</div></div>
+                    <div class="sp-stat"><div class="v" id="mo-games">0</div><div class="l">O'yinlar</div></div>
+                    <div class="sp-stat"><div class="v" id="mo-rooms">0</div><div class="l">Xonalar</div></div>
+                </div>
             </div>
-            <div class="mhead-tabs">
-                <button class="mtab active" id="motab-users" onclick="moTab('users')">👥 Userlar</button>
-                <button class="mtab" id="motab-rooms" onclick="moTab('rooms')">🚪 Xonalar</button>
-                <button class="mtab" id="motab-tour" onclick="moTab('tour')">🏁 Turnirlar</button>
-                <button class="mtab" id="motab-chat" onclick="moTab('chat')">💬 Chat</button>
-                <button class="mtab" id="motab-games" onclick="moTab('games')">🎮 O'yinlar</button>
-                <button class="mtab" id="motab-log" onclick="moTab('log')">📜 Log</button>
+            <div class="sp-tabs">
+                <button class="sp-tab active" id="motab-users" onclick="moTab('users')">👥 Userlar</button>
+                <button class="sp-tab" id="motab-rooms" onclick="moTab('rooms')">🚪 Xonalar</button>
+                <button class="sp-tab" id="motab-tour" onclick="moTab('tour')">🏁 Turnirlar</button>
+                <button class="sp-tab" id="motab-chat" onclick="moTab('chat')">💬 Chat</button>
+                <button class="sp-tab" id="motab-games" onclick="moTab('games')">🎮 O'yinlar</button>
+                <button class="sp-tab" id="motab-log" onclick="moTab('log')">📜 Log</button>
             </div>
         </div>
 
         <div class="glass-panel">
-            <div class="panel-head"><span>📊 Global Statistika</span>
+            <div class="panel-head"><span>📊 Qo'shimcha statistika</span>
                 <span>
                     <button class="icon-btn" style="font-size:0.85rem; padding:6px 10px;" onclick="moCleanup()">🧹 Tozalash</button>
                     <button class="icon-btn" style="font-size:0.85rem; padding:6px 10px;" onclick="moLoadPanel()">🔄</button>
                 </span>
             </div>
             <div class="stat-grid">
-                <div class="stat-box"><div class="stat-val" id="mo-users">0</div><div class="stat-label">Userlar</div></div>
-                <div class="stat-box"><div class="stat-val" id="mo-online">0</div><div class="stat-label">Onlayn</div></div>
-                <div class="stat-box"><div class="stat-val" id="mo-games">0</div><div class="stat-label">O'yinlar</div></div>
-                <div class="stat-box"><div class="stat-val" id="mo-rooms">0</div><div class="stat-label">Xonalar</div></div>
-                <div class="stat-box"><div class="stat-val" id="mo-rooms-open">0</div><div class="stat-label">Ochiq</div></div>
+                <div class="stat-box"><div class="stat-val" id="mo-rooms-open">0</div><div class="stat-label">Ochiq xonalar</div></div>
                 <div class="stat-box"><div class="stat-val" id="mo-msgs">0</div><div class="stat-label">Xabarlar</div></div>
             </div>
         </div>
@@ -1751,22 +1977,22 @@
     <!-- ===== DEPUTY PANEL (moderator) ===== -->
     <div id="screen-deputy" class="screen">
         <button class="back-btn" onclick="showScreen('home')">←</button>
-        <div class="header">
-            <div class="logo">DEPUTY</div>
-            <div class="subtitle">Moderatsiya paneli</div>
-        </div>
-
-        <div class="glass-panel">
-            <div class="panel-head"><span>📊 Statistika</span></div>
-            <div class="stats-row">
-                <div class="stat-box"><div class="stat-val" id="dp-online">0</div><div class="stat-label">Onlayn</div></div>
-                <div class="stat-box"><div class="stat-val" id="dp-blocked">0</div><div class="stat-label">Bloklangan</div></div>
-                <div class="stat-box"><div class="stat-val" id="dp-games">0</div><div class="stat-label">O'yinlar</div></div>
+        <div class="sp-shell">
+            <div class="sp-hero" style="--sp-accent:#4dff88;">
+                <span class="sp-pill" style="color:#4dff88; border-color:rgba(77,255,136,0.4); background:rgba(77,255,136,0.1);">MODER</span>
+                <div class="sp-role" style="color:#4dff88;"><span class="sp-glow">⭐</span> DEPUTY</div>
+                <div class="sp-sub">Yordamchi moderatsiya — bloklash huquqi</div>
+                <div class="sp-stats">
+                    <div class="sp-stat"><div class="v" id="dp-online">0</div><div class="l">Onlayn</div></div>
+                    <div class="sp-stat"><div class="v" id="dp-blocked">0</div><div class="l">Blokli</div></div>
+                    <div class="sp-stat"><div class="v" id="dp-games">0</div><div class="l">O'yinlar</div></div>
+                </div>
             </div>
         </div>
 
         <div class="glass-panel">
-            <div class="panel-head"><span>👥 Userlar — faqat bloklash</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="deputyLoadUsers()">🔄</button></div>            <div id="deputy-users-list"><p class="invite-hint">Yuklanmoqda...</p></div>
+            <div class="panel-head"><span>👥 Userlar — faqat bloklash</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="deputyLoadUsers()">🔄</button></div>
+            <div id="deputy-users-list"><p class="invite-hint">Yuklanmoqda...</p></div>
         </div>
     </div>
 
@@ -1915,8 +2141,12 @@
             <!-- Player Hand -->
             <div class="hand-area">
                 <div class="hand-label"><span id="hand-count">0</span> ta karta qoldi — hammasini tashlang!</div>
-                <div class="hand" id="player-hand" onclick="handTapPlay()"></div>
-                <div class="hand-swipe-hint" id="hand-swipe-hint">👈 Kartalarni ko'rish uchun suring 👉</div>
+                <div class="hand-row">
+                    <button class="hand-nav" id="hand-nav-prev" onclick="event.stopPropagation();slideHand(-1)" aria-label="Oldingi karta">◀</button>
+                    <div class="hand" id="player-hand" onclick="handTapPlay()"></div>
+                    <button class="hand-nav" id="hand-nav-next" onclick="event.stopPropagation();slideHand(1)" aria-label="Keyingi karta">▶</button>
+                </div>
+                <div class="hand-swipe-hint" id="hand-swipe-hint">👈 Swipe qiling yoki ◀ ▶ tugmalarini bosing 👉</div>
             </div>
         </div>
 
@@ -1946,11 +2176,13 @@
         </div>
 
         <div class="glass-panel">
+            <div class="pf-banner" id="pf-banner" style="display:none;"></div>
             <div class="user-card">
-                <div class="user-avatar" id="pf-avatar">?</div>
+                <div class="user-avatar" id="pf-avatar" style="position:relative;">?</div>
                 <div class="user-info">
                     <h2 id="pf-name">O'yinchi</h2>
                     <p id="pf-username">@user</p>
+                    <span class="like-btn" style="pointer-events:none; margin-top:4px;">❤️ <span id="pf-likes">0</span></span>
                 </div>
             </div>
             <div class="stats-row" style="margin-top:12px;">
@@ -2145,6 +2377,11 @@
 
         // ===== Screen Management =====
         function showScreen(name) {
+            // 🛡 Staff panellar: server rol tasdigisiz ochilmaydi (MO'ning panellar boshqalarga ko'rinmaydi)
+            if (['mainowner', 'owner', 'admin', 'deputy'].includes(name)) {
+                guardPanel(name).then(ok => { if (ok) showScreen(name); });
+                return;
+            }
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             const screen = document.getElementById('screen-' + name);
             if (screen) screen.classList.add('active');
@@ -2185,11 +2422,131 @@
         }
 
         // ===== Toast Notification =====
+        let _toastTimer = null;
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2600);
+            _toastTimer && clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+        }
+
+        // ===== 🆕 Kosmetika renderlari =====
+        function _cosImg(url, cls, extra) {
+            if (!url) return '';
+            if (/\.(webm|mp4)(\?|$)/.test(url)) return `<video class="${cls}" src="${esc(url)}" ${extra || ''} autoplay loop muted playsinline></video>`;
+            return `<img class="${cls}" src="${esc(url)}" ${extra || ''} onerror="this.remove()">`;
+        }
+        function renderCosmetics(cos) {
+            // Profil fon
+            if (cos.bg) {
+                document.body.style.backgroundImage = `url('${cos.bg}')`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center';
+                document.body.style.backgroundAttachment = 'fixed';
+            } else {
+                document.body.style.backgroundImage = '';
+            }
+            // Profil banner
+            const banner = document.getElementById('pf-banner');
+            if (banner) {
+                if (cos.banner) {
+                    banner.style.display = 'block';
+                    banner.innerHTML = `<div class="pf-banner-clip">${_cosImg(cos.banner, '')}</div>
+                        <div class="pf-ava-wrap">
+                            ${cos.frame ? _cosImg(cos.frame, 'pf-frame') : ''}
+                            ${cos.skin ? _cosImg(cos.skin, 'pf-avatar-img') : `<div class="pf-avatar-img" style="display:flex;align-items:center;justify-content:center;background:var(--bg-card);font-size:1.6rem;">${esc((myNickname || myName() || '?')[0].toUpperCase())}</div>`}
+                        </div>`;
+                } else {
+                    banner.style.display = 'none';
+                    banner.innerHTML = '';
+                }
+            }
+            // Profil avatar (rasmda almashtirish) — banner yo'q bo'lsa ham
+            const pfAv = document.getElementById('pf-avatar');
+            if (pfAv) {
+                if (cos.skin) {
+                    pfAv.innerHTML = _cosImg(cos.skin, 'pf-avatar-img') + (cos.frame ? _cosImg(cos.frame, 'pf-frame') : '');
+                    pfAv.style.background = 'transparent';
+                } else {
+                    if (!pfAv.innerHTML.trim() || pfAv.querySelector('img,video')) pfAv.innerHTML = esc((myNickname || myName() || '?')[0].toUpperCase());
+                    pfAv.style.background = '';
+                }
+            }
+        }
+        // Kichik avatar (lobby/leaderboard/chat) — id bo'yicha cache'dan
+        function cosAvatarHtml(id, fallbackHtml) {
+            const c = (usersCache[id] || {});
+            if (!c.cosmetics || !c.cosmetics.skin) return fallbackHtml;
+            const fr = c.cosmetics.frame ? _cosImg(c.cosmetics.frame, 'cos-frame') : '';
+            return `<span class="cos-frame-wrap">${_cosImg(c.cosmetics.skin, 'cos-ava')}${fr}</span>`;
+        }
+        // 🆕 Kosmetikani cache'ga yozish (WS/REST orqali kelgan user obyektlari uchun)
+        // Shu tufayli ramka/avatar/badge hamma joyda (lobby, leaderboard, online, chat) ko'rinadi
+        function absorbCosmetics(u) {
+            if (!u || u.id == null) return;
+            const c = usersCache[u.id] = (usersCache[u.id] || { id: u.id });
+            if (u.cosmetics) c.cosmetics = u.cosmetics;
+            else {
+                // alohida maydonlar kelgan holda ham qabul qilamiz
+                const cos = c.cosmetics = (c.cosmetics || {});
+                let has = false;
+                ['badge', 'frame', 'skin', 'banner', 'bg'].forEach(k => {
+                    if (u[k] !== undefined) { cos[k] = u[k] || null; has = true; }
+                });
+                if (!has) delete c.cosmetics;
+            }
+        }
+        // ❤️ Like bosish (mini-profile)
+        async function toggleLike(targetId) {
+            try {
+                const resp = await fetch(API_BASE + '/likes/' + targetId, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userId })
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Bolmadi');
+                const btn = document.getElementById('mini-like-btn');
+                const cnt = document.getElementById('mini-like-count');
+                if (btn) btn.classList.toggle('liked', d.liked);
+                if (cnt) { cnt.textContent = d.likes; cnt.classList.add('like-heart'); setTimeout(() => cnt.classList.remove('like-heart'), 400); }
+                if (tg) tg.HapticFeedback?.impactOccurred('light');
+            } catch (e) { showToast('❤️ ' + e.message); }
+        }
+
+        // Xona chatini to'g'ri joyga yozish (duplikatsiz): true -> bajarildi
+        function handleRoomChat(data) {
+            const gameActive = document.getElementById('screen-game')?.classList.contains('active');
+            const lobbyActive = document.getElementById('screen-lobby')?.classList.contains('active');
+            if (gameActive) { appendGameChatMsg(data); return true; }
+            if (lobbyActive) { appendChatMsg('lobby-chat-box', data); return true; }
+            return false;
+        }
+
+        // ===== Invite top notification (tepadan tushadi) =====
+        let _inviteToastTimer = null;
+        function showInviteToast(invite) {
+            const t = document.getElementById('invite-toast');
+            if (!t) return;
+            t.innerHTML = `
+                <div class="it-ic">📩</div>
+                <div class="it-info">
+                    <div class="it-t">${esc(invite.from_name)} sizni o'yin taklif qildi</div>
+                    <div class="it-s">Xona: ${esc(invite.room_code)}</div>
+                </div>
+                <div class="it-actions">
+                    <button class="invite-yes" onclick="acceptInvite('${invite.id}', '${esc(invite.room_code)}')">✓</button>
+                    <button class="invite-no" onclick="dismissInviteToast('${invite.id}')">✕</button>
+                </div>`;
+            t.classList.add('show');
+            _inviteToastTimer && clearTimeout(_inviteToastTimer);
+            _inviteToastTimer = setTimeout(() => t.classList.remove('show'), 15000);
+        }
+
+        function dismissInviteToast(inviteId) {
+            const t = document.getElementById('invite-toast');
+            t && t.classList.remove('show');
+            if (inviteId) pendingInvites = (pendingInvites || []).filter(i => String(i.id) !== String(inviteId));
         }
 
         // ===== Clipboard with fallback (Telegram WebView often blocks async clipboard) =====
@@ -2243,6 +2600,7 @@
 
         // ===== Room Creation =====
         async function createRoom() {
+            if (!(await checkSubscription(true))) return; // 📢 kanal obunasi shart
             const loader = document.getElementById('create-loader');
             loader.classList.add('active');
             // Parol: button tanloviga qarab input'dan olinadi
@@ -2276,6 +2634,7 @@
 
         // ===== Join Room (kod + parol) =====
         async function joinRoom() {
+            if (!(await checkSubscription(true))) return; // 📢 kanal obunasi shart
             const code = document.getElementById('join-code-input').value.trim();
             if (code.length < 4) {
                 showToast('⚠️ Xona kodini kiriting');
@@ -2388,8 +2747,13 @@
             updateLobbyPlayers(players, hostId);
             updateStartButton();
             connectWebSocket(code);
-            // REST polling: refresh lobby, detect kicks/leaves/closure
+            // REST polling: WS ulanmaguncha zaxira (keyin ws.onopen o'chiradi)
             stopPolling();
+            startLobbyPolling(code);
+        }
+
+        function startLobbyPolling(code) {
+            if (pollTimer) return; // allaqachon ishlab turibdi
             pollTimer = setInterval(async () => {
                 try {
                     const resp = await fetch(API_BASE + '/rooms/' + code);
@@ -2451,10 +2815,16 @@
                     const name = typeof p === 'object' ? (p.name || 'O\'yinchi ' + (i+1)) : ('O\'yinchi ' + (i+1));
                     const isHost = id === lobbyHostId;
                     const canKick = isHostUser() && !isHost && id !== userId;
+                    const pCos = (typeof p === 'object' && p.cosmetics) ? p.cosmetics : (usersCache[id]?.cosmetics || null);
+                    let avaHtml = '<span class="slot-dot"></span>';
+                    if (pCos && pCos.skin) {
+                        avaHtml = `<span class="cos-frame-wrap">${_cosImg(pCos.skin, 'cos-ava')}${pCos.frame ? _cosImg(pCos.frame, 'cos-frame') : ''}</span>`;
+                    }
+                    const pBadge = (pCos && pCos.badge) ? ` <img class="cos-badge" src="${esc(pCos.badge)}" onerror="this.remove()">` : '';
                     html += `
                     <div class="slot filled ${id === userId ? 'me' : ''}">
-                        <span class="slot-dot"></span>
-                        <span class="slot-name">${name}${isHost ? ' <span class="host-badge">👑</span>' : ''}${id === userId ? ' <span class="you-badge">siz</span>' : ''} ${tagFor(id)}</span>
+                        ${avaHtml}
+                        <span class="slot-name">${esc(name)}${pBadge}${isHost ? ' <span class="host-badge">👑</span>' : ''}${id === userId ? ' <span class="you-badge">siz</span>' : ''} ${tagFor(id)}</span>
                         ${canKick ? `<button class="kick-btn" title="Haydash" onclick="kickPlayer(${id})">✕</button>` : ''}
                     </div>`;
                 } else {
@@ -2610,8 +2980,15 @@
         function connectWebSocket(code) {
             const wsUrl = API_BASE.replace('http', 'ws') + '/ws/' + code;
             ws = new WebSocket(wsUrl);
+            const sock = ws;
+            // Keepalive: proxy/ngrok idle timeout'dan saqlaydi (taklif tez yetib borishi uchun)
+            const pingTimer = setInterval(() => {
+                if (sock.readyState === WebSocket.OPEN) sock.send(JSON.stringify({ action: 'ping' }));
+            }, 15000);
             ws.onopen = () => {
                 console.log('WS connected');
+                // WS faol — REST polling shart emas, tezlik uchun o'chiriladi
+                stopPolling();
                 // Identify ourselves so the server can send personalized game state
                 ws.send(JSON.stringify({ action: 'hello', user_id: userId, name: myName() }));
             };
@@ -2623,7 +3000,15 @@
                     console.error('WS parse error:', err);
                 }
             };
-            ws.onclose = () => console.log('WS disconnected');
+            ws.onclose = () => {
+                clearInterval(pingTimer);
+                console.log('WS disconnected');
+                // WS uzilsa — zaxira sifatida REST pollingni yoqamiz
+                if (currentRoom === code) {
+                    startLobbyPolling(code);
+                    setTimeout(() => connectWebSocket(code), 1000);
+                }
+            };
         }
 
         function handleGameMessage(data) {
@@ -2650,7 +3035,7 @@
                 if (data.room.host_id === userId) showToast('👑 Siz yangi host bo\'ldingiz!');
             }
             if (data.type === 'chat' && data.room !== 'global') {
-                appendChatMsg('lobby-chat-box', data);
+                if (!handleRoomChat(data)) appendChatMsg('lobby-chat-box', data);
             }
             if (data.type === 'room_closed') {
                 showToast('🚪 Xona yopildi');
@@ -2681,22 +3066,12 @@
             if (data.type === 'game_over') {
                 showResult(data.winner, data.standings);
             }
-            if (data.type === 'chat' && data.room && data.room !== 'global' && data.user_id === userId) {
-                return; // o'z xabarimni allaqachon ko'rsatdik (duplikat bug)
-            }
-            if (data.type === 'chat' && data.room && data.room !== 'global' && data.user_id !== userId) {
-                // Lobby va in-game chat: o'yin ekrani ochiq bo'lsa ham ko'rinadi
-                if (document.getElementById('screen-game')?.classList.contains('active') ||
-                    document.getElementById('screen-lobby')?.classList.contains('active')) {
-                    appendGameChatMsg(data);
-                } else {
-                    appendChatMsg('lobby-chat-box', data);
-                }
-            }
+            // (chat yuqorida handleRoomChat orqali bir marta ishlanadi)
         }
 
         // ===== Game =====
-        function startGame() {
+        async function startGame() {
+            if (!(await checkSubscription(true))) return; // 📢 kanal obunasi shart
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ action: 'start_game' }));
                 showToast('🎮 O\'yin boshlanmoqda...');
@@ -2771,6 +3146,8 @@
             // UNO button shows when exactly 2 cards left and it's my turn
             document.getElementById('uno-float-btn').classList.toggle('visible', myHand.length === 2 && myTurn);
             document.getElementById('hand-swipe-hint').style.display = myHand.length > 1 ? 'block' : 'none';
+            const navs = document.querySelectorAll('.hand-nav');
+            navs.forEach(b => b.style.visibility = myHand.length > 1 ? 'visible' : 'hidden');
             updateHand();
         }
 
@@ -2836,34 +3213,48 @@
 
         function attachHandSwipe() {
             const hand = document.getElementById('player-hand');
-            let startX = 0, startY = 0, active = false, moved = false;
-            const down = (x, y) => { startX = x; startY = y; active = true; moved = false; };
+            const SWIPE_PX = 32;   // bu masofadan keyin flip
+            const TAP_PX = 10;     // bundan kichik harakat + qisqa vaqt = tap
+            const TAP_MS = 350;
+            let startX = 0, startY = 0, startT = 0, active = false, moved = false;
+            let lastX = 0, lastT = 0, vx = 0;
+            const down = (x, y) => {
+                startX = x; startY = y; lastX = x; lastT = Date.now(); startT = lastT;
+                active = true; moved = false; vx = 0;
+            };
             const move = (x, y) => {
                 if (!active) return;
                 const dx = x - startX, dy = y - startY;
-                if (!moved && Math.abs(dx) < 8) return;
+                const now = Date.now();
+                vx = (x - lastX) / Math.max(1, now - lastT);
+                lastX = x; lastT = now;
+                if (!moved && Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
                 moved = true;
                 const card = hand.querySelector('.card');
                 if (card) {
                     card.style.transition = 'none';
-                    card.style.transform = `translate(calc(-50% + ${dx}px), ${Math.min(0, dy)}px) rotate(${dx / 10}deg)`;
+                    card.style.transform = `translate(calc(-50% + ${dx * 0.85}px), ${Math.min(0, dy * 0.5)}px) rotate(${dx * 0.06}deg)`;
+                    card.classList.toggle('drag-hot', Math.abs(dx) > SWIPE_PX);
                 }
             };
             const up = (x, y) => {
                 if (!active) return;
                 active = false;
                 const dx = x - startX, dy = y - startY;
-                if (moved && Math.abs(dx) > 45) {
-                    slideHand(dx < 0 ? 1 : -1);
-                } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
-                    playMyCard();  // tap -> play the visible card
-                } else {
-                    updateHand();  // snap back
-                }
+                const dt = Date.now() - startT;
+                const card = hand.querySelector('.card');
+                if (card) card.classList.remove('drag-hot');
+                const flick = Math.abs(vx) > 0.5 && dt < 260;   // tez imildash ham flip
+                const isSwipe = moved && (Math.abs(dx) > SWIPE_PX || flick);
+                const isTap = Math.abs(dx) < TAP_PX && Math.abs(dy) < TAP_PX && dt < TAP_MS;
+                if (isTap) { playMyCard(); return; }
+                if (isSwipe) { slideHand(dx < 0 ? 1 : -1); return; }
+                updateHand();  // snap back
             };
             hand.addEventListener('touchstart', e => down(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
             hand.addEventListener('touchmove', e => move(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
             hand.addEventListener('touchend', e => up(e.changedTouches[0].clientX, e.changedTouches[0].clientY));
+            hand.addEventListener('touchcancel', () => { if (active) { active = false; updateHand(); } });
             hand.addEventListener('mousedown', e => { down(e.clientX, e.clientY); });
             hand.addEventListener('mousemove', e => move(e.clientX, e.clientY));
             hand.addEventListener('mouseup', e => up(e.clientX, e.clientY));
@@ -3164,6 +3555,8 @@
         function applyStatsUpdate(d) {
             const u = d.user || {};
             usersCache[d.user_id] = { ...(usersCache[d.user_id] || {}), ...u, id: d.user_id };
+            absorbCosmetics(d.user);
+            absorbCosmetics({ id: d.user_id, ...d.cosmetics });
             if (d.user_id === userId) {
                 const prevRole = usersCache[userId]?.role;
                 setBlockedState(!!u.blocked, u.block_reason, u.blocked_until);
@@ -3240,15 +3633,21 @@
                     ? (tgUser?.username ? 'Telegram: @' + tgUser.username : 'Telegram ID: ' + userId)
                     : (p.username ? '@' + p.username : (tgUser?.username ? '@' + tgUser.username : 'Telegram ID: ' + userId));
                 document.getElementById('pf-avatar').textContent = (p.nickname || p.first_name || myName())[0].toUpperCase();
+                document.getElementById('pf-avatar').innerHTML = '';
                 const nickInput = document.getElementById('nickname-input');
                 if (nickInput && document.activeElement !== nickInput && !nickInput.value) {
                     nickInput.placeholder = p.nickname || 'Yangi nickname...';
                 }
                 document.getElementById('pf-games').textContent = p.games_played ?? 0;
+                // ===== 🆕 Kosmetika: banner + avatar + frame + badge =====
+                renderCosmetics(p.cosmetics || {});
+                document.getElementById('pf-name').innerHTML = esc(p.nickname || p.first_name || myName()) + ' ' + roleTag(p.role ?? (usersCache[userId]?.role), p.blocked)
+                    + ((p.cosmetics && p.cosmetics.badge) ? ` <img class="cos-badge" src="${esc(p.cosmetics.badge)}" onerror="this.remove()">` : '');
                 document.getElementById('pf-wins').textContent = p.wins ?? 0;
                 document.getElementById('pf-losses').textContent = p.losses ?? 0;
                 document.getElementById('pf-xp') && (document.getElementById('pf-xp').textContent = p.xp ?? 0);
                 document.getElementById('pf-coins').textContent = '🪙 ' + (p.coins ?? 0);
+                document.getElementById('pf-likes').textContent = p.likes ?? 0;
                 document.getElementById('pf-level').textContent = p.level ?? 1;
                 document.getElementById('stat-games').textContent = p.games_played ?? 0;
                 document.getElementById('stat-wins').textContent = p.wins ?? 0;
@@ -3275,11 +3674,16 @@
                     return;
                 }
                 box.innerHTML = rows.map(r => {
+                    usersCache[r.id] = { ...(usersCache[r.id] || {}), ...r, id: r.id };
+                    absorbCosmetics(r);
+                    const lbCos = r.cosmetics || {};
+                    const lbBadge = lbCos.badge ? ` <img class="cos-badge" src="${esc(lbCos.badge)}" onerror="this.remove()">` : '';
+                    const lbAva = cosAvatarHtml(r.id, '');
                     return `
                     <div class="lb-row ${r.id === userId ? 'me' : ''}" style="cursor:pointer;" onclick="openMiniProfile(${r.id})">
                         <div class="lb-rank r${r.rank}">${r.rank}</div>
-                        <div class="lb-name">${r.online ? '<span style="color:var(--green);">●</span> ' : ''}${esc(r.name)}${r.id === userId ? ' <span class="you-badge">siz</span>' : ''} ${roleTag(r.role, r.blocked)}${r.username ? ` <span style="color:var(--text-dim); font-size:0.62rem;">@${esc(r.username)}</span>` : ''}</div>
-                        <div class="lb-stats"><span class="lb-wins">${r.wins}</span> g'alaba · ${r.games} o'yin · Lvl ${r.level}</div>
+                        <div class="lb-name">${lbAva}${r.online ? '<span style="color:var(--green);">●</span> ' : ''}${esc(r.name)}${lbBadge}${r.id === userId ? ' <span class="you-badge">siz</span>' : ''} ${roleTag(r.role, r.blocked)}${r.username ? ` <span style="color:var(--text-dim); font-size:0.62rem;">@${esc(r.username)}</span>` : ''}</div>
+                        <div class="lb-stats"><span class="lb-wins">${r.wins}</span> g'alaba · ${r.games} o'yin · Lvl ${r.level} · ❤️ ${r.likes ?? 0}</div>
                     </div>`;
                 }).join('');
             } catch (e) {
@@ -3332,10 +3736,11 @@
                 box.innerHTML = users.map(u => {
                     const name = u.display_name || u.nickname || u.first_name || u.username || 'O\'yinchi';
                     usersCache[u.id] = { ...(usersCache[u.id] || {}), ...u, id: u.id };
+                    absorbCosmetics(u);
                     return `
                     <div class="online-row">
-                        <span class="online-dot"></span>
-                        <div class="online-name">${esc(name)}${u.username ? ' <span style="color:var(--text-dim);font-weight:400;">@' + esc(u.username) + '</span>' : ''} ${roleTag(u.role, u.blocked)}</div>
+                        ${cosAvatarHtml(u.id, '<span class="online-dot"></span>')}
+                        <div class="online-name">${esc(name)}${u.username ? ' <span style="color:var(--text-dim);font-weight:400;">@' + esc(u.username) + '</span>' : ''} ${roleTag(u.role, u.blocked)}${(u.cosmetics && u.cosmetics.badge) ? ` <img class="cos-badge" src="${esc(u.cosmetics.badge)}" onerror="this.remove()">` : ''}</div>
                         ${currentRoom ? `<button class="kick-btn" title="O\'yinga taklif qilish" onclick="sendInvite(${u.id}, '${esc(name).replace(/'/g, "\\'")}')">📩</button>` : ''}
                     </div>`;
                 }).join('');
@@ -3364,22 +3769,10 @@
         }
 
         function renderInvites(invites) {
+            // 🚫 Home screen'dagi chip spam olib tashlandi — taklif FAQAT tepadan
+            // tushadigan invite-toast orqali keladi (showInviteToast)
             const box = document.getElementById('invites-home');
-            const pending = (invites || []).filter(i => i.status === 'pending');
-            if (!pending.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
-            box.style.display = 'block';
-            box.innerHTML = pending.map(i => `
-                <div class="invite-chip">
-                    <div class="ic">📩</div>
-                    <div class="info">
-                        <div class="t">${esc(i.from_name)} sizni o\'yinga taklif qildi</div>
-                        <div class="s">Xona: ${esc(i.room_code)}</div>
-                    </div>
-                    <div class="invite-actions">
-                        <button class="invite-yes" onclick="acceptInvite('${i.id}', '${esc(i.room_code)}')">✓</button>
-                        <button class="invite-no" onclick="declineInvite('${i.id}')">✕</button>
-                    </div>
-                </div>`).join('');
+            if (box) { box.style.display = 'none'; box.innerHTML = ''; }
         }
 
         async function acceptInvite(inviteId, roomCode) {
@@ -3392,7 +3785,10 @@
 
         async function declineInvite(inviteId) {
             try { await fetch(API_BASE + '/invites/' + inviteId + '/decline', { method: 'POST' }); } catch (e) {}
-            renderInvites(pendingInvites.filter(i => String(i.id) !== String(inviteId)));
+            pendingInvites = pendingInvites.filter(i => String(i.id) !== String(inviteId));
+            renderInvites(pendingInvites);
+            const t = document.getElementById('invite-toast');
+            t && t.classList.remove('show');
         }
 
         // ---------- Friends ----------
@@ -3540,19 +3936,9 @@
                     const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
                     usersCache[u.id] = { ...(usersCache[u.id] || {}), ...u, id: u.id };
                     const canBlock = u.id !== userId && (ROLE_RANK_MAP[u.role] ?? 5) > myRank;
-                    return `
-                    <div class="urow">
-                        <div class="online-row" style="border:none;padding:0;">
-                            <span class="online-dot" style="background:${online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${online ? '0 0 8px var(--green)' : 'none'};"></span>
-                            <div class="online-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}
-                                <div class="ustats">${u.games ?? 0} o'yin · ${u.wins ?? 0} g'alaba</div>
-                            </div>
-                        </div>
-                        ${canBlock ? `
-                        <div class="uact">
-                            <button class="icon-btn ${u.blocked ? 'gold' : 'danger'}" onclick="adminToggleBlock(${u.id}, ${u.blocked ? 'false' : 'true'})">${u.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>
-                        </div>` : ''}
-                    </div>`;
+                    return _spCard(u, null, canBlock
+                        ? `<button class="ubtn ${u.blocked ? 'gold' : 'danger'}" onclick="adminToggleBlock(${u.id}, ${u.blocked ? 'false' : 'true'})">${u.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>`
+                        : '');
                 }).join('');
             } catch (e) {
                 box.innerHTML = '<p class="invite-hint">Yuklab bo\'lmadi</p>';
@@ -3561,6 +3947,19 @@
 
         // Heartbeat: keep online + poll pending invites (2x/daqiqada)
         let pendingInvites = [];
+        let _seenInviteIds = new Set();
+        function absorbInvites(list, announceNew) {
+            const fresh = (list || []).filter(i => !_seenInviteIds.has(String(i.id)));
+            fresh.forEach(i => _seenInviteIds.add(String(i.id)));
+            pendingInvites = list || [];
+            renderInvites(pendingInvites);
+            if (announceNew) {
+                fresh.forEach(inv => {
+                    showInviteToast(inv);
+                    if (tg) tg.HapticFeedback?.notificationOccurred('warning');
+                });
+            }
+        }
         async function heartbeat() {
             if (!userId) return;
             try {
@@ -3571,8 +3970,7 @@
                 });
                 if (resp.ok) {
                     const data = await resp.json();
-                    pendingInvites = data.invites || [];
-                    renderInvites(pendingInvites);
+                    absorbInvites(data.invites, true);
                     // block-state fallback (agar WS event o'tkazib yuborilsa)
                     if (data.blocked !== myBlocked) {
                         setBlockedState(data.blocked, data.block_reason, data.blocked_until);
@@ -3610,10 +4008,45 @@
         }
         if (userId) registerMe();
 
+        // ---------- 📢 Kanal obuna gate (WebApp) ----------
+        let _subChecking = false;
+        async function checkSubscription(silent) {
+            if (!userId || _subChecking) return false;
+            _subChecking = true;
+            const gate = document.getElementById('sub-gate');
+            try {
+                const r = await fetch(API_BASE + '/users/subscribe-status/' + userId);
+                if (!r.ok) throw new Error();
+                const d = await r.json();
+                if (d.channel) document.getElementById('sub-gate-link').href = d.channel;
+                if (d.subscribed) {
+                    gate.classList.remove('show');
+                    if (!silent) showToast('✅ Obuna tasdiqlandi!');
+                    return true;
+                }
+                gate.classList.add('show');
+                const st = document.getElementById('sub-gate-status');
+                if (st && !silent) st.textContent = '❌ Hali obuna bo\'lmadingiz — kanalga a\'zo bo\'ling';
+                return false;
+            } catch (e) {
+                return true; // tekshiruv xatosi -> bloklamaymiz (fail-open)
+            } finally {
+                _subChecking = false;
+            }
+        }
+        // Ilova ochilganda tekshirish (1s kutib, webhook to'liq yuklangach)
+        if (userId) setTimeout(() => checkSubscription(true), 1000);
+
         // ---------- Global chat ----------
         function connectGlobalChat() {
             if (globalWs && (globalWs.readyState === WebSocket.OPEN || globalWs.readyState === WebSocket.CONNECTING)) return;
             globalWs = new WebSocket(API_BASE.replace('http', 'ws') + '/ws/global');
+            const gsock = globalWs;
+            // Keepalive: ngrok/proxy WS'ni yopib qo'ymasligi uchun (takliflar real vaqtda kelsin)
+            const gping = setInterval(() => {
+                if (gsock.readyState === WebSocket.OPEN) gsock.send(JSON.stringify({ action: 'ping' }));
+            }, 15000);
+            globalWs.onclose = () => { clearInterval(gping); setTimeout(connectGlobalChat, 1000); };
             globalWs.onmessage = (e) => {
                 try {
                     const data = JSON.parse(e.data);
@@ -3625,9 +4058,12 @@
                         }
                     }
                     if (data.type === 'invite' && data.invite && data.invite.to_id === userId) {
-                        pendingInvites = (pendingInvites || []).concat([data.invite]);
+                        if (!(pendingInvites || []).some(i => String(i.id) === String(data.invite.id))) {
+                            _seenInviteIds.add(String(data.invite.id));
+                            absorbInvites((pendingInvites || []).concat([data.invite]), false);
+                        }
                         renderInvites(pendingInvites);
-                        showToast('📩 ' + data.invite.from_name + ' sizni o\'yinga taklif qildi!');
+                        showInviteToast(data.invite);
                         if (tg) tg.HapticFeedback?.notificationOccurred('warning');
                     }
                     if (data.type === 'invite_accepted' && data.from_id === userId) {
@@ -3638,6 +4074,7 @@
                     }
                     if (data.type === 'stats_update' && data.user_id) {
                         applyStatsUpdate(data);
+                        if (data.user_id === userId && data.cosmetics) renderCosmetics(data.cosmetics);
                     }
                     // 🔴 To'liq live: backend har bir o'zgarishda panel_refresh yuboradi
                     if (data.type === 'panel_refresh') refreshVisiblePanels(data.scope);
@@ -3683,7 +4120,7 @@
                     }
                 } catch (err) {}
             };
-            globalWs.onclose = () => setTimeout(connectGlobalChat, 5000);
+            globalWs.onclose = () => { clearInterval(gping); setTimeout(connectGlobalChat, 2000); };
         }
 
         async function loadGlobalChatHistory() {
@@ -3891,11 +4328,18 @@
                 } else {
                     friendBtn = `<button class="ubtn blue" onclick="miniAddFriend(${d.id})">➕ Do'st qo'shish</button>`;
                 }
+                usersCache[d.id] = { ...(usersCache[d.id] || {}), ...d, id: d.id };
+                const dCos = d.cosmetics || {};
+                const avaInner = dCos.skin
+                    ? _cosImg(dCos.skin, 'pf-avatar-img') + (dCos.frame ? _cosImg(dCos.frame, 'pf-frame') : '')
+                    : esc((d.name || '?')[0].toUpperCase());
+                const dBadge = dCos.badge ? ` <img class="cos-badge" src="${esc(dCos.badge)}" onerror="this.remove()">` : '';
+                const likeBtn = d.id !== userId ? `<button class="like-btn ${d.liked_by_me ? 'liked' : ''}" id="mini-like-btn" onclick="toggleLike(${d.id})">❤️ <span id="mini-like-count">${d.likes ?? 0}</span></button>` : `<span class="like-btn" style="pointer-events:none;">❤️ ${d.likes ?? 0}</span>`;
                 body.innerHTML = `
                     <div class="ud-hero">
-                        <div class="ud-ava">${esc((d.name || '?')[0].toUpperCase())}</div>
+                        <div class="ud-ava" style="position:relative; overflow:visible; background:${dCos.skin ? 'transparent' : 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(255,0,110,0.15))'};">${avaInner}</div>
                         <div style="flex:1; min-width:0;">
-                            <div class="ud-name">${d.online ? '<span style="color:var(--green);">●</span> ' : ''}${esc(d.name)} ${roleTag(d.role, d.blocked)}</div>
+                            <div class="ud-name">${d.online ? '<span style="color:var(--green);">●</span> ' : ''}${esc(d.name)}${dBadge} ${roleTag(d.role, d.blocked)}</div>
                             <div class="ud-sub">${d.username ? '@' + esc(d.username) : 'ID ' + d.id}</div>
                         </div>
                     </div>
@@ -3906,6 +4350,7 @@
                         <div class="ud-stat"><b>${d.level}</b><span>Lvl</span></div>
                     </div>
                     <div class="uactions" style="justify-content:center;">
+                        ${likeBtn}
                         ${friendBtn}
                         <button class="ubtn ghost" onclick="copyText('${d.id}'); showToast('📋 ID nusxalandi')">🆔 ID</button>
                     </div>
@@ -4056,6 +4501,25 @@
         }
         checkOwner();
 
+        // 🛡 Server tekshiruvi: faqat role mos bo'lsa panel ochiladi (hamma narsani server aytadi)
+        let myPanelRole = null;
+        async function guardPanel(screenName) {
+            try {
+                const r = await fetch(API_BASE + '/owner/whoami/' + userId);
+                if (!r.ok) return false;
+                const d = await r.json();
+                myPanelRole = d.role;
+                const ok = {
+                    mainowner: d.is_main_owner,
+                    owner: d.is_owner && !d.is_main_owner,
+                    admin: d.is_admin,
+                    deputy: d.is_deputy && !d.is_admin && !d.is_owner,
+                }[screenName];
+                if (!ok) showToast('🚫 Sizda bu panelga ruxsat yo\'q');
+                return !!ok;
+            } catch (e) { return false; }
+        }
+
         async function ownerLoadPanel() {
             if (!amOwner) return;
             try {
@@ -4096,6 +4560,46 @@
             return (ROLE_RANK_MAP[u.role] ?? 5) > (ROLE_RANK_MAP[myRole] ?? 5);
         }
 
+        function _spTag(role, blocked) {
+            if (blocked) return '<span class="sp-tag t-blocked">🚫 Blokli</span>';
+            const map = {
+                main_owner: '<span class="sp-tag t-mo">💎 MO</span>',
+                co_owner: '<span class="sp-tag t-co">💠 CO</span>',
+                owner: '<span class="sp-tag t-owner">👑 Owner</span>',
+                moderator: '<span class="sp-tag t-mod">🛡 Mod</span>',
+                deputy: '<span class="sp-tag t-dep">⭐ Deputy</span>',
+                admin: '<span class="sp-tag t-admin">🎖 Admin</span>',
+            };
+            return map[role] || '';
+        }
+        function _spCard(u, onclick, extraActions) {
+            const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
+            const acc = { main_owner:'#ffd700', co_owner:'#b088ff', owner:'var(--yellow)', moderator:'var(--cyan)', deputy:'#4dff88', admin:'var(--magenta)' }[u.role] || 'var(--cyan)';
+            const cos = u.cosmetics || {};
+            const avaInner = cos.skin
+                ? _cosImg(cos.skin, 'pf-avatar-img') + (cos.frame ? _cosImg(cos.frame, 'pf-frame') : '')
+                : esc((u.name || '?')[0].toUpperCase());
+            const badgeImg = cos.badge ? ` <img class="cos-badge" src="${esc(cos.badge)}" onerror="this.remove()">` : '';
+            return `
+            <div class="sp-card" style="--sp-accent:${acc};" ${onclick ? `onclick="${onclick}"` : ''}>
+                <div class="sp-row">
+                    <div class="sp-ava">${avaInner}<span class="on-dot ${online ? 'on' : ''}"></span></div>
+                    <div class="sp-info">
+                        <div class="sp-name">${esc(u.name)}${badgeImg} ${_spTag(u.role, u.blocked)}</div>
+                        <div class="sp-meta">
+                            ${u.username ? '<span>@' + esc(u.username) + '</span>' : ''}
+                            <span>ID ${u.id}</span>
+                            <span>${u.games ?? u.games_played ?? 0} o'yin</span>
+                            <span>${u.wins ?? 0} g'alaba</span>
+                            <span>Lvl ${u.level ?? 1}</span>
+                            <span style="color:var(--yellow);">🪙 ${u.coins ?? 0}</span>
+                            <span style="color:var(--magenta);">❤️ ${u.likes ?? 0}</span>
+                        </div>
+                    </div>
+                </div>
+                ${extraActions ? `<div class="sp-actions">${extraActions}</div>` : ''}
+            </div>`;
+        }
         function renderOwnerUsers() {
             const box = document.getElementById('owner-users-list');
             const q = (document.getElementById('owner-user-search')?.value || '').toLowerCase().trim();
@@ -4103,19 +4607,7 @@
                 ? ownerUsers.filter(u => String(u.id).includes(q) || (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q.replace('@', '')))
                 : ownerUsers;
             if (!list.length) { box.innerHTML = '<div class="oempty">' + (q ? 'Hech narsa topilmadi' : 'User yo\'q') + '</div>'; return; }
-            box.innerHTML = list.map(u => {
-                const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
-                const manage = _ouCanManage(u);
-                return `
-                <div class="ucard ${ownerSelectedId === u.id ? 'sel' : ''}" onclick="openUserEdit(${u.id})">
-                    <span class="online-dot" style="background:${online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${online ? '0 0 8px var(--green)' : 'none'};"></span>
-                    <div class="uc-main">
-                        <div class="uc-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}</div>
-                        <div class="uc-meta">${u.username ? '@' + esc(u.username) + ' · ' : ''}ID ${u.id} · ${u.games ?? 0} o'yin · ${u.wins ?? 0} g'alaba · ${u.xp ?? 0} XP · Lvl ${u.level ?? 1}</div>
-                    </div>
-                    ${manage ? '<span class="ubtn ghost" style="pointer-events:none;">⚙️</span>' : ''}
-                </div>`;
-            }).join('');
+            box.innerHTML = list.map(u => _spCard(u, ownerSelectedId === u.id ? null : `openUserEdit(${u.id})`, _ouCanManage(u) ? '<button class="ubtn blue" onclick="event.stopPropagation();openUserEdit(' + u.id + ')">⚙️ Boshqarish</button>' : '')).join('');
         }
 
         let _userEditReturn = 'owner'; // sahifadan qaytish uchun
@@ -4392,7 +4884,7 @@
 
         function _ownerActionGuard(targetId, allowSelf) {
             if (!amOwner && !amMainOwner) { showToast('❌ Faqat owner uchun'); return false; }
-            if (targetId === userId && !allowSelf) { showToast('⚠️ O\'zingizga bu amal qilib bo\'lmaydi'); return false; }
+            // O'ziga XP/coins/level berishga ruxsat (allowSelf=true yoki hech qanday cheklov yo'q)
             return true;
         }
 
@@ -4539,18 +5031,7 @@
                 ? moUsers.filter(u => String(u.id).includes(q) || (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q.replace('@', '')))
                 : moUsers;
             if (!list.length) { box.innerHTML = '<div class="oempty">' + (q ? 'Hech narsa topilmadi' : 'User yo\'q') + '</div>'; return; }
-            box.innerHTML = list.map(u => {
-                const online = u.last_online && (Date.now() - new Date(u.last_online).getTime() < 60000);
-                return `
-                <div class="ucard" onclick="openUserEdit(${u.id}, 'mainowner')">
-                    <span class="online-dot" style="background:${online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${online ? '0 0 8px var(--green)' : 'none'};"></span>
-                    <div class="uc-main">
-                        <div class="uc-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}</div>
-                        <div class="uc-meta">${u.username ? '@' + esc(u.username) + ' · ' : ''}ID ${u.id} · ${u.games ?? 0} o'yin · ${u.wins ?? 0} g'alaba · ${u.xp ?? 0} XP · Lvl ${u.level ?? 1}</div>
-                    </div>
-                    <span class="ubtn gold" style="pointer-events:none;">⚙️</span>
-                </div>`;
-            }).join('');
+            box.innerHTML = list.map(u => _spCard(u, `openUserEdit(${u.id}, 'mainowner')`, '<button class="ubtn gold" onclick="event.stopPropagation();openUserEdit(' + u.id + ', \'mainowner\')">⚙️ Boshqarish</button>')).join('');
         }
 
         function moTab(name) {
@@ -4819,21 +5300,11 @@
                     // Moderator darajasi: faqat pastdagi rollarni boshqara oladi
                     const myRank = amMainOwner ? -1 : (ROLE_RANK_MAP[users.find(u => u.id === userId)?.role] ?? ROLE_RANK_MAP[usersCache[userId]?.role] ?? 5);
                     const canAct = u.id !== userId && (ROLE_RANK_MAP[u.role] ?? 5) > myRank;
-                    return `
-                    <div class="urow">
-                        <div class="online-row" style="border:none;padding:0;">
-                            <span class="online-dot" style="background:${online ? 'var(--green)' : 'var(--text-dim)'}; box-shadow:${online ? '0 0 8px var(--green)' : 'none'};"></span>
-                            <div class="online-name">${esc(u.name)} ${roleTag(u.role, u.blocked)}${u.muted ? ' 🔇' : ''}
-                                <div class="ustats">${u.games ?? 0} o'yin · ${u.wins ?? 0} g'alaba · ${u.xp ?? 0} XP · Lvl ${u.level ?? 1}</div>
-                            </div>
-                        </div>
-                        ${canAct ? `
-                        <div class="uact">
-                            <button class="icon-btn ${u.blocked ? 'gold' : 'danger'}" onclick="adminToggleBlock(${u.id}, ${u.blocked ? 'false' : 'true'})">${u.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>
-                            <button class="icon-btn ${u.muted ? 'gold' : ''}" onclick="adminToggleMute(${u.id}, ${u.muted ? 'false' : 'true'})">${u.muted ? '🔊 Unmute' : '🔇 Mute'}</button>
-                            <button class="icon-btn" onclick="adminWarnUser(${u.id})">⚠️ Warn</button>
-                        </div>` : ''}
-                    </div>`;
+                    return _spCard(u, null, canAct ? `
+                            <button class="ubtn ${u.blocked ? 'gold' : 'danger'}" onclick="adminToggleBlock(${u.id}, ${u.blocked ? 'false' : 'true'})">${u.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>
+                            <button class="ubtn ${u.muted ? 'gold' : ''}" onclick="adminToggleMute(${u.id}, ${u.muted ? 'false' : 'true'})">${u.muted ? '🔊 Unmute' : '🔇 Mute'}</button>
+                            <button class="ubtn" onclick="adminWarnUser(${u.id})">⚠️ Warn</button>`
+                        : '');
                 }).join('');
             } catch (e) {
                 box.innerHTML = '<p class="invite-hint">Yuklab bo\'lmadi</p>';
@@ -4965,33 +5436,64 @@
 
         // ---------- 🛍 Do'kon ----------
         let _shopCatalog = null;
+        let _shopEquipped = {};
+        let _shopCoins = 0;
+        let _shopActiveTab = 'skin';
+        function shopTab(cat) {
+            _shopActiveTab = cat;
+            document.querySelectorAll('.shop-tab').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+            renderShopGrid();
+        }
+        function _mImg(url, cls) {
+            if (!url) return '';
+            if (/\.(webm|mp4)(\?|$)/.test(url)) return `<video class="${cls}" src="${esc(url)}" autoplay loop muted playsinline></video>`;
+            return `<img class="${cls}" src="${esc(url)}" loading="lazy" onerror="this.style.display='none'">`;
+        }
+        function renderShopGrid() {
+            const box = document.getElementById('shop-grid');
+            const items = (_shopCatalog || {})[_shopActiveTab] || [];
+            if (!items.length) { box.innerHTML = '<div class="oempty" style="grid-column:1/-1;">Bu bo\'lim bo\'sh</div>'; return; }
+            box.innerHTML = items.map(s => {
+                const isEq = _shopEquipped[_shopActiveTab] === s.id;
+                const owned = s.price === 0 || _ownedIds.has(s.id);
+                let visual = '';
+                if (_shopActiveTab === 'badge') visual = _mImg(s.url, 'm-img m-badge');
+                else if (_shopActiveTab === 'frame') visual = `<span class="m-frame-wrap">${_mImg('https://i.pinimg.com/1200x/53/b6/9f/53b69f5c50053d3dcc3de2c06d5d6516.jpg','m-frame-ava')}${_mImg(s.url,'m-frame')}</span>`;
+                else visual = _mImg(s.url, 'm-img');
+                const btn = isEq
+                    ? '<span class="ubtn gold" style="pointer-events:none;">✅ Kiyilgan</span>'
+                    : (owned
+                        ? `<button class="ubtn blue" onclick="shopEquip('${_shopActiveTab}','${s.id}')">Kiyish</button>`
+                        : `<button class="ubtn gold" onclick="shopBuy('${_shopActiveTab}','${s.id}',${s.price})">🪙 ${s.price}</button>`);
+                return `<div class="mcard">${visual}<div class="m-name">${esc(s.name)}</div>${btn}</div>`;
+            }).join('');
+        }
         async function loadShop() {
             try {
                 if (!_shopCatalog) _shopCatalog = await (await fetch(API_BASE + '/shop/catalog')).json();
                 const own = await (await fetch(API_BASE + '/shop/owned/' + userId)).json();
-                document.getElementById('shop-coins').textContent = own.coins ?? 0;
+                _shopCoins = own.coins ?? 0;
+                _shopEquipped = own.equipped || {};
+                document.getElementById('shop-coins').textContent = _shopCoins;
+                renderShopGrid();
+                // eski stol skini bo'limi
                 const eq = own.equipped || {};
-                const renderKind = (kind, boxId, equippedId) => {
-                    const box = document.getElementById(boxId);
-                    box.innerHTML = (_shopCatalog[kind] || []).map(s => {
-                        const owned = s.price === 0 || eq[kind] === s.id;
-                        const isEq = eq[kind] === s.id;
-                        const swatch = kind === 'frame'
-                            ? `<span style="display:inline-block; width:26px; height:26px; border-radius:50%; border:3px solid ${s.css === '' ? 'var(--glass-border)' : s.css};"></span>`
-                            : `<span style="display:inline-block; width:26px; height:26px; border-radius:6px; background:${s.css ? s.css.split(';')[0].replace('--board-bg:', '') : 'var(--glass-border)'}; border:2px solid ${s.css ? (s.css.split(';')[1] || '').replace('--board-border:', '') : 'var(--glass-border)'};"></span>`;
-                        const btn = isEq
-                            ? '<span class="ubtn gold" style="pointer-events:none;">✅ Kiyilgan</span>'
-                            : (owned
-                                ? `<button class="ubtn blue" onclick="shopEquip('${kind}','${s.id}')">Kiyish</button>`
-                                : `<button class="ubtn gold" onclick="shopBuy('${kind}','${s.id}',${s.price})">🪙 ${s.price}</button>`);
-                        return `<div class="ucard"><div class="uc-main"><div class="uc-name">${swatch} ${esc(s.name)}</div></div>${btn}</div>`;
-                    }).join('');
-                };
-                renderKind('board', 'shop-boards', 'skin_board');
-                renderKind('frame', 'shop-frames', 'skin_frame');
+                const box = document.getElementById('shop-boards');
+                box.innerHTML = (_shopCatalog.board || []).map(s => {
+                    const owned = s.price === 0 || eq.board === s.id;
+                    const isEq = eq.board === s.id;
+                    const swatch = `<span style="display:inline-block; width:26px; height:26px; border-radius:6px; background:${s.css ? s.css.split(';')[0].replace('--board-bg:', '') : 'var(--glass-border)'}; border:2px solid ${s.css ? (s.css.split(';')[1] || '').replace('--board-border:', '') : 'var(--glass-border)'};"></span>`;
+                    const btn = isEq
+                        ? '<span class="ubtn gold" style="pointer-events:none;">✅ Kiyilgan</span>'
+                        : (owned
+                            ? `<button class="ubtn blue" onclick="shopEquip('board','${s.id}')">Kiyish</button>`
+                            : `<button class="ubtn gold" onclick="shopBuy('board','${s.id}',${s.price})">🪙 ${s.price}</button>`);
+                    return `<div class="ucard"><div class="uc-main"><div class="uc-name">${swatch} ${esc(s.name)}</div></div>${btn}</div>`;
+                }).join('');
             } catch (e) { showToast('❌ Do\'kon yuklanmadi'); }
         }
 
+        let _ownedIds = new Set();
         async function shopBuy(kind, skinId, price) {
             try {
                 const resp = await fetch(API_BASE + '/shop/buy', {
@@ -5000,9 +5502,11 @@
                 });
                 const d = await resp.json().catch(() => ({}));
                 if (!resp.ok) throw new Error(d.detail || 'Sotib olinmadi');
-                showToast(`🛍 Skin olindi! Qoldi: ${d.coins}🪙`);
+                if (price > 0) _ownedIds.add(skinId);
+                showToast(price > 0 ? `🛍 Olindi! Qoldi: ${d.coins}🪙` : '✅ Kiyildi');
                 if (tg) tg.HapticFeedback?.notificationOccurred('success');
                 loadShop();
+                loadProfile();
             } catch (e) { showToast('❌ ' + e.message); }
         }
 

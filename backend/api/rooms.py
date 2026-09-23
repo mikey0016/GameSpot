@@ -38,6 +38,11 @@ async def _broadcast_global(message: dict):
     from .social import _broadcast as _gb
     await _gb(message)
 
+def _normalize_code(code: str | None) -> str:
+    """Xona kodini kanonik ko'rinishga keltirish (strip + upper)."""
+    return (code or "").strip().upper()
+
+
 def _generate_code(length: int = 6) -> str:
     alphabet = string.ascii_uppercase + string.digits
     return "".join(random.choice(alphabet) for _ in range(length))
@@ -68,19 +73,25 @@ class RoomResponse(BaseModel):
 
 
 async def _enrich_players(db, player_ids: list) -> list:
-    """Convert player id list to [{id, name, role, blocked}] using online_users."""
+    """Convert player id list to [{id, name, role, blocked, cosmetics}] using online_users."""
     from ..models.social import OnlineUser
+    from .social import _cosmetics_of
     out = []
     for pid in player_ids:
         name = None
         role = None
         blocked = False
+        cosmetics = None
         u = await db.get(OnlineUser, pid)
         if u:
             name = u.nickname or u.first_name or u.username
             role = u.role
             blocked = bool(u.blocked)
-        out.append({"id": pid, "name": name or f"O'yinchi {pid % 1000}", "role": role, "blocked": blocked})
+            try:
+                cosmetics = _cosmetics_of(u)
+            except Exception:
+                cosmetics = None
+        out.append({"id": pid, "name": name or f"O'yinchi {pid % 1000}", "role": role, "blocked": blocked, "cosmetics": cosmetics})
     return out
 
 @router.post("/create", response_model=RoomResponse)
@@ -118,10 +129,18 @@ async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
 
 @router.post("/join/{code}", response_model=RoomResponse)
 async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session)):
+    code = (code or "").strip().upper()  # case-insensitive kod kirish
     async with session() as db:
         room = await db.get(Room, code)
         if not room:
             raise HTTPException(status_code=404, detail="Room not found")
+        # Reload/uzilishdan keyin qayta kirishda xato chiqarmasdan qaytaramiz
+        if str(req.user_id) in [str(p) for p in (room.player_ids or [])]:
+            enriched = await _enrich_players(db, room.player_ids)
+            return RoomResponse(
+                code=room.id, host_id=room.host_id, status=room.status.value,
+                players=enriched, max_players=room.max_players, has_password=bool(room.password),
+            )
         if len(room.player_ids) >= room.max_players:
             raise HTTPException(status_code=400, detail="Room is full")
         if req.user_id in room.player_ids:
@@ -252,15 +271,15 @@ async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
 
 @router.get("/open", response_model=list[RoomResponse])
 async def open_rooms(session=Depends(get_session)):
-    """Public lobbies that are still WAITING for players (created in the last 30 min)."""
+    """Public lobbies that are joinable (WAITING or READY, not full), last 2 hours."""
     from ..models.social import OnlineUser
-    cutoff = now_local() - timedelta(minutes=30)
+    cutoff = now_local() - timedelta(hours=2)
     async with session() as db:
         rooms = (
             await db.execute(
                 select(Room)
                 .where(
-                    Room.status == RoomStatus.WAITING,
+                    Room.status.in_([RoomStatus.WAITING, RoomStatus.READY]),
                     Room.created_at >= cutoff,
                 )
                 .order_by(Room.created_at.desc())
@@ -282,6 +301,7 @@ async def open_rooms(session=Depends(get_session)):
 
 @router.get("/{code}", response_model=RoomResponse)
 async def get_room(code: str, session=Depends(get_session)):
+    code = (code or "").strip().upper()
     async with session() as db:
         room = await db.get(Room, code)
         if not room:

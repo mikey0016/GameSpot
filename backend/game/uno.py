@@ -101,16 +101,25 @@ class GameState:
     def can_play(self, player_id: int, card: Card, chosen_color: Optional[Color] = None) -> bool:
         """Validate whether `card` can be played by `player_id` on the current top of discard pile.
         `chosen_color` is only relevant for Wild cards.
+
+        Haqiqiy (house) UNO qoidalari:
+        - +2 ustiga faqat +2, +4 ustiga faqat +4 qo'yiladi (stacking) — istalgancha
+        - Stack payti boshqa kartalar (jumladan wild) tashlanmaydi
         """
         player = self._find_player(player_id)
         if card not in player.hand:
             return False
 
-        # Stacked +2/+4: next player MUST either stack another +2/+4 or draw
-        if self.pending_draw > 0:
-            return False  # classic rules: no stacking, must draw the pending amount
-
         top = self.discard_pile[-1]
+
+        # --- Stacking (+2/+4 zanjiri) ---
+        if self.pending_draw > 0:
+            # +2 zanjiri: faqat +2 bilan davom etadi
+            if top.value == Value.DRAW_TWO:
+                return card.value == Value.DRAW_TWO
+            # +4 zanjiri: faqat +4 bilan davom etadi
+            return card.value == Value.WILD_DRAW_FOUR
+
         # If top is a wild with chosen color, treat that as its effective color
         effective_top = Card(
             color=top.chosen_color if top.color == Color.WILD and top.chosen_color else top.color,
@@ -183,14 +192,14 @@ class GameState:
     def draw_cards(self, player_id: int, count: int = 1) -> Dict:
         """Player draws cards; a pending +2/+4 forces the full penalty amount.
         After drawing 1 (no pending penalty), the player MAY play the drawn
-        card if it matches (classic draw-then-play rule).
+        card if it matches (draw-then-play rule).
         """
         if self.winner_id:
             raise ValueError("Game already finished")
         if self._current_player().user_id != player_id:
             raise ValueError("Not this player's turn")
         player = self._find_player(player_id)
-        # Pending +2/+4: take the whole penalty, turn ends
+        # Pending +2/+4: take the whole accumulated penalty, turn ends
         if self.pending_draw > 0:
             player.hand.extend(self.deck.draw(self.pending_draw))
             self.draw_count += self.pending_draw
@@ -243,9 +252,10 @@ class GameState:
         elif card.value == Value.REVERSE:
             self._reverse_direction()
         elif card.value == Value.DRAW_TWO:
-            self.pending_draw = 2
+            # Haqiqiy stacking: zanjir qancha uzun bo'lsa, jami shuncha olinadi
+            self.pending_draw = (self.pending_draw or 0) + 2
         elif card.value == Value.WILD_DRAW_FOUR:
-            self.pending_draw = 4
+            self.pending_draw = (self.pending_draw or 0) + 4
         # Wild (no extra effect beyond colour selection)
 
     # ---------------------------------------------------------------------

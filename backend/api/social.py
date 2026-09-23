@@ -96,6 +96,22 @@ async def _broadcast(message: dict):
     await manager.broadcast("global", message)
 
 
+def _market_public(eq: dict) -> dict:
+    """Kiygan kosmetikani frontend uchun url'lar bilan qaytaradi (badge/avatar/frame/banner/bg)."""
+    return {
+        "cosmetics": {
+            kind: (item["url"] if item else None)
+            for kind, item in eq.items()
+        }
+    }
+
+
+def _cosmetics_of(u: OnlineUser) -> dict:
+    """OnlineUser'dan to'g'ridan-to'g'ri cosmetics dict (lazy import yo'q — tez)."""
+    from .fun import _equipped_market
+    return _market_public(_equipped_market(u))["cosmetics"]
+
+
 def _user_public(u: OnlineUser) -> dict:
     return {
         "id": u.id,
@@ -117,6 +133,8 @@ def _user_public(u: OnlineUser) -> dict:
         "xp": u.xp,
         "level": u.level,
         "coins": u.coins or 0,
+        "likes": u.likes or 0,
+        "cosmetics": _cosmetics_of(u),
     }
 
 
@@ -236,8 +254,29 @@ async def heartbeat(req: UserIn, session=Depends(get_session)):
             db.add(u)
         u.last_online = now_local()
         u.invites = u.invites or []
-        await db.commit()
-        pending = [i for i in u.invites if i.get("status") == "pending"]
+        # Eski pending invite'larni tozalash (24 soatdan oshganlar yashirinadi + o'chiriladi)
+        cutoff = now_local()
+        from datetime import datetime as _dt, timedelta as _td
+        fresh = []
+        expired_ids = []
+        for i in u.invites:
+            if i.get("status") != "pending":
+                continue
+            try:
+                created = _dt.fromisoformat(i.get("created_at"))
+            except Exception:
+                created = None
+            if created and (cutoff - created) > _td(hours=24):
+                i["status"] = "expired"
+                expired_ids.append(str(i.get("id")))
+            else:
+                fresh.append(i)
+        if expired_ids:
+            u.invites = [i for i in (u.invites or []) if str(i.get("id")) not in expired_ids] or []
+            await db.commit()
+        pending = [i for i in fresh]
+        # ❗ Invite spam: faqat oxirgi 3 ta pending qaytariladi
+        pending = pending[-3:]
         return {
             "ok": True,
             "invites": pending,
@@ -249,6 +288,37 @@ async def heartbeat(req: UserIn, session=Depends(get_session)):
             "warning": u.warning,
             "role": u.role,
         }
+
+
+@router.get("/users/subscribe-status/{user_id}")
+async def subscribe_status(user_id: int, session=Depends(get_session)):
+    """WebApp uchun kanal obuna holati (Telegram Bot API getChatMember)."""
+    import asyncio
+    import urllib.request
+    import json as _json
+    from ..config import settings
+
+    subscribed = True  # fail-open: xato bo'lsa qulf CIMAYMIZ
+    channel = settings.CHANNEL_URL
+    token = settings.BOT_TOKEN
+    if channel and token:
+        uname = channel.rstrip("/").split("/")[-1]
+        if not uname.startswith("@"):
+            uname = "@" + uname
+        url = f"https://api.telegram.org/bot{token}/getChatMember?chat_id={uname}&user_id={user_id}"
+
+        def _fetch():
+            with urllib.request.urlopen(url, timeout=4) as r:
+                return _json.loads(r.read().decode())
+
+        try:
+            data = await asyncio.wait_for(asyncio.to_thread(_fetch), timeout=6.0)
+            if data.get("ok"):
+                status = (data.get("result") or {}).get("status", "")
+                subscribed = status in ("member", "administrator", "creator")
+        except Exception:
+            subscribed = True  # bot kanalda admin emas / API xatosi -> bloklamaymiz
+    return {"subscribed": subscribed, "channel": channel}
 
 
 @router.get("/users/online")
@@ -296,6 +366,7 @@ async def search_users(q: str, session=Depends(get_session)):
 
 @router.get("/users/{user_id}")
 async def get_profile(user_id: int, session=Depends(get_session)):
+    from .fun import _equipped_market
     async with session() as db:
         u = await db.get(OnlineUser, user_id)
         if not u:
@@ -333,6 +404,8 @@ async def get_profile(user_id: int, session=Depends(get_session)):
             "xp": u.xp,
             "level": u.level,
             "coins": u.coins or 0,
+            "likes": u.likes or 0,
+            **_market_public(_equipped_market(u)),
         }
 
 
@@ -373,6 +446,7 @@ async def user_history(user_id: int, session=Depends(get_session)):
 
 @router.get("/leaderboard")
 async def leaderboard(session=Depends(get_session)):
+    from .fun import _equipped_market
     async with session() as db:
         rows = (
             await db.execute(
@@ -395,6 +469,7 @@ async def leaderboard(session=Depends(get_session)):
                     "wins": u.wins,
                     "games": u.games_played,
                     "level": u.level,
+                    **_market_public(_equipped_market(u)),
                 }
                 for i, u in enumerate(rows)
                 if u.wins > 0 or u.games_played > 0
@@ -405,6 +480,7 @@ async def leaderboard(session=Depends(get_session)):
 @router.get("/users/{user_id}/mini")
 async def user_mini_profile(user_id: int, viewer_id: int = 0, session=Depends(get_session)):
     """Leaderboard card popup: short stats + friend-request state (viewer_id orqali)."""
+    from .fun import _equipped_market
     async with session() as db:
         u = await db.get(OnlineUser, user_id)
         if not u:
@@ -450,6 +526,9 @@ async def user_mini_profile(user_id: int, viewer_id: int = 0, session=Depends(ge
             "friend_state": friend_state,  # None | pending | accepted
             "friend_req_id": friend_req_id,
             "friend_incoming": friend_incoming,
+            "likes": u.likes or 0,
+            "liked_by_me": bool(viewer_id and str(viewer_id) in [str(x) for x in (u.liked_by or [])]),
+            **_market_public(_equipped_market(u)),
         }
 
 
@@ -621,6 +700,44 @@ async def send_invite(req: InviteIn, session=Depends(get_session)):
         await db.commit()
         await _broadcast({"type": "invite", "invite": invite})
         return {"ok": True, "invite_id": invite["id"]}
+
+
+@router.post("/invites/like")
+async def like_user(req: UserIn, target_id: int = 0, session=Depends(get_session)):
+    pass  # placeholder (real endpoint pastda UserIn bilan)
+
+
+@router.post("/likes/{target_id}")
+async def like_target(target_id: int, req: UserIn, session=Depends(get_session)):
+    """❤️ Userga like bosish (o'ziga yo'q). Qayta bosish = like olib tashlash."""
+    async with session() as db:
+        me = await db.get(OnlineUser, req.id)
+        if not me:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        if await _is_blocked(db, req.id):
+            raise HTTPException(403, "Siz bloklangansiz")
+        target = await db.get(OnlineUser, target_id)
+        if not target:
+            raise HTTPException(404, "User topilmadi")
+        if target_id == req.id:
+            raise HTTPException(400, "O'zingizga like bosolmaysiz")
+        liked = [str(x) for x in (target.liked_by or [])]
+        mine = str(req.id)
+        if mine in liked:
+            liked.remove(mine)
+            target.likes = max(0, (target.likes or 0) - 1)
+            liked_now = False
+        else:
+            liked.append(mine)
+            target.likes = (target.likes or 0) + 1
+            liked_now = True
+        target.liked_by = liked
+        await db.commit()
+        try:
+            await _broadcast_stats_update(db, target_id)
+        except Exception:
+            pass
+        return {"ok": True, "likes": target.likes, "liked": liked_now}
 
 
 async def _resolve_invite(db, invite_id: int | str, status: str):
@@ -858,10 +975,12 @@ async def _broadcast_stats_update(db, user_id: int):
     u = await db.get(OnlineUser, user_id)
     if not u:
         return
+    from .fun import _equipped_market
     await _broadcast({
         "type": "stats_update",
         "user_id": user_id,
         "user": _user_public(u),
+        "cosmetics": {kind: (item["url"] if item else None) for kind, item in _equipped_market(u).items()},
     })
 
 
@@ -877,6 +996,22 @@ async def owner_check(user_id: int, session=Depends(get_session)):
             "is_moderator": bool(u and u.role in ("main_owner", "co_owner", "owner", "moderator", "deputy", "admin")),
             "is_main_owner": bool(u and u.role == "main_owner"),
             "role": (u.role if u else None),
+        }
+
+
+@router.get("/owner/whoami/{user_id}")
+async def owner_whoami(user_id: int, session=Depends(get_session)):
+    """Frontend guard: server bir xil javob, client so'rov yuborishdan oldin tekshiradi."""
+    async with session() as db:
+        u = await db.get(OnlineUser, user_id)
+        role = (u.role if u else None)
+        return {
+            "is_main_owner": role == "main_owner",
+            "is_co_owner": role == "co_owner",
+            "is_owner": role in ("main_owner", "co_owner", "owner"),
+            "is_admin": role in ("main_owner", "co_owner", "owner", "admin"),
+            "is_deputy": role in ("moderator", "deputy"),
+            "role": role,
         }
 
 

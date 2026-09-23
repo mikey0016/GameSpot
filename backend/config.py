@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Misc
     LOG_LEVEL: str = Field("info")
 
+    # Obuna sharti bo'lgan kanal (bot tekshiruvi uchun). Bo'sh bo'lsa tekshiruv o'tkazib yuboriladi.
+    CHANNEL_URL: str = Field("https://t.me/gamespotofficial")
+
     class Config:
         env_file = ".env"
         case_sensitive = False

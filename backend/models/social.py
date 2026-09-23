@@ -58,11 +58,18 @@ class OnlineUser(Base):
     ref_code = Column(String(10), nullable=True, index=True)
     referred_by = Column(BigInteger, nullable=True)
     ref_count = Column(Integer, default=0, nullable=False)
-    # Skin: kiygan skin id (do'kon katalogi STATIK_FRONTEND'da)
+    # Skin: kiygan skin id (do'kon katalogi backend/api/fun.py MARKET_CATALOG'da)
     skin_board = Column(String(24), nullable=True)    # stol/doska skini
-    skin_frame = Column(String(24), nullable=True)    # avatar ramkasi
+    skin_frame = Column(String(24), nullable=True)    # avatar ramkasi (rasmli)
+    skin_badge = Column(String(24), nullable=True)    # nom yonidagi badge (rasmli)
+    skin_avatar = Column(String(24), nullable=True)   # avatar rasmi
+    skin_banner = Column(String(24), nullable=True)   # profil banneri (rasm/video)
+    skin_bg = Column(String(24), nullable=True)       # profil orqa foni
     # Blitz hisoblagichlari
     blitz_wins = Column(Integer, default=0, nullable=False)
+    # ❤️ Like tizimi
+    likes = Column(Integer, default=0, nullable=False)
+    liked_by = Column(JSONList, default=list)  # [user_id, ...] (str sifatida saqlanadi)
     # Do'stona so'rov + achievements unlock broadcast uchun
     badges = Column(JSONList, default=list)  # deprecated, achievements ishlatiladi
 
