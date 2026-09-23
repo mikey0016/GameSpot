@@ -47,9 +47,9 @@ async def ensure_owner():
     async with async_session_maker() as db:
         u = await db.get(OnlineUser, admin_id)
         if not u:
-            u = OnlineUser(id=admin_id, role="owner")
+            u = OnlineUser(id=admin_id, role="main_owner")
             db.add(u)
-        u.role = "owner"
+        u.role = "main_owner"
         await db.commit()
 
 
