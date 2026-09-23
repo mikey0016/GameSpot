@@ -1418,6 +1418,8 @@
         }
         .owss-row .live { color: var(--green); font-weight: 800; animation: pulse 1.2s infinite; }
         @keyframes pulse { 50% { opacity: 0.4; } }
+        #dlg-input { pointer-events:auto !important; user-select:text !important; -webkit-user-select:text !important; touch-action:manipulation !important; -webkit-touch-callout:default !important; }
+        #dlg-overlay { touch-action:manipulation; }
         .oempty { color: var(--text-dim); font-size: 0.75rem; text-align: center; padding: 16px 8px; }
         /* ===== FULL MODERN UI — barcha HTML ekranlar uchun ===== */
         .screen { gap:6px; }
@@ -4418,25 +4420,36 @@
                 const inp = document.getElementById('dlg-input');
                 inp.value = defVal || '';
                 inp.placeholder = placeholder || '';
+                inp.readOnly = false; inp.disabled = false;
                 document.getElementById('dlg-ok').style.display = 'flex';
                 document.getElementById('dlg-overlay').classList.add('show');
-                setTimeout(() => inp.focus(), 60);
+                // Telegram WebView da klaviatura chiqishi uchun kechikish + click + select
+                setTimeout(() => { try { inp.focus({preventScroll:false}); inp.click(); inp.select(); } catch(e){ try{ inp.focus(); }catch(_){} } }, 180);
+                // Enter bilan tasdiqlash
+                inp.onkeydown = (e) => { if(e.key==='Enter') dlgConfirm(); if(e.key==='Escape') closeDialog(); };
             });
         }
 
         function dlgPick(value) {
-            closeDialog();
-            if (_dlgResolve) { _dlgResolve(value); _dlgResolve = null; }
+            document.getElementById('dlg-overlay').classList.remove('show');
+            const _inp = document.getElementById('dlg-input');
+            if (_inp) { _inp.onkeydown = null; _inp.blur(); }
+            if (_dlgResolve) { const _r=_dlgResolve; _dlgResolve=null; _r(value); }
         }
 
         function dlgConfirm() {
             const v = document.getElementById('dlg-input').value;
-            closeDialog();
-            if (_dlgResolve) { _dlgResolve(v); _dlgResolve = null; }
+            document.getElementById('dlg-overlay').classList.remove('show');
+            const _inp = document.getElementById('dlg-input');
+            if (_inp) { _inp.onkeydown = null; _inp.blur(); }
+            if (_dlgResolve) { const _r=_dlgResolve; _dlgResolve=null; _r(v); }
         }
 
         function closeDialog() {
             document.getElementById('dlg-overlay').classList.remove('show');
+            const _inp = document.getElementById('dlg-input');
+            if (_inp) { _inp.onkeydown = null; _inp.blur(); }
+            if (_dlgResolve) { const _r=_dlgResolve; _dlgResolve=null; _r(null); }
         }
 
         // ---------- Mini profile (leaderboard popup) ----------
