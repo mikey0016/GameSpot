@@ -11,25 +11,30 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-primary: #0a0a1a;
-            --bg-secondary: #1a1a2e;
-            --bg-card: #16213e;
+            --bg-primary: #080810;
+            --bg-secondary: #141428;
+            --bg-card: #182040;
             --cyan: #00d4ff;
             --magenta: #ff006e;
             --green: #00ff88;
             --yellow: #ffd60a;
             --orange: #ff6b35;
-            --text: #e0e0ff;
-            --text-dim: #8888aa;
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #e8e8ff;
+            --text-dim: #8a8ab0;
+            --glass: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --radius: 16px;
+            --shadow: 0 8px 32px rgba(0,0,0,0.35);
+            --blur: 24px;
         }
 
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         body {
             font-family: 'Inter', sans-serif;
             background:
-                radial-gradient(ellipse 80% 50% at 20% -10%, rgba(0, 212, 255, 0.08), transparent),
-                radial-gradient(ellipse 60% 40% at 90% 110%, rgba(255, 0, 110, 0.08), transparent),
+                radial-gradient(ellipse 85% 55% at 15% -10%, rgba(0, 212, 255, 0.10), transparent 60%),
+                radial-gradient(ellipse 65% 45% at 95% 105%, rgba(255, 0, 110, 0.10), transparent 60%),
+                radial-gradient(ellipse 50% 30% at 50% 50%, rgba(120,80,255,0.04), transparent),
                 var(--bg-primary);
             color: var(--text);
             min-height: 100vh;
@@ -99,43 +104,49 @@
         }
         .screen.active { display: flex; }
 
-        /* ===== HEADER (compact) ===== */
+        /* ===== HEADER (modern) ===== */
         .header {
             text-align: center;
             margin-bottom: 14px;
-            padding-top: 6px;
+            padding-top: 8px;
+            position:relative;
         }
         .header .logo {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.6rem;
+            font-size: 1.65rem;
             font-weight: 900;
-            background: linear-gradient(135deg, var(--cyan), var(--magenta));
+            background: linear-gradient(135deg, var(--cyan) 0%, #7b5cff 45%, var(--magenta) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: none;
-            letter-spacing: 2px;
+            filter: drop-shadow(0 2px 12px rgba(0,212,255,0.25));
+            letter-spacing: 2.5px;
+            animation: logoShine 4s ease-in-out infinite;
         }
+        @keyframes logoShine { 0%,100%{ filter: drop-shadow(0 2px 12px rgba(0,212,255,0.25)); } 50%{ filter: drop-shadow(0 4px 20px rgba(255,0,110,0.30)); } }
         .header .subtitle {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             color: var(--text-dim);
-            margin-top: 3px;
-            letter-spacing: 2px;
+            margin-top: 4px;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
+            opacity:0.85;
         }
 
-        /* ===== GLASS PANELS (compact) ===== */
+        /* ===== GLASS PANELS (modern) ===== */
         .glass-panel {
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
             border: 1px solid var(--glass-border);
-            border-radius: 16px;
+            border-radius: var(--radius);
             padding: 16px;
             width: 100%;
             max-width: 400px;
             margin-bottom: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
+        .glass-panel:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10); }
         .panel-head {
             display: flex;
             justify-content: space-between;
@@ -171,7 +182,7 @@
         .user-info h2 { font-size: 1rem; font-weight: 600; }
         .user-info p { font-size: 0.72rem; color: var(--text-dim); }
 
-        /* ===== BUTTONS (compact) ===== */
+        /* ===== BUTTONS (modern) ===== */
         .btn {
             width: 100%;
             padding: 13px 18px;
@@ -179,9 +190,9 @@
             border-radius: 12px;
             font-family: 'Inter', sans-serif;
             font-size: 0.92rem;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s cubic-bezier(0.22,0.9,0.3,1.15);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -189,36 +200,41 @@
             margin-bottom: 9px;
             position: relative;
             overflow: hidden;
+            letter-spacing:0.3px;
         }
+        .btn::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent); transform:translateX(-100%); transition:transform 0.6s; }
+        .btn:active::after { transform:translateX(100%); }
+        .btn:active { transform:scale(0.98); }
         .btn-primary {
-            background: linear-gradient(135deg, var(--cyan), #0099cc);
+            background: linear-gradient(135deg, var(--cyan) 0%, #0088cc 100%);
             color: white;
-            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 6px 22px rgba(0, 212, 255, 0.32), inset 0 1px 0 rgba(255,255,255,0.2);
         }
-        .btn-primary:hover { transform: translateY(-2px); }
+        .btn-primary:hover { transform: translateY(-1.5px); box-shadow: 0 10px 28px rgba(0,212,255,0.38); }
         .btn-secondary {
-            background: linear-gradient(135deg, var(--magenta), #cc0055);
+            background: linear-gradient(135deg, var(--magenta), #c4005a);
             color: white;
-            box-shadow: 0 4px 20px rgba(255, 0, 110, 0.3);
+            box-shadow: 0 6px 22px rgba(255, 0, 110, 0.32);
         }
-        .btn-secondary:hover { transform: translateY(-2px); }
+        .btn-secondary:hover { transform: translateY(-1.5px); }
         .btn-success {
-            background: linear-gradient(135deg, var(--green), #00cc66);
-            color: #0a0a1a;
-            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+            background: linear-gradient(135deg, var(--green), #00bb6e);
+            color: #061018;
+            box-shadow: 0 6px 22px rgba(0, 255, 136, 0.30);
         }
         .btn-outline {
-            background: transparent;
-            border: 1.5px solid var(--glass-border);
+            background: rgba(255,255,255,0.04);
+            border: 1.2px solid var(--glass-border);
             color: var(--text);
+            backdrop-filter: blur(8px);
         }
-        .btn-outline:hover { border-color: var(--cyan); }
+        .btn-outline:hover { border-color: rgba(0,212,255,0.45); background: rgba(0,212,255,0.08); transform: translateY(-1px); }
         .btn-invite {
-            background: linear-gradient(135deg, #8844ff, #6633cc);
+            background: linear-gradient(135deg, #7b5cff, #5a2fcf);
             color: white;
-            box-shadow: 0 4px 20px rgba(136, 68, 255, 0.3);
+            box-shadow: 0 6px 22px rgba(123,92,255,0.32);
         }
-        .btn-invite:hover { transform: translateY(-2px); }
+        .btn-invite:hover { transform: translateY(-1.5px); }
         .invite-hint {
             font-size: 0.72rem;
             color: var(--text-dim);
@@ -4258,35 +4274,51 @@
             if (tg) tg.HapticFeedback?.impactOccurred('light');
         }
 
-        // ---------- SFX (WebAudio, fayl kerak emas) ----------
+        // ---------- SFX (WebAudio, modern — fayl kerak emas) ----------
         let _audioCtx = null;
         function _ctx() {
             if (!_audioCtx) { try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+            if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
             return _audioCtx;
         }
         function playSfx(kind) {
             const ctx = _ctx();
             if (!ctx) return;
-            const beep = (freq, dur, delay, type = 'sine', vol = 0.12) => {
+            const beep = (freq, dur, delay, type = 'sine', vol = 0.12, slide) => {
+                try {
                 const o = ctx.createOscillator();
                 const g = ctx.createGain();
+                const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=4200;
                 o.type = type; o.frequency.value = freq;
+                if (slide) o.frequency.exponentialRampToValueAtTime(slide, ctx.currentTime+delay+dur);
                 g.gain.setValueAtTime(vol, ctx.currentTime + delay);
                 g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
-                o.connect(g); g.connect(ctx.destination);
+                o.connect(f); f.connect(g); g.connect(ctx.destination);
                 o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + dur);
+                } catch(e) {}
             };
+            const chord = (freqs, dur, type='triangle', vol=0.09) => freqs.forEach((f,i)=>beep(f,dur,i*0.04,type,vol));
             try {
-                if (kind === 'play') { beep(520, 0.08, 0, 'triangle'); }
-                else if (kind === 'draw') { beep(300, 0.1, 0, 'sine'); }
-                else if (kind === 'join') { beep(440, 0.1, 0); beep(660, 0.12, 0.1); }
-                else if (kind === 'uno') { beep(660, 0.1, 0); beep(880, 0.15, 0.1); }
-                else if (kind === 'turn') { beep(700, 0.08, 0); }
-                else if (kind === 'win') { beep(523, 0.15, 0); beep(659, 0.15, 0.15); beep(784, 0.3, 0.3); }
-                else if (kind === 'lose') { beep(330, 0.2, 0); beep(220, 0.35, 0.2); }
-                else if (kind === 'msg') { beep(880, 0.06, 0, 'sine', 0.08); }
+                if (kind === 'play') { beep(520, 0.09, 0, 'triangle', 0.13, 620); beep(780,0.07,0.03,'sine',0.08); }
+                else if (kind === 'draw') { beep(300, 0.11, 0, 'sine',0.11); beep(220,0.08,0.06,'triangle',0.07); }
+                else if (kind === 'join') { chord([440,554,659],0.13,'sine',0.08); beep(880,0.14,0.18,'triangle',0.10); }
+                else if (kind === 'uno') { beep(660, 0.09, 0,'square',0.10); beep(880, 0.12, 0.08,'square',0.12); beep(1108,0.18,0.16,'triangle',0.13); }
+                else if (kind === 'turn') { beep(720, 0.07, 0,'sine',0.10, 900); }
+                else if (kind === 'win') { chord([523,659,784,1046],0.16,'triangle',0.10); beep(1318,0.32,0.22,'sine',0.12); }
+                else if (kind === 'lose') { beep(330, 0.18, 0,'sawtooth',0.08); beep(220, 0.32, 0.14,'triangle',0.09); beep(150,0.22,0.30,'sine',0.07); }
+                else if (kind === 'msg') { beep(880, 0.06, 0, 'sine', 0.07); beep(1320,0.05,0.04,'sine',0.05); }
+                else if (kind === 'coin') { beep(900,0.08,0,'triangle',0.11); beep(1200,0.12,0.06,'sine',0.11); }
+                else if (kind === 'click') { beep(800,0.04,0,'sine',0.06); }
+                else if (kind === 'hover') { beep(600,0.03,0,'sine',0.03); }
+                else if (kind === 'error') { beep(200,0.12,0,'square',0.08); beep(150,0.18,0.06,'sawtooth',0.07); }
+                else if (kind === 'success') { beep(600,0.08,0,'sine',0.09); beep(800,0.12,0.06,'triangle',0.10); }
+                else if (kind === 'invite') { beep(700,0.09,0,'sine',0.09); beep(900,0.09,0.09,'sine',0.09); beep(1100,0.14,0.18,'triangle',0.10); }
+                else if (kind === 'shuffle') { [400,520,610,480].forEach((f,i)=>beep(f,0.05,i*0.04,'triangle',0.06)); }
             } catch (e) {}
         }
+        // Global hover/click SFX — barcha btn larga biriktiriladi
+        document.addEventListener('mouseover', e=>{ if(e.target.closest('.btn,.ubtn,.icon-btn,.sp-tab,.shop-tab')) playSfx('hover'); }, {passive:true});
+        document.addEventListener('click', e=>{ if(e.target.closest('.btn')) playSfx('click'); }, {passive:true});
 
         // ---------- Lobby chat ----------
         function sendLobbyChat() {
