@@ -2553,10 +2553,14 @@
             _inviteToastTimer = setTimeout(() => t.classList.remove('show'), 15000);
         }
 
-        function dismissInviteToast(inviteId) {
+        async function dismissInviteToast(inviteId) {
             const t = document.getElementById('invite-toast');
             t && t.classList.remove('show');
-            if (inviteId) pendingInvites = (pendingInvites || []).filter(i => String(i.id) !== String(inviteId));
+            if (inviteId) {
+                pendingInvites = (pendingInvites || []).filter(i => String(i.id) !== String(inviteId));
+                // serverda ham declined qilinsin — refreshda qayta kelmasligi uchun
+                try { await fetch(API_BASE + '/invites/' + encodeURIComponent(inviteId) + '/decline', {method:'POST'}); } catch(e) {}
+            }
         }
 
         // ===== Clipboard with fallback (Telegram WebView often blocks async clipboard) =====
@@ -3997,12 +4001,15 @@
             }
         }
 
-        // Heartbeat: keep online + poll pending invites (2x/daqiqada)
+        // Heartbeat: keep online + poll pending invites (2x/daqiqada) — refreshda takrorlanmasligi uchun localStorage
         let pendingInvites = [];
         let _seenInviteIds = new Set();
+        try { const _saved = JSON.parse(localStorage.getItem('seenInvites')||'[]'); _saved.forEach(id=>_seenInviteIds.add(String(id))); } catch(e) {}
+        function _persistSeen() { try { localStorage.setItem('seenInvites', JSON.stringify([..._seenInviteIds].slice(-80))); } catch(e) {} }
         function absorbInvites(list, announceNew) {
             const fresh = (list || []).filter(i => !_seenInviteIds.has(String(i.id)));
-            fresh.forEach(i => _seenInviteIds.add(String(i.id)));
+            fresh.forEach(i => { _seenInviteIds.add(String(i.id)); });
+            if (fresh.length) _persistSeen();
             pendingInvites = list || [];
             renderInvites(pendingInvites);
             if (announceNew) {
@@ -4111,7 +4118,7 @@
                     }
                     if (data.type === 'invite' && data.invite && data.invite.to_id === userId) {
                         if (!(pendingInvites || []).some(i => String(i.id) === String(data.invite.id))) {
-                            _seenInviteIds.add(String(data.invite.id));
+                            _seenInviteIds.add(String(data.invite.id)); _persistSeen();
                             absorbInvites((pendingInvites || []).concat([data.invite]), false);
                         }
                         renderInvites(pendingInvites);
