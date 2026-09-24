@@ -1867,7 +1867,12 @@
             </div>
 
             <div id="owner-tab-rooms" style="display:none">
-                <div class="panel-head"><span>Barcha xonalar</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="ownerLoadRooms()">🔄</button></div>
+                <div class="panel-head"><span>Barcha xonalar</span>
+                    <span>
+                        <button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="ownerLoadRooms()">🔄</button>
+                        <button class="icon-btn danger" style="font-size:0.9rem; padding:6px 10px; color:#ff6b6b;" onclick="ownerCloseAllRooms()">🧹 Hammasini yopish</button>
+                    </span>
+                </div>
                 <div id="owner-rooms-list"><p class="invite-hint">Yuklanmoqda...</p></div>
             </div>
 
@@ -1951,7 +1956,12 @@
             </div>
 
             <div id="mo-tab-rooms" style="display:none">
-                <div class="panel-head"><span>Barcha xonalar</span><button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="moLoadRooms()">🔄</button></div>
+                <div class="panel-head"><span>Barcha xonalar</span>
+                    <span>
+                        <button class="icon-btn" style="font-size:0.9rem; padding:6px 10px;" onclick="moLoadRooms()">🔄</button>
+                        <button class="icon-btn danger" style="font-size:0.9rem; padding:6px 10px; color:#ff6b6b;" onclick="moCloseAllRooms()">🧹 Hammasini yopish</button>
+                    </span>
+                </div>
                 <div id="mo-rooms-list"><p class="invite-hint">Yuklanmoqda...</p></div>
             </div>
 
@@ -2139,6 +2149,12 @@
 
             <div class="game-hint" id="game-hint">Rangi yoki raqami mos kartani bosing</div>
 
+            <!-- 🆕 PENALTY banner (stacking faol bo'lganda ko'rinadi) -->
+            <div id="penalty-banner" style="display:none; margin:4px auto 8px; max-width:400px; padding:9px 12px; border-radius:12px; background:rgba(255,0,110,0.14); border:1px solid rgba(255,0,110,0.4); color:var(--magenta); font-weight:800; font-size:0.82rem; text-align:center;">
+                ⚠️ PENALTY: <span id="penalty-amount">+0</span>
+                <div id="penalty-sub" style="font-weight:600; font-size:0.7rem; color:var(--text-dim); margin-top:2px;"></div>
+            </div>
+
             <!-- Actions -->
             <div class="game-actions" style="display:flex; gap:10px; width:100%; max-width:400px; margin-bottom:8px;">
                 <button class="btn btn-outline" onclick="drawCard()" style="flex:1; font-size:0.8rem; padding:11px;">
@@ -2149,6 +2165,13 @@
                 </button>
                 <button class="btn btn-outline" onclick="callUno()" style="flex:1; font-size:0.8rem; padding:11px;">
                     📢 UNO!
+                </button>
+            </div>
+
+            <!-- 🆕 TAKE PENALTY tugmasi (stacking faol bo'lganda ko'rinadi) -->
+            <div style="width:100%; max-width:400px; margin-bottom:8px;">
+                <button class="btn btn-primary" id="take-penalty-btn" onclick="takePenalty()" style="display:none; width:100%; font-size:0.85rem; padding:12px;">
+                    📥 PENALTYNI OLISH
                 </button>
             </div>
 
@@ -2198,6 +2221,28 @@
                     <button class="cp-color cp-yellow" onclick="pickWildColor('yellow')"></button>
                 </div>
                 <button class="cp-cancel" onclick="cancelWild()">Bekor qilish</button>
+            </div>
+        </div>
+
+        <!-- 🆕 SWAP target tanlash (color-picker uslubida) -->
+        <div class="color-picker" id="swap-picker">
+            <div class="cp-box">
+                <h3>🔄 SWAP CARD</h3>
+                <p style="font-size:0.75rem; color:var(--text-dim); margin:4px 0 10px;">Kim bilan kartalaringizni almashtirasiz?</p>
+                <div id="swap-targets" style="display:flex; flex-direction:column; gap:8px; width:100%;"></div>
+                <button class="cp-cancel" onclick="cancelSwapPick()">Bekor qilish</button>
+            </div>
+        </div>
+
+        <!-- 🆕 SWAP confirmation -->
+        <div class="color-picker" id="swap-confirm">
+            <div class="cp-box">
+                <h3>⚠️ Tasdiqlash</h3>
+                <p id="swap-confirm-text" style="font-size:0.8rem; color:var(--text); margin:6px 0 12px;"></p>
+                <div style="display:flex; gap:8px; width:100%;">
+                    <button class="btn btn-primary" onclick="confirmSwap()" style="flex:1; font-size:0.8rem;">✅ Almashtirish</button>
+                    <button class="btn btn-outline" onclick="cancelSwapPick()" style="flex:1; font-size:0.8rem;">❌ Bekor qilish</button>
+                </div>
             </div>
         </div>
 
@@ -3145,6 +3190,24 @@
             if (data.type === 'game_state') {
                 renderGameState(data.state);
             }
+            // 🆕 Stacking/SWAP/Multi-placement event toastlari
+            if (data.type === 'penalty_taken' && data.message) {
+                showToast(data.message);
+            }
+            if (data.type === 'swap_done' && data.message) {
+                showToast('🔄 ' + ((lastPlayers.find(p => p.user_id === data.by) || {}).username || 'O\'yinchi') + ' kartalarini almashtirdi!');
+            }
+            if (data.type === 'player_finished' && data.message) {
+                showToast(data.message);
+                if (data.user_id === userId) showToast('🏆 Siz ' + data.place + '-o\u2018rinni oldingiz! O\u2018yinda davom etasiz');
+            }
+            if (data.type === 'player_left' && data.message) {
+                showToast(data.message);
+                if (data.user_id === userId) leaveLobby();
+            }
+            if (data.type === 'player_reconnected' && data.user_id === userId) {
+                showToast('✅ Qayta ulandingiz!');
+            }
             if (data.type === 'reaction') {
                 spawnReaction(data);
             }
@@ -3176,7 +3239,7 @@
         }
 
         const CARD_COLORS = { RED: 'card-red', BLUE: 'card-blue', GREEN: 'card-green', YELLOW: 'card-yellow', WILD: 'card-wild' };
-        const CARD_ICONS = { skip: '⊘', reverse: '⇄', draw_two: '+2', wild: '', wild_draw_four: '+4' };
+        const CARD_ICONS = { skip: '⊘', reverse: '⇄', draw_two: '+2', wild: '', wild_draw_four: '+4', swap: '🔄' };
 
         function cardLabel(value) {
             return CARD_ICONS[value] !== undefined ? CARD_ICONS[value] : value;
@@ -3184,34 +3247,36 @@
 
         // 🎴 Premium UNO card markup: oq ellips + burchak belgilari
         function unoCardHtml(c, extraCls = '', attrs = '') {
-            const cls = CARD_COLORS[(c.color || '').toUpperCase()] || 'card-wild';
-            const v = cardLabel(c.value);
+            c = c || {};
+            const cls = CARD_COLORS[((c.color || '').toUpperCase())] || 'card-wild';
+            const v = cardLabel(c.value ?? '?');
             const wild = ((c.color || '').toUpperCase() === 'WILD');
             const centerV = wild ? '' : v;
             return `<div class="card ${cls} ${extraCls}" ${attrs}>
-                <span class="cf-corner tl">${v}</span>
-                <span class="cf-corner br">${v}</span>
+                <span class="cf-corner tl">${esc(String(v))}</span>
+                <span class="cf-corner br">${esc(String(v))}</span>
                 <span class="cf-oval"></span>
-                <span class="cf-value">${centerV}</span>
+                <span class="cf-value">${esc(String(centerV))}</span>
             </div>`;
         }
 
         // Ichki qism (mavjud konteynerga joylash uchun — discard pile)
         function unoCardInner(c) {
-            const v = cardLabel(c.value);
+            c = c || {};
+            const v = cardLabel(c.value ?? '?');
             const wild = ((c.color || '').toUpperCase() === 'WILD');
             const centerV = wild ? '' : v;
-            return `<span class="cf-corner tl">${v}</span>
-                <span class="cf-corner br">${v}</span>
+            return `<span class="cf-corner tl">${esc(String(v))}</span>
+                <span class="cf-corner br">${esc(String(v))}</span>
                 <span class="cf-oval"></span>
-                <span class="cf-value">${centerV}</span>`;
+                <span class="cf-value">${esc(String(centerV))}</span>`;
         }
 
         // Can this card be placed on the current top card?
-        // While a +2/+4 stack is pending, ONLY another +2/+4 may be played.
+        // 🆕 STACKING MODE: pendingDraw > 0 bo'lsa FAQAT +2/+4 tashlanadi (rang farq qilmaydi)
+        const PENALTY_VALUES = ['draw_two', 'wild_draw_four'];
         function cardMatches(card) {
-            // Classic rules: +2/+4 ustiga hech narsa tashlanmaydi (stack yo'q)
-            if (pendingDraw > 0) return false;
+            if (pendingDraw > 0) return PENALTY_VALUES.includes((card.value || '').toString().toLowerCase());
             if (!topCard) return true;
             if ((card.color || '').toLowerCase() === 'wild') return true;
             const topColor = (topCard.chosen_color || topCard.color || '').toLowerCase();
@@ -3233,29 +3298,38 @@
         }
 
         function renderHand(cards) {
-            if (cards) {
+            if (Array.isArray(cards)) {
                 myHand = cards;
                 clampHandOffset();
             }
-            document.getElementById('hand-count').textContent = myHand.length;
+            if (!Array.isArray(myHand)) myHand = [];
+            const hc = document.getElementById('hand-count');
+            if (hc) hc.textContent = myHand.length;
             // UNO button shows when exactly 2 cards left and it's my turn
-            document.getElementById('uno-float-btn').classList.toggle('visible', myHand.length === 2 && myTurn);
-            document.getElementById('hand-swipe-hint').style.display = myHand.length > 1 ? 'block' : 'none';
+            const uf = document.getElementById('uno-float-btn');
+            if (uf) uf.classList.toggle('visible', myHand.length === 2 && myTurn);
+            const hsh = document.getElementById('hand-swipe-hint');
+            if (hsh) hsh.style.display = myHand.length > 1 ? 'block' : 'none';
             const navs = document.querySelectorAll('.hand-nav');
             navs.forEach(b => b.style.visibility = myHand.length > 1 ? 'visible' : 'hidden');
-            updateHand();
+            try { updateHand(); } catch (e) { console.error('updateHand:', e); }
         }
 
         function updateHand() {
             const hand = document.getElementById('player-hand');
+            if (!hand) return;
+            if (!Array.isArray(myHand)) myHand = [];
             clampHandOffset();
-            const playables = myHand.filter(c => myTurn && cardMatches(c)).length;
+            let playables = 0;
+            try { playables = myHand.filter(c => myTurn && cardMatches(c)).length; } catch (e) {}
             // Render only the top card; old card slides out, new one slides in
             if (myHand.length) {
                 const i = ((handOffset % myHand.length) + myHand.length) % myHand.length;
-                const c = myHand[i];
-                const ok = myTurn && cardMatches(c);
-                hand.innerHTML = unoCardHtml(c, ok ? 'playable' : 'not-playable', `data-idx="${i}" title="${c.color} ${c.value}"`);
+                const c = myHand[i] || {};
+                let ok = false;
+                try { ok = myTurn && cardMatches(c); } catch (e) {}
+                try { hand.innerHTML = unoCardHtml(c, ok ? 'playable' : 'not-playable', `data-idx="${i}" title="${esc((c.color || '') + ' ' + (c.value || ''))}"`); }
+                catch (e) { hand.innerHTML = ''; }
             } else {
                 hand.innerHTML = '';
             }
@@ -3359,7 +3433,7 @@
 
         function renderGameState(state) {
             if (!state) return;
-
+            try {
             // My hand comes personalized from the server
             const hand = state.hand;
 
@@ -3367,7 +3441,17 @@
             if (state.current_player_id !== undefined) {
                 myTurn = state.current_player_id === userId;
             }
+            // Opponent chips ro'yxatini erta yangilaymiz — penalty matni uchun nom kerak
+            if (Array.isArray(state.players)) {
+                lastPlayers = state.players;
+            }
+            // ⚠️ MUHIM: hand'ni BIRINCHI chizamiz — keyingi bloklardan birida xato bo'lsa ham
+            // kartalar ekranda ko'rinadi (oldingi versiyada penalty banner'dagi null crash
+            // hand render'ga yetib bormasdi va "kartalar ko'rinmayapti" xatosi chiqardi).
+            if (Array.isArray(hand)) { try { renderHand(hand); } catch (e) { console.error('renderHand:', e); } }
+
             const tl = document.getElementById('turn-label');
+            if (tl) {
             if (myTurn) {
                 tl.textContent = '🟢 SIZNING NAVBATINGIZ';
                 tl.className = 'turn-banner my';
@@ -3378,78 +3462,115 @@
                 tl.textContent = '⏳ Navbat: ' + (cur ? (cur.username || "O'yinchi") : '...');
                 tl.className = 'turn-banner wait';
             }
+            }
 
             // Top card
             const top = state.top_card;
             if (top) {
                 topCard = top;
                 const dp = document.getElementById('discard-pile');
+                if (dp) {
                 dp.className = 'pile-card ' + (CARD_COLORS[(top.color || '').toUpperCase()] || 'card-wild');
-                dp.innerHTML = unoCardInner(top);
+                try { dp.innerHTML = unoCardInner(top); } catch (e) {}
+                }
                 const cc = document.getElementById('chosen-color');
+                if (cc) {
                 if (top.chosen_color) {
                     cc.className = 'chosen-color-dot show cc-' + top.chosen_color;
                 } else {
                     cc.className = 'chosen-color-dot';
                 }
+                }
             }
 
             // Direction
             if (state.direction) {
-                document.getElementById('game-direction').textContent =
+                const gd = document.getElementById('game-direction');
+                if (gd) gd.textContent =
                     state.direction === 'clockwise' ? '🔄' : '🔃';
             }
 
             // Deck counter
             if (state.deck_remaining !== undefined) {
-                document.getElementById('deck-count').textContent = '🂠 ' + state.deck_remaining;
+                const dc = document.getElementById('deck-count');
+                if (dc) dc.textContent = '🂠 ' + state.deck_remaining;
             }
 
-            // +2/+4 penalty state -> deck button becomes "take N"
+            // 🆕 Stacking penalty state -> banner + deck glow + TAKE PENALTY button
             if (state.pending_draw !== undefined) {
                 pendingDraw = state.pending_draw || 0;
                 drewPlayable = !!state.drew_playable;
                 const dp2 = document.getElementById('draw-pile');
+                const banner = document.getElementById('penalty-banner');
+                const amount = document.getElementById('penalty-amount');
+                const sub = document.getElementById('penalty-sub');
+                const tpBtn = document.getElementById('take-penalty-btn');
+                const mySwapTurn = !!state.pending_swap_by && state.pending_swap_by === userId;
                 if (pendingDraw > 0) {
-                    dp2.style.borderColor = 'var(--magenta)';
-                    dp2.style.boxShadow = '0 0 18px rgba(255, 0, 110, 0.45)';
+                    if (dp2) { dp2.style.borderColor = 'var(--magenta)'; dp2.style.boxShadow = '0 0 18px rgba(255, 0, 110, 0.45)'; }
+                    if (banner) banner.style.display = 'block';
+                    if (amount) amount.textContent = '+' + pendingDraw;
+                    if (sub) sub.textContent = state.current_player_id === userId
+                        ? ('Siz +2/+4 tashlang yoki ' + pendingDraw + ' ta karta oling')
+                        : (((Array.isArray(lastPlayers) ? lastPlayers.find(p => p.user_id === state.current_player_id) : null) || {}).username || 'O\'yinchi') + ' +2/+4 tashlashi yoki ' + pendingDraw + ' ta karta olishi kerak';
+                    if (tpBtn) { tpBtn.style.display = (state.current_player_id === userId) ? 'block' : 'none'; tpBtn.textContent = '📥 ' + pendingDraw + ' TA KARTANI OLISH'; }
                 } else {
-                    dp2.style.borderColor = '';
-                    dp2.style.boxShadow = '';
+                    if (dp2) { dp2.style.borderColor = ''; dp2.style.boxShadow = ''; }
+                    if (banner) banner.style.display = 'none';
+                    if (tpBtn) tpBtn.style.display = 'none';
                 }
+                // 🔄 SWAP tanlov oynasi: faqat SWAP tashlagan o'yinchiga ko'rinadi
+                try {
+                if (mySwapTurn && swapPickPending) {
+                    openSwapPicker(state);
+                } else if (!mySwapTurn) {
+                    closeSwapPick();
+                }
+                } catch (e) {}
             }
 
             // Opponent chips (server sends hand_count, not full hands) — hamma joyda kosmetika
             if (Array.isArray(state.players)) {
-                lastPlayers = state.players;
                 const list = document.getElementById('game-players');
+                if (list) {
+                try {
                 list.innerHTML = state.players
                     .filter(p => p.user_id !== userId)
                     .map(p => {
-                        if (p.cosmetics) absorbCosmetics({id: p.user_id, cosmetics: p.cosmetics});
-                        const ava = p.cosmetics && p.cosmetics.skin ? cosAvatarHtml(p.user_id, '') : '';
-                        const badge = p.cosmetics && p.cosmetics.badge ? ` <img class="cos-badge" src="${esc(p.cosmetics.badge)}" onerror="this.remove()">` : '';
+                        try { if (p.cosmetics) absorbCosmetics({id: p.user_id, cosmetics: p.cosmetics}); } catch (e) {}
+                        let ava = '', badge = '';
+                        try {
+                        ava = p.cosmetics && p.cosmetics.skin ? cosAvatarHtml(p.user_id, '') : '';
+                        badge = p.cosmetics && p.cosmetics.badge ? ` <img class="cos-badge" src="${esc(p.cosmetics.badge)}" onerror="this.remove()">` : '';
+                        } catch (e) {}
+                        // 🆕 placement badges: finished/withdrawn playerlar aktiv o'yinchi emas
+                        const finished = (state.finish_order || []).includes(p.user_id);
+                        const withdrawn = (state.withdrawn || []).includes(p.user_id);
+                        const place = finished ? (state.finish_order.indexOf(p.user_id) + 1) : null;
+                        const placeBadge = finished ? '<span class="uno-badge">' + (['🥇','🥈','🥉'][place-1] || place) + ' ' + place + '</span>' : '';
+                        const goneBadge = withdrawn ? '<span class="uno-badge" style="opacity:.6;">🚪</span>' : '';
                         return `
-                    <div class="chip ${p.user_id === state.current_player_id ? 'current' : ''}">
+                    <div class="chip ${p.user_id === state.current_player_id && !finished && !withdrawn ? 'current' : ''}">
                         ${ava}
                         <span class="chip-name">${esc(p.username || "O'yinchi")}${badge}</span>
-                        <span class="chip-count">🂠 ${p.hand_count ?? '?'}</span>
-                        ${p.called_uno ? '<span class="uno-badge">UNO!</span>' : ''}
+                        <span class="chip-count">${finished || withdrawn ? '—' : '🂠 ' + (p.hand_count ?? '?')}</span>
+                        ${placeBadge}${goneBadge}
+                        ${(!finished && !withdrawn && p.called_uno) ? '<span class="uno-badge">UNO!</span>' : ''}
                     </div>
                 `;}).join('');
+                } catch (e) { console.error('opp chips:', e); }
+                }
             }
-
-            // Hand (re-renders playable marks and UNO button)
-            if (hand) renderHand(hand);
 
             // "Saqlash" tugmasi: faqat olingan karta mosa va navbat menimdа
             const keepBtn = document.getElementById('keep-card-btn');
             if (keepBtn) keepBtn.style.display = (myTurn && drewPlayable && pendingDraw === 0) ? 'inline-flex' : 'none';
 
-            // Hint (classic rules)
+            // Hint (stacking rules)
             const hint = document.getElementById('game-hint');
+            if (hint) {
             if (myTurn && pendingDraw > 0) {
-                hint.textContent = '⚠️ +' + pendingDraw + '! ' + pendingDraw + ' ta karta olishingiz kerak';
+                hint.textContent = '⚠️ PENALTY +' + pendingDraw + ' — +2/+4 tashlang yoki ' + pendingDraw + ' ta karta oling';
             } else if (myTurn && drewPlayable) {
                 hint.textContent = '✅ Olingan kartani tashlang yoki saqlab qo\'ying';
             } else {
@@ -3457,6 +3578,8 @@
                     ? '✅ Yorug\' kartalardan birini bosing'
                     : '⏳ Raqib harakatini kuting...';
             }
+            }
+            } catch (e) { console.error('renderGameState:', e); }
         }
 
         function playCard(index) {
@@ -3468,7 +3591,7 @@
             if (!card) return;
             if (!cardMatches(card)) {
                 showToast(pendingDraw > 0
-                    ? '🚫 +' + pendingDraw + ' bor — avval ' + pendingDraw + ' ta karta oling'
+                    ? '🚫 +' + pendingDraw + ' bor — faqat +2/+4 tashlang yoki penaltini oling'
                     : '🚫 Bu karta tushmaydi — rangi yoki raqami mos kerak');
                 if (tg) tg.HapticFeedback?.notificationOccurred('error');
                 return;
@@ -3503,6 +3626,50 @@
             if (idx >= 0) sendPlay(idx, color);
         }
 
+        // ===================== 🔄 SWAP CARD FLOW =====================
+        let swapPickPending = false;   // SWAP tashlandi, target kutilyapti (men uchun)
+        let _swapTargetName = null;
+        let _swapTargetId = null;
+
+        function openSwapPicker(state) {
+            if (swapPickPending && document.getElementById('swap-picker').classList.contains('open')) return;
+            swapPickPending = true;
+            const targets = (state.players || []).filter(p => p.user_id !== userId);
+            const box = document.getElementById('swap-targets');
+            box.innerHTML = targets.map(p =>
+                `<button class="btn btn-outline" style="width:100%; font-size:0.8rem;" onclick="pickSwapTarget(${p.user_id}, '${esc(p.username || "O'yinchi")}')">👤 ${esc(p.username || "O'yinchi")} (🂠 ${p.hand_count ?? '?'})</button>`
+            ).join('');
+            document.getElementById('swap-picker').classList.add('open');
+        }
+
+        function pickSwapTarget(targetId, targetName) {
+            _swapTargetId = targetId;
+            _swapTargetName = targetName;
+            document.getElementById('swap-picker').classList.remove('open');
+            document.getElementById('swap-confirm-text').textContent =
+                '⚠️ Siz ' + targetName + ' bilan barcha kartalaringizni almashtirmoqchimisiz?';
+            document.getElementById('swap-confirm').classList.add('open');
+        }
+
+        function confirmSwap() {
+            document.getElementById('swap-confirm').classList.remove('open');
+            if (_swapTargetId == null) return;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'swap_players', target_id: _swapTargetId }));
+            }
+            swapPickPending = false;
+            _swapTargetId = null;
+            _swapTargetName = null;
+        }
+
+        function cancelSwapPick() {
+            // Bekor qilish: faqat UI yopiladi — SWAP tanlovi serverda faol qoladi,
+            // renderGameState uni qayta ochadi (server authoritative)
+            swapPickPending = false;
+            document.getElementById('swap-picker').classList.remove('open');
+            document.getElementById('swap-confirm').classList.remove('open');
+        }
+
         function cancelWild() {
             pendingWildIndex = -1;
             document.getElementById('color-picker').classList.remove('open');
@@ -3514,10 +3681,21 @@
                 return;
             }
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ action: 'draw_card' }));
+                // 🆕 Stacking: pending penalti bo'lsa server full amount ni o'zidayab oladi
+                ws.send(JSON.stringify({ action: pendingDraw > 0 ? 'take_penalty' : 'draw_card' }));
                 playSfx('draw');
             } else {
                 showToast('⏳ Ulanish kutilmoqda');
+            }
+        }
+
+        // 🆕 Stacking rule 13: penaltini ixtiyoriy qabul qilish
+        function takePenalty() {
+            if (!myTurn) { showToast('⏳ Hali navbatingiz kelmadi'); return; }
+            if (pendingDraw <= 0) return;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'take_penalty' }));
+                playSfx('draw');
             }
         }
 
@@ -3636,6 +3814,8 @@
                 if (vis('screen-admin') && typeof adminLoadUsers === 'function') adminLoadUsers();
             }
             if (scope === 'rooms' || !scope) {
+                // Ochiq lobbylar real vaqtda yangilanadi (xona yaratilganda/kirilganda/yopilganda)
+                if (vis('screen-open-rooms') && typeof loadOpenRooms === 'function') loadOpenRooms();
                 if (vis('screen-mainowner')) { if (typeof moLoadRooms === 'function') moLoadRooms(); if (typeof moLoadPanel === 'function') moLoadPanel(); }
                 if (vis('screen-owner')) { if (typeof ownerLoadRooms === 'function') ownerLoadRooms(); if (typeof ownerLoadPanel === 'function') ownerLoadPanel(); }
             }
@@ -4136,6 +4316,13 @@
                     if (!silent) showToast('✅ Obuna tasdiqlandi!');
                     return true;
                 }
+                // API xatosi (check_error) — foydalanuvchini ayblamaymiz, texnik muammo deb ko'rsatamiz
+                if (d.check_error) {
+                    gate.classList.add('show');
+                    const ste = document.getElementById('sub-gate-status');
+                    if (ste && !silent) ste.textContent = '⚠️ Tekshiruvda texnik xatolik — keyinroq qayta tekshiring';
+                    return false;
+                }
                 gate.classList.add('show');
                 const st = document.getElementById('sub-gate-status');
                 if (st && !silent) st.textContent = '❌ Hali obuna bo\'lmadingiz — kanalga a\'zo bo\'ling';
@@ -4158,11 +4345,14 @@
             const gping = setInterval(() => {
                 if (gsock.readyState === WebSocket.OPEN) gsock.send(JSON.stringify({ action: 'ping' }));
             }, 15000);
-            globalWs.onclose = () => { clearInterval(gping); setTimeout(connectGlobalChat, 1000); };
+            // (eski kodda onclose ikki marta o'rnatilgan edi — quyidagisi ustiga yozilib,
+            //  birinchisi memory-leak bo'lardi; endi bitta yopiq ulanish qayta ulanish mantiqisi)
+            globalWs.onclose = () => { clearInterval(gping); setTimeout(connectGlobalChat, 2000); };
             globalWs.onmessage = (e) => {
                 try {
                     const data = JSON.parse(e.data);
                     if (data.type === 'chat' && data.room === 'global') {
+                        // Idempotent: appendChatMsg msg_id bo'yicha duplikatni o'zi tashlaydi
                         appendChatMsg('global-chat-box', data);
                         // Toast faqat chat ekrani ochiq bo'lmasa
                         if (!document.getElementById('screen-global-chat').classList.contains('active') && data.user_id !== userId) {
@@ -4241,14 +4431,33 @@
                 if (!resp.ok) return;
                 const data = await resp.json();
                 const box = document.getElementById('global-chat-box');
+                clearChatSeen('global-chat-box'); // box.innerHTML='' bilan birga seen tozalanadi
                 box.innerHTML = '';
                 (data.messages || []).forEach(m => appendChatMsg('global-chat-box', { ...m, room: 'global' }, true));
             } catch (e) {}
         }
 
+        const _seenChatMsgIds = new Set(); // idempotent render: bir xabar bir box'da bir marta ko'rinadi
+        function _chatSeenKey(boxId, m) {
+            const mid = (m.msg_id !== undefined && m.msg_id !== null) ? String(m.msg_id) : (m._pendingId || null);
+            return mid ? boxId + ':' + mid : null;
+        }
+        function clearChatSeen(boxId) {
+            // Tarix qayta yuklanganda box tozalanadi — seen to'plamini ham tozalamiz
+            for (const k of Array.from(_seenChatMsgIds)) {
+                if (k.startsWith(boxId + ':')) _seenChatMsgIds.delete(k);
+            }
+        }
         function appendChatMsg(boxId, m, quiet) {
             const box = document.getElementById(boxId);
             if (!box) return;
+            // ---- Idempotent dedupe: har bir xabarni unique id bo'yicha bir marta chizamiz ----
+            // (realtime broadcast + tarix + optimistic yuborish bir xil msg_id bilan kelishi mumkin)
+            const seenKey = _chatSeenKey(boxId, m);
+            if (seenKey) {
+                if (_seenChatMsgIds.has(seenKey)) return; // allaqachon chizilgan — duplikatni tashlab yuboramiz
+                _seenChatMsgIds.add(seenKey);
+            }
             if (m.cosmetics) absorbCosmetics({id: m.user_id, cosmetics: m.cosmetics});
             else if (m.user_id) {
                 // agar cosmetics historydan kelmagan bo'lsa cache'dan olamiz
@@ -4256,6 +4465,7 @@
             const mine = m.user_id === userId;
             const div = document.createElement('div');
             div.className = 'chat-msg' + (mine ? ' mine' : '');
+            if (seenKey) div.dataset.msgId = seenKey.split(':').slice(1).join(':'); // chat_deleted o'chirish uchun
             const time = m.ts ? new Date(m.ts).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '';
             const tag = mine ? tagFor(userId) : (m.role !== undefined ? roleTag(m.role, false) : tagFor(m.user_id));
             const cos = m.cosmetics || (m.user_id && usersCache[m.user_id]?.cosmetics) || null;
@@ -4290,10 +4500,12 @@
 
         // ---------- In-game chat ----------
         function appendGameChatMsg(m) {
+            // Per-box dedupe orqali: xabar game + lobby box'lariga alohida-alohida yoziladi
             appendChatMsg('game-chat-box', m);
             appendChatMsg('lobby-chat-box', m, true);
         }
 
+        let _clientMsgSeq = Date.now(); // xona chat'i uchun client-side unique id (dedupe)
         function sendGameChat() {
             const input = document.getElementById('game-chat-input');
             const text = input.value.trim();
@@ -4304,9 +4516,10 @@
                 input.value = '';
                 return;
             }
-            ws.send(JSON.stringify({ action: 'chat', user_id: userId, name: myName(), text }));
-            // O'z xabarimni darhol ko'rsataman (server broadcast'i frontend'da filtrlanadi)
-            appendGameChatMsg({ user_id: userId, name: myName(), text });
+            const msgId = userId + '-' + (++_clientMsgSeq); // unique: dedupe kaliti
+            ws.send(JSON.stringify({ action: 'chat', user_id: userId, name: myName(), text, msg_id: msgId }));
+            // Optimistic: o'z xabarimni darhol ko'rsataman (server broadcast'i msg_id bilan keladi → dedupe)
+            appendGameChatMsg({ user_id: userId, name: myName(), text, _pendingId: msgId });
             input.value = '';
             if (tg) tg.HapticFeedback?.impactOccurred('light');
         }
@@ -4767,10 +4980,11 @@
             body.innerHTML = '<div class="glass-panel"><p class="invite-hint">Yuklanmoqda...</p></div>';
             try {
                 const resp = await fetch(API_BASE + '/owner/users/' + id + '/detail?owner_id=' + userId);
-                if (!resp.ok) throw new Error('Yuklab bo\'lmadi');
+                if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || ('Yuklab bo\'lmadi (' + resp.status + ')'));
                 const d = await resp.json();
                 usersCache[id] = { ...(usersCache[id] || {}), ...d, id };
-                const manage = _ouCanManage(d);
+                // Server ierarxiya asosida qaytaradi (o'z kartangiz uchun self-action ruxsat etilgan)
+                const manage = d.manage !== undefined ? !!d.manage : _ouCanManage(d);
                 const winrate = d.games_played ? Math.round(d.wins * 100 / d.games_played) : 0;
                 const friendsHtml = (d.friends || []).length
                     ? d.friends.map(f => `<span class="ubtn ghost" style="pointer-events:none;">${f.online ? '🟢' : '⚪'} ${esc(f.name)}</span>`).join(' ')
@@ -4812,6 +5026,7 @@
                         <button class="ubtn ${d.blocked ? 'gold' : 'danger'}" onclick="ownerToggleBlock(${d.id}, ${d.blocked ? 'false' : 'true'})">${d.blocked ? '✅ Blokdan olish' : '🚫 Bloklash'}</button>
                         <button class="ubtn blue" onclick="ownerAddXp(${d.id})">➕ XP</button>
                         <button class="ubtn gold" onclick="ownerAddCoins(${d.id})">🪙 Coins</button>
+                        <button class="ubtn blue" onclick="ownerAddLikes(${d.id})">❤️ Like</button>
                         <button class="ubtn blue" onclick="ownerSetLevel(${d.id})">🎚 Lvl</button>
                         <button class="ubtn blue" onclick="ownerSetRole(${d.id})">🛡 Rol</button>
                         <button class="ubtn" onclick="ownerEditStats(${d.id})">📊 Statistika</button>
@@ -4823,9 +5038,11 @@
                     <div class="ud-sec">⚙️ O'ZINGIZNI TAHRIRLASH</div>
                     <div class="uactions">
                         <button class="ubtn blue" onclick="ownerAddXp(${d.id}, true)">➕ XP</button>
+                        <button class="ubtn gold" onclick="ownerAddCoins(${d.id}, true)">🪙 Coins</button>
                         <button class="ubtn blue" onclick="ownerSetLevel(${d.id}, true)">🎚 Lvl</button>
                         <button class="ubtn" onclick="ownerEditStats(${d.id}, true)">📊 Statistika</button>
                         <button class="ubtn" onclick="ownerResetStats(${d.id}, '${esc(d.name).replace(/'/g, "\\'")}', true)">♻️ Reset</button>
+                        ${amMainOwner ? `<button class="ubtn blue" onclick="ownerAddLikes(${d.id}, true)">❤️ Like</button>` : ''}
                     </div>` : `<div class="ud-sec">⚙️ AMALLAR</div><div class="oempty" style="padding:4px;">Bu user ustida amal qilish huquqi yo'q (undan yuqori rol)</div>`)}
                     <div class="ud-sec">🤝 DO'STLARI</div>
                     <div class="uactions">${friendsHtml}</div>
@@ -4961,6 +5178,17 @@
             } catch (e) { showToast('❌ ' + e.message); }
         }
 
+        async function ownerCloseAllRooms() {
+            if (!confirm('HAMMA xona yopiladimi? Ichidagi hamma o\'yinchi chiqib ketadi!')) return;
+            try {
+                const resp = await fetch(API_BASE + '/owner/rooms?owner_id=' + userId, { method: 'DELETE' });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Yopilmadi');
+                showToast('🧹 Yopildi: ' + (d.closed ?? 0) + ' ta xona');
+                ownerLoadRooms(); ownerLoadPanel();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
         async function ownerLoadChat() {
             const box = document.getElementById('owner-chat-list');
             try {
@@ -5069,6 +5297,16 @@
             const amount = parseInt(v, 10);
             if (isNaN(amount)) { showToast('⚠️ Son kiriting'); return; }
             await _ownerPost('/owner/users/' + id + '/coins', { owner_id: userId, amount }, 'Coins o\'zgartirildi');
+        }
+
+        // 💎 MO: o'ziga/boshqaga like qo'shish-olib tashlash (faqat owner daraja)
+        async function ownerAddLikes(id, allowSelf) {
+            if (!_ownerActionGuard(id, allowSelf)) return;
+            const v = await showInputDialog('❤️ Like (manfiy = ayirish)', '1', 'Masalan: 1 yoki -1');
+            if (v === null) return;
+            const amount = parseInt(v, 10);
+            if (isNaN(amount)) { showToast('⚠️ Son kiriting'); return; }
+            await _ownerPost('/owner/users/' + id + '/likes', { owner_id: userId, amount }, 'Like o\'zgartirildi');
         }
 
         async function ownerSetLevel(id, allowSelf) {
@@ -5219,6 +5457,17 @@
                 const resp = await fetch(API_BASE + '/owner/rooms/' + code + '?owner_id=' + userId, { method: 'DELETE' });
                 if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || 'Yopilmadi');
                 showToast('✅ Xona yopildi: ' + code);
+                moLoadRooms(); moLoadPanel();
+            } catch (e) { showToast('❌ ' + e.message); }
+        }
+
+        async function moCloseAllRooms() {
+            if (!confirm('HAMMA xona yopiladimi? Ichidagi hamma o\'yinchi chiqib ketadi!')) return;
+            try {
+                const resp = await fetch(API_BASE + '/owner/rooms?owner_id=' + userId, { method: 'DELETE' });
+                const d = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(d.detail || 'Yopilmadi');
+                showToast('🧹 Yopildi: ' + (d.closed ?? 0) + ' ta xona');
                 moLoadRooms(); moLoadPanel();
             } catch (e) { showToast('❌ ' + e.message); }
         }

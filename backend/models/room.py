@@ -8,7 +8,9 @@ from sqlalchemy import Column, String, Integer, BigInteger, Boolean, DateTime, F
 from sqlalchemy.orm import relationship, declarative_base
 from .mutable import JSONList
 import enum
-from datetime import datetime
+
+# Loyihaning vaqt standarti: barcha DB timestamp'lar Tashkent (UTC+5) lokal vaqtida saqlanadi
+from ..tz import now_local
 
 Base = declarative_base()
 
@@ -23,7 +25,7 @@ class Room(Base):
 
     id = Column(String, primary_key=True, index=True)  # short code like ABC123
     host_id = Column(BigInteger, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_local)
     status = Column(Enum(RoomStatus), default=RoomStatus.WAITING)
     max_players = Column(Integer, default=4)
     # JSON list of player telegram ids for quick lookup

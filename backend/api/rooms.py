@@ -76,11 +76,13 @@ class RoomResponse(BaseModel):
 
 
 async def _enrich_players(db, player_ids: list) -> list:
-    """Convert player id list to [{id, name, role, blocked, cosmetics}] using online_users."""
+    """Convert player id list to [{id, name, role, blocked, cosmetics}] using online_users.
+    ID lar string bo'lib qolgan bo'lsa ham (eski xatolik) int ga o'tkaziladi —
+    aks holda asyncpg DataError butun endpoint ni 500 ga tushiradi."""
     from ..models.social import OnlineUser
     from .social import _cosmetics_of
     out = []
-    for pid in player_ids:
+    for pid in _norm_ids(player_ids):
         name = None
         role = None
         blocked = False
@@ -95,6 +97,20 @@ async def _enrich_players(db, player_ids: list) -> list:
             except Exception:
                 cosmetics = None
         out.append({"id": pid, "name": name or f"O'yinchi {pid % 1000}", "role": role, "blocked": blocked, "cosmetics": cosmetics})
+    return out
+
+
+def _norm_ids(player_ids) -> list[int]:
+    """player_ids dagi string/None/chiqindilarni tozalab int ro'yxat qaytaradi.
+    Bazada ["123"] deb qolgan eski xonalar shu orqali o'qilaveradi."""
+    out: list[int] = []
+    for p in (player_ids or []):
+        try:
+            v = int(p)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            continue
+        if v not in out:
+            out.append(v)
     return out
 
 @router.post("/create", response_model=RoomResponse)
@@ -120,7 +136,7 @@ async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
             host_id=req.host_id,
             max_players=max(2, min(7, int(req.max_players or 4))),
             status=RoomStatus.WAITING,
-            player_ids=[req.host_id],
+            player_ids=[int(req.host_id)],
             password=(req.password or None),
             entry_fee=entry_fee,
             prize=entry_fee,  # host to'lovi
@@ -157,7 +173,8 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
         if not room:
             raise HTTPException(status_code=404, detail="Room not found")
         # Reload/uzilishdan keyin qayta kirishda xato chiqarmasdan qaytaramiz
-        if str(req.user_id) in [str(p) for p in (room.player_ids or [])]:
+        room.player_ids = _norm_ids(room.player_ids)
+        if int(req.user_id) in room.player_ids:
             enriched = await _enrich_players(db, room.player_ids)
             return RoomResponse(
                 code=room.id, host_id=room.host_id, status=room.status.value,
@@ -165,8 +182,6 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
             )
         if len(room.player_ids) >= room.max_players:
             raise HTTPException(status_code=400, detail="Room is full")
-        if req.user_id in room.player_ids:
-            raise HTTPException(status_code=400, detail="User already in room")
         # Parolli xona: parol to'g'ri bo'lishi shart (host va bot taklifi bundan mustasno emas)
         if room.password and (req.password or "") != room.password:
             raise HTTPException(status_code=403, detail="Noto'g'ri parol")
@@ -182,7 +197,7 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
                 raise HTTPException(status_code=400, detail=f"Coin yetmadi (kerak: {fee})")
             bu.coins = (bu.coins or 0) - fee
             room.prize = (getattr(room, 'prize', 0) or 0) + fee
-        room.player_ids.append(req.user_id)
+        room.player_ids = _norm_ids(room.player_ids) + [int(req.user_id)]
         # If enough players, status can move to READY automatically (optional)
         if len(room.player_ids) >= 2:
             room.status = RoomStatus.READY
@@ -225,7 +240,8 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
         if not room:
             raise HTTPException(status_code=404, detail="Room not found")
 
-        if req.user_id not in room.player_ids:
+        room.player_ids = _norm_ids(room.player_ids)
+        if int(req.user_id) not in room.player_ids:
             # Already gone (e.g. double tap) - return current state instead of failing
             return RoomResponse(
                 code=room.id,
@@ -252,7 +268,7 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
                     await _bsu3(db, req.user_id)
                 except Exception:
                     pass
-        room.player_ids.remove(req.user_id)
+        room.player_ids = [p for p in _norm_ids(room.player_ids) if p != int(req.user_id)]
 
         if not room.player_ids:
             # Nobody left - close the room so it does not linger as a ghost
@@ -267,7 +283,7 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
 
         if was_host:
             # Host left: pass ownership to the next remaining player
-            room.host_id = room.player_ids[0]
+            room.host_id = int(room.player_ids[0])
 
         await db.commit()
         await db.refresh(room)
@@ -302,7 +318,7 @@ async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
             raise HTTPException(status_code=403, detail="Only the host can kick players")
         if req.target_id == room.host_id:
             raise HTTPException(status_code=400, detail="Host cannot kick themselves")
-        if req.target_id not in room.player_ids:
+        if int(req.target_id) not in _norm_ids(room.player_ids):
             raise HTTPException(status_code=404, detail="Player not in room")
 
         # kickda ham to'lov qaytariladi (rejimli bo'lsa)
@@ -318,7 +334,7 @@ async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
                     await _bsu_k(db, req.target_id)
                 except Exception:
                     pass
-        room.player_ids.remove(req.target_id)
+        room.player_ids = [p for p in _norm_ids(room.player_ids) if p != int(req.target_id)]
         await db.commit()
         await db.refresh(room)
         enriched = await _enrich_players(db, room.player_ids)

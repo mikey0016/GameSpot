@@ -1,0 +1,31 @@
+# docker-compose.cloudflared.yml — VPS deploy (domen shart emas)
+#
+# Cloudflare QUICK TUNNEL: bepul https manzil beradi
+# (https://xxx.trycloudflare.com), Visit Site oynasisiz, to'g'ridan-to'g'ri ochiladi.
+# Frontend nginx API (/rooms, /users, /owner, ...) va WebSocket (/ws/...)
+# ni o'zi backend'ga proxy qiladi, shuning uchun BITTA tunnel yetadi.
+#
+# Ishlatish (serverda, loyiha papkasida):
+#   docker compose -f docker-compose.yml -f docker-compose.cloudflared.yml up -d --build
+#   docker logs -f gamespot-cloudflared-1   # trycloudflare URL shu log'da chiqadi
+#
+# URL chiqqandan keyin .env ga WEBAPP_URL=https://xxx.trycloudflare.com yozib:
+#   docker compose -f docker-compose.yml -f docker-compose.cloudflared.yml up -d bot backend
+
+services:
+  # Serverda boshqa loyihalar bor (masalan 8000-port band) — shuning uchun
+  # host'ga port ochmaymiz: tunnel faqat frontend:80 ga ichki tarmoqdan ulanadi,
+  # frontend esa backend:8000 ga ichki tarmoqdan ulanadi. Tashqariga hech narsa chiqmaydi.
+  db:
+    ports: !reset []
+  backend:
+    ports: !reset []
+  frontend:
+    ports: !reset []
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: gamespot-cloudflared
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    command: tunnel --no-autoupdate --url http://frontend:80

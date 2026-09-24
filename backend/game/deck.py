@@ -25,6 +25,9 @@ class Deck:
                           Value.SKIP, Value.REVERSE, Value.DRAW_TWO]:
                 cards.append(Card(color=color, value=value))
                 cards.append(Card(color=color, value=value))
+        # 🔄 SWAP: har rangda bittadan (jami 4 ta) — maxsus karta
+        for color in [Color.RED, Color.YELLOW, Color.GREEN, Color.BLUE]:
+            cards.append(Card(color=color, value=Value.SWAP))
         # Wild cards (no color)
         for _ in range(4):
             cards.append(Card(color=Color.WILD, value=Value.WILD))

@@ -85,15 +85,32 @@ BOT_IDS = {-9001: "🤖 Robo", -9002: "🤖 Byte", -9003: "🤖 Nova", -9004: "�
 
 
 def _bot_play(state, bot_id: int):
-    """Bot uchun oddiy AI: mos kartani topib tashla, bo'lmasa ol."""
-    from .game.cards import Card, Color
+    """Bot uchun oddiy AI: mos kartani topib tashla, bo'lmasa ol.
+    🆕 Stacking: qo'lida +2/+4 bo'lsa zanjirni davom ettiradi, bo'lmasa penaltini oladi.
+    🆕 SWAP: tashlagach eng kam kartali raqibni tanlaydi (3+ o'yinchi bo'lsa).
+    """
+    from .game.cards import Card, Color, Value, PENALTY_VALUES
     player = state._find_player(bot_id)
     top = state.discard_pile[-1]
     tc = (top.chosen_color or top.color)
-    # Pending +2/+4 bo'lsa majburiy oladi
+    # Pending penalti: qo'lida +2/+4 bo'lsa stack qiladi, aks holda to'liq oladi
     if state.pending_draw > 0:
-        state.draw_cards(bot_id)
+        stack_card = next((c for c in player.hand if c.value in PENALTY_VALUES), None)
+        if stack_card is not None:
+            chosen = Color.RED if stack_card.color == Color.WILD else None
+            state.play_card(bot_id, stack_card, chosen)
+            return {"moved": True, "played": stack_card.value}
+        state.take_penalty(bot_id)
         return {"moved": True, "drew": True}
+    # SWAP strategiyasi: raqiblardan eng kam kartalisi undan kamroq bo'lsa SWAP tashlaydi
+    if any(c.value == Value.SWAP for c in player.hand) and len(state.players) >= 3:
+        others = [p for p in state.players if p.user_id != bot_id and p.user_id not in state.finish_order]
+        best = min(others, key=lambda p: len(p.hand))
+        if len(best.hand) < len(player.hand) - 1:
+            swap_card = next(c for c in player.hand if c.value == Value.SWAP)
+            state.play_card(bot_id, swap_card)
+            state.swap_players(bot_id, best.user_id)
+            return {"moved": True, "played": "swap"}
     card = next((c for c in player.hand if c.color == tc or c.value == top.value), None)
     if card is None and any(c.color == Color.WILD for c in player.hand):
         card = next(c for c in player.hand if c.color == Color.WILD)
@@ -156,7 +173,8 @@ async def _blitz_timeout(room_code: str, user_id: int):
         return
     try:
         if state.pending_draw > 0:
-            state.draw_cards(user_id)
+            # 🆕 Stacking: penalti faol bo'lsa to'liq miqdorni oladi (take_penalty)
+            state.take_penalty(user_id)
         else:
             state.draw_cards(user_id)
             if state.drew_playable:
@@ -261,7 +279,18 @@ class ConnectionManager:
             async with async_session_maker() as db:
                 room = await db.get(Room, code)
                 if room is not None:
-                    remaining = [str(pid) for pid in (room.player_ids or []) if str(pid) != str(user_id)]
+                    # MUHIM: ID lar int saqlanadi (str ga o'tkazilmaydi) — aks holda
+                    # player_ids ["123"] bo'lib qoladi va _enrich_players asyncpg
+                    # DataError bilan /rooms/open ni 500 ga tushiradi.
+                    # Eski string ID lar ham shu yerda int ga normalizatsiya qilinadi.
+                    remaining = []
+                    for pid in (room.player_ids or []):
+                        if str(pid) == str(user_id):
+                            continue
+                        try:
+                            remaining.append(int(pid))
+                        except (TypeError, ValueError):
+                            continue
                     if str(room.host_id) == str(user_id) or not remaining:
                         await db.delete(room)
                     else:
@@ -351,17 +380,20 @@ async def global_websocket(websocket: WebSocket):
                 text = str(data.get("text", ""))[:300]
                 if text.strip():
                     uid = data.get("user_id")
+                    saved_msg_id = None  # unique DB id — idempotent frontend render uchun
                     async with async_session_maker() as db:
                         meta = await _chat_meta(db, uid)
                         if not meta["blocked"]:
                             # Persist so history survives reconnects/reloads
                             from .models.social import ChatMessage
-                            db.add(ChatMessage(
+                            _msg = ChatMessage(
                                 user_id=uid if isinstance(uid, int) else 0,
                                 name=data.get("name") or "O'yinchi",
                                 text=text.strip(),
-                            ))
+                            )
+                            db.add(_msg)
                             await db.commit()
+                            saved_msg_id = _msg.id  # expire_on_commit=False -> PK saqlanadi
                     if meta["blocked"]:
                         # Bloklangan userga blok ekrani ma'lumotini yuboramiz
                         if uid is not None:
@@ -383,6 +415,7 @@ async def global_websocket(websocket: WebSocket):
                     await manager.broadcast("global", {
                         "type": "chat",
                         "room": "global",
+                        "msg_id": saved_msg_id,  # unique: idempotent render (duplikatsiz)
                         "user_id": uid,
                         "name": data.get("name") or "O'yinchi",
                         "role": meta["role"],
@@ -424,6 +457,12 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                     # Rejoin: if a game is running, send this player the current state
                     state = games.get(room_code)
                     if state and state.winner_id is None:
+                        # 🆕 RECONNECT: agar shu player disconnect timerda bo'lsa — bekor qilamiz
+                        _cancel_disconnect_timer(room_code, user_id)
+                        await manager.broadcast(room_code, {
+                            "type": "player_reconnected", "user_id": user_id,
+                            "name": name,
+                        })
                         await _send_personalized_state(room_code, state)
                 continue
 
@@ -448,7 +487,13 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                     await manager.broadcast(room_code, {"type": "game_start"})
                     continue
                 try:
-                    ids = list(room.player_ids)
+                    # player_ids dagi eski string ID larni int ga o'tkazamiz
+                    ids = []
+                    for _p in (room.player_ids or []):
+                        try:
+                            ids.append(int(_p))
+                        except (TypeError, ValueError):
+                            continue
                     # 🤖 Bo'sh o'rinlarni bot to'ldirish (host so'ragan bo'lsa yoki 2tadan kam)
                     want_bots = bool(data.get("with_bots")) or data.get("fill_bots")
                     if want_bots and len(ids) < 4:
@@ -495,6 +540,15 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                         "type": "error", "message": str(e)
                     })
                     continue
+                # 🆕 MULTI-PLACEMENT: player oxirgi kartasini tashlagan bo'lsa placement e'lon qilinadi
+                if user_id in state.finish_order:
+                    info = await _user_info(user_id)
+                    place = state.finish_order.index(user_id) + 1
+                    await manager.broadcast(room_code, {
+                        "type": "player_finished", "user_id": user_id,
+                        "name": info["name"], "place": place,
+                        "message": f"🏆 {info['name']} — {place}-o'rin!",
+                    })
                 await manager.broadcast(room_code, {"type": "game_update"})
                 await _send_personalized_state(room_code, state)
                 if state.winner_id:
@@ -509,6 +563,26 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                 state = games.get(room_code)
                 if not state:
                     continue
+                # 🆕 Stacking: pending penalti bo'lsa oddiy draw emas — TO'LIQ penalti olinadi
+                # (client draw_count yubormaydi; server pending_draw ni o'zi hisoblaydi)
+                if state.pending_draw > 0:
+                    try:
+                        state.take_penalty(user_id)
+                    except ValueError as e:
+                        await manager.send_to_user(room_code, user_id, {
+                            "type": "error", "message": str(e)
+                        })
+                        continue
+                    await manager.broadcast(room_code, {
+                        "type": "penalty_taken", "user_id": user_id,
+                        "message": "📥 " + str(user_id) + " penaltini o'tadi — navbat o'tadi",
+                    })
+                    await manager.broadcast(room_code, {"type": "game_update"})
+                    await _send_personalized_state(room_code, state)
+                    _blitz_arm(room_code, state)
+                    import asyncio as _a
+                    _a.ensure_future(_maybe_bot_turn(room_code, state))
+                    continue
                 try:
                     state.draw_cards(user_id, 1)
                 except ValueError as e:
@@ -521,6 +595,50 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                 _blitz_arm(room_code, state)
                 import asyncio as _a
                 _a.ensure_future(_maybe_bot_turn(room_code, state))
+                continue
+
+            # 🆕 Stacking rule 13: player penaltini ixtiyoriy qabul qiladi ("TAKE PENALTY" tugmasi)
+            if action == "take_penalty" and user_id is not None:
+                state = games.get(room_code)
+                if not state:
+                    continue
+                try:
+                    state.take_penalty(user_id)
+                except ValueError as e:
+                    await manager.send_to_user(room_code, user_id, {
+                        "type": "error", "message": str(e)
+                    })
+                    continue
+                await manager.broadcast(room_code, {
+                    "type": "penalty_taken", "user_id": user_id,
+                    "message": "📥 Penalti olindi — navbat o'tadi",
+                })
+                await manager.broadcast(room_code, {"type": "game_update"})
+                await _send_personalized_state(room_code, state)
+                _blitz_arm(room_code, state)
+                import asyncio as _a
+                _a.ensure_future(_maybe_bot_turn(room_code, state))
+                continue
+
+            # 🆕 SWAP card: tashlagan o'yinchi tanlagan target bilan qo'llarni almashtiradi
+            if action == "swap_players" and user_id is not None:
+                state = games.get(room_code)
+                if not state:
+                    continue
+                target_id = data.get("target_id")
+                try:
+                    state.swap_players(user_id, int(target_id))
+                except (ValueError, TypeError) as e:
+                    await manager.send_to_user(room_code, user_id, {
+                        "type": "error", "message": str(e)
+                    })
+                    continue
+                await manager.broadcast(room_code, {
+                    "type": "swap_done", "by": user_id, "target": int(target_id),
+                    "message": "🔄 Kartalar almashtirildi!",
+                })
+                await manager.broadcast(room_code, {"type": "game_update"})
+                await _send_personalized_state(room_code, state)
                 continue
 
             # Drawn card is playable -> player throws it immediately (draw-then-play)
@@ -603,6 +721,7 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                     await manager.broadcast(room_code, {
                         "type": "chat",
                         "room": room_code,
+                        "msg_id": data.get("msg_id"),  # client id — sender optimistic xabari bilan dedupe
                         "user_id": data.get("user_id") or user_id,
                         "name": data.get("name") or manager.user_names.get(user_id, "O'yinchi") if user_id else (data.get("name") or "O'yinchi"),
                         "role": meta["role"],
@@ -614,12 +733,17 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
             # Unknown actions are ignored (no more blind echo)
     except WebSocketDisconnect:
         manager.disconnect(room_code, websocket)
+        # 🆕 RECONNECT WINDOW: WS uzildi — 5 daqiqa reconnect muddati (game active bo'lsa)
+        if user_id is not None:
+            _schedule_disconnect(room_code, user_id)
     except Exception:
         import logging, traceback
         logging.getLogger("uvicorn.error").error(
             "WS handler error in room %s: %s", room_code, traceback.format_exc()
         )
         manager.disconnect(room_code, websocket)
+        if user_id is not None:
+            _schedule_disconnect(room_code, user_id)
 
 
 # In-memory UNO games: room_code -> GameState
@@ -629,18 +753,85 @@ games: dict[str, GameState] = {}
 # Rooms whose game_over has already been recorded (double-count guard)
 _finished_rooms: set[str] = set()
 
+# 🆕 RECONNECT WINDOW: (room_code, user_id) -> asyncio.TimerHandle
+# Player WS dan uzilganda 5 daqiqa reconnect muddati; bu vaqt ichida game uni o'yindan chiqarmaydi.
+RECONNECT_WINDOW_SECONDS = 300
+_disconnect_timers: dict = {}
+
+
+def _cancel_disconnect_timer(room_code: str, user_id: int) -> None:
+    """Reconnect window timer'ni bekor qilish (reconnect bo'lganda)."""
+    import asyncio as _asyncio
+    key = (room_code, user_id)
+    handle = _disconnect_timers.pop(key, None)
+    if handle is not None:
+        handle.cancel()
+
+
+def _schedule_disconnect(room_code: str, user_id: int) -> None:
+    """Player WS dan uzilganda 5 daqiqalik reconnect window o'rnatadi.
+    Race-safe: eski timer bo'lsa avval bekor qilinadi (idempotent)."""
+    import asyncio as _asyncio
+    key = (room_code, user_id)
+    old = _disconnect_timers.pop(key, None)
+    if old is not None:
+        old.cancel()
+    state = games.get(room_code)
+    if not state or state.winner_id:
+        return
+    if user_id not in state.active_player_ids():
+        return  # allaqachon tugatgan/chiqib ketgan — window kerak emas
+    loop = _asyncio.get_event_loop()
+    _disconnect_timers[key] = loop.call_later(
+        RECONNECT_WINDOW_SECONDS,
+        lambda: _asyncio.ensure_future(_reconnect_timeout(room_code, user_id)),
+    )
+
+
+async def _reconnect_timeout(room_code: str, user_id: int) -> None:
+    """🆕 5 daqiqa ichida qaytalmagan player o'yinni tark etadi (placement oladi).
+    Idempotent: withdraw_player ikki marta chaqirilsa zarar yetkazmaydi."""
+    _disconnect_timers.pop((room_code, user_id), None)
+    state = games.get(room_code)
+    if not state or state.winner_id:
+        return
+    if user_id not in state.active_player_ids():
+        return
+    state.withdraw_player(user_id)
+    info = await _user_info(user_id)
+    await manager.broadcast(room_code, {
+        "type": "player_left", "user_id": user_id, "name": info["name"],
+        "reason": "reconnect_timeout",
+        "message": f"⏰ {info['name']} o'yinga qaytmadi",
+    })
+    await manager.broadcast(room_code, {"type": "game_update"})
+    await _send_personalized_state(room_code, state)
+    if state.winner_id:
+        await _finish_game(room_code, state)
+
 
 async def _finish_game(room_code: str, state: GameState):
-    """Record the finished game exactly once, with placements from finish_order."""
+    """Record the finished game exactly once, with placements from finish_order.
+    🆕 MULTI-PLACEMENT: finish_order endi barcha o'rinlarni saqlaydi (1st, 2nd, 3rd...)
+    — playerlar ketma-ket tugatadi va game oxirgi active player qolganda finalize bo'ladi.
+    🆕 Game tugaganda barcha blitz/reconnect timerlari bekor qilinadi.
+    """
     if room_code in _finished_rooms:
         return
     _finished_rooms.add(room_code)
     games.pop(room_code, None)
+    # 🆕 barcha reconnect window timerlarini bekor qilish (game tugadi)
+    for key in [k for k in _disconnect_timers if k[0] == room_code]:
+        handle = _disconnect_timers.pop(key, None)
+        if handle is not None:
+            handle.cancel()
 
-    # Placements: 1st = winner, then finish_order (UNO players), others by hand size
-    remaining = [p for p in state.players if p.user_id not in state.finish_order]
-    remaining.sort(key=lambda p: len(p.hand))
-    placement_ids = state.finish_order + [p.user_id for p in remaining]
+    # 🆕 Placements: finish_order to'liq tartibni beradi (withdrawn oxirida bo'lishi mumkin).
+    # Xavfsizlik uchun: finish_order'da yo'q playerlar qo'shiladi (idempotent).
+    placement_ids = list(state.finish_order)
+    for p in state.players:
+        if p.user_id not in placement_ids:
+            placement_ids.append(p.user_id)
     standings = []
     for i, uid in enumerate(placement_ids):
         info = await _user_info(uid)
@@ -732,30 +923,62 @@ async def _user_info(user_id: int) -> dict:
 
 
 async def _send_personalized_state(room_code: str, state: GameState):
-    """Send each player their own hand; others see only card counts."""
-    top = state.discard_pile[-1].serialize() if state.discard_pile else None
+    """Send each player their own hand; others see only card counts.
+    Bitta user'dagi xato (masalan kosmetika) butun broadcast'ni buzmasligi uchun
+    har bir qadam try/except bilan himoyalangan — aks holda kartalar hech kimga ko'rinmay qoladi."""
+    try:
+        top = state.discard_pile[-1].serialize() if state.discard_pile else None
+    except Exception:
+        top = None
     full_players = []
     for p in state.players:
-        info = await _user_info(p.user_id)
+        try:
+            info = await _user_info(p.user_id)
+        except Exception:
+            info = {"name": "O'yinchi", "cosmetics": None}
+        try:
+            hand_count = len(p.hand)
+        except Exception:
+            hand_count = 0
         full_players.append({
             "user_id": p.user_id,
-            "username": info["name"],
-            "hand_count": len(p.hand),
-            "called_uno": p.called_uno,
-            "cosmetics": info.get("cosmetics"),
+            "username": (info.get("name") if isinstance(info, dict) else "O'yinchi"),
+            "hand_count": hand_count,
+            "called_uno": bool(getattr(p, "called_uno", False)),
+            "cosmetics": (info.get("cosmetics") if isinstance(info, dict) else None),
         })
+    try:
+        current_pid = state.current_player().user_id
+    except Exception:
+        current_pid = None
+    try:
+        deck_remaining = state.deck.remaining()
+    except Exception:
+        deck_remaining = 0
     for p in state.players:
+        try:
+            hand = [c.serialize() for c in p.hand]
+        except Exception:
+            hand = []
         payload = {
             "type": "game_state",
             "state": {
                 "players": full_players,
-                "hand": [c.serialize() for c in p.hand],
-                "current_player_id": state.current_player().user_id,
-                "direction": state.direction,
+                "hand": hand,
+                "current_player_id": current_pid,
+                "direction": getattr(state, "direction", "clockwise"),
                 "top_card": top,
-                "deck_remaining": state.deck.remaining(),
-                "winner_id": state.winner_id,
-                "pending_draw": state.pending_draw,
+                "deck_remaining": deck_remaining,
+                "winner_id": getattr(state, "winner_id", None),
+                "pending_draw": getattr(state, "pending_draw", 0),
+                "drew_playable": bool(getattr(state, "drew_playable", False)),
+                "pending_swap_by": getattr(state, "pending_swap_by", None),
+                "finish_order": list(getattr(state, "finish_order", []) or []),
+                "withdrawn": list(getattr(state, "withdrawn", []) or []),
+                "active_players": list(state.active_player_ids()) if hasattr(state, "active_player_ids") else [],
             },
         }
-        await manager.send_to_user(room_code, p.user_id, payload)
+        try:
+            await manager.send_to_user(room_code, p.user_id, payload)
+        except Exception:
+            pass

@@ -23,6 +23,8 @@ class Settings(BaseSettings):
 
     # Obuna sharti bo'lgan kanal (bot tekshiruvi uchun). Bo'sh bo'lsa tekshiruv o'tkazib yuboriladi.
     CHANNEL_URL: str = Field("https://t.me/gamespotofficial")
+    # Ixtiyoriy: privat kanal uchun raqamli ID (-100...). Bo'sh bo'lsa CHANNEL_URL'dan @username olinadi.
+    CHANNEL_ID: str = Field("")
 
     class Config:
         env_file = ".env"

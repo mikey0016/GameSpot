@@ -28,6 +28,53 @@ router = APIRouter(tags=["social"])
 
 ONLINE_WINDOW = timedelta(seconds=60)
 
+# ---------- 📢 Umumiy kanal obuna tekshiruvi (WebApp + Bot uchun yagona mantiq) ----------
+
+# A'zolik hisoblanadigan statuslar
+ALLOWED_MEMBER_STATUSES = ("member", "administrator", "creator")
+
+
+async def check_telegram_subscription(user_id: int) -> bool | None:
+    """Telegram Bot API getChatMember orqali HAQIQIY a'zolik tekshiruvi.
+
+    Qaytaradi:
+      True  → a'zo (member/administrator/creator)
+      False → a'zo emas (left/kicked yoki user topilmadi — haqiqiy javob)
+      None  → API xato (bot kanal admin emas / kanal topilmadi / tarmoq) —
+              bu holatda "obuna bo'ldi" DEB HISOBLANMAYDI (fail-closed).
+    """
+    import asyncio
+    import urllib.request
+    import json as _json
+
+    channel = settings.CHANNEL_URL
+    token = settings.BOT_TOKEN
+    if not channel or not token or not user_id:
+        return None
+    uname = channel.rstrip("/").split("/")[-1]
+    if not uname.startswith("@"):
+        uname = "@" + uname
+    # Ixtiyoriy CHANNEL_ID (privat kanal uchun raqamli ID) ustuvor
+    chat_ref = (getattr(settings, "CHANNEL_ID", "") or "") or uname
+    url = f"https://api.telegram.org/bot{token}/getChatMember?chat_id={chat_ref}&user_id={int(user_id)}"
+
+    def _fetch():
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=4) as r:
+            return _json.loads(r.read().decode())
+
+    try:
+        data = await asyncio.wait_for(asyncio.to_thread(_fetch), timeout=6.0)
+    except Exception:
+        return None  # API xato — qaror qabul qilib bo'lmaydi
+    if not data.get("ok"):
+        # Telegram "ok": false qaytargan bo'lsa ham bu API muammosi (kanal topilmadi,
+        # bot admin emas...) — a'zolik haqida ma'lumot EMAS
+        return None
+    status = (data.get("result") or {}).get("status", "")
+    return status in ALLOWED_MEMBER_STATUSES
+
+
 # ----- Role hierarchy: lower number = more power -----
 # 💎 MO (-1) > 💠 Co-Owner (0) > 👑 Owner (1) > 🛡 Moderator (2) > ⭐ Deputy (3) > 🎖 Admin (4) > 👤 Player (5)
 ROLE_RANK = {"main_owner": -1, "co_owner": 0, "owner": 1, "moderator": 2, "deputy": 3, "admin": 4, None: 5}
@@ -297,33 +344,17 @@ async def heartbeat(req: UserIn, session=Depends(get_session)):
 
 @router.get("/users/subscribe-status/{user_id}")
 async def subscribe_status(user_id: int, session=Depends(get_session)):
-    """WebApp uchun kanal obuna holati (Telegram Bot API getChatMember)."""
-    import asyncio
-    import urllib.request
-    import json as _json
-    from ..config import settings
+    """WebApp uchun kanal obuna holati (Telegram Bot API getChatMember).
 
-    subscribed = True  # fail-open: xato bo'lsa qulf CIMAYMIZ
+    Bot bilan yagona mantiq: check_telegram_subscription().
+    API xato = None → "subscribed": False + "check_error": True
+    (hech qachon API xatoni "obuna bor" deb ko'rsatmaymiz).
+    """
     channel = settings.CHANNEL_URL
-    token = settings.BOT_TOKEN
-    if channel and token:
-        uname = channel.rstrip("/").split("/")[-1]
-        if not uname.startswith("@"):
-            uname = "@" + uname
-        url = f"https://api.telegram.org/bot{token}/getChatMember?chat_id={uname}&user_id={user_id}"
-
-        def _fetch():
-            with urllib.request.urlopen(url, timeout=4) as r:
-                return _json.loads(r.read().decode())
-
-        try:
-            data = await asyncio.wait_for(asyncio.to_thread(_fetch), timeout=6.0)
-            if data.get("ok"):
-                status = (data.get("result") or {}).get("status", "")
-                subscribed = status in ("member", "administrator", "creator")
-        except Exception:
-            subscribed = True  # bot kanalda admin emas / API xatosi -> bloklamaymiz
-    return {"subscribed": subscribed, "channel": channel}
+    result = await check_telegram_subscription(user_id)
+    if result is None:
+        return {"subscribed": False, "channel": channel, "check_error": True}
+    return {"subscribed": result, "channel": channel}
 
 
 @router.get("/users/online")
@@ -748,6 +779,36 @@ async def like_target(target_id: int, req: UserIn, session=Depends(get_session))
         return {"ok": True, "likes": target.likes, "liked": liked_now}
 
 
+class OwnerLikeIn(BaseModel):
+    owner_id: int
+    amount: int  # +1 = like qo'shish, -1 = olib tashlash, boshqa sonlar ham mumkin
+
+
+@router.post("/owner/users/{user_id}/likes")
+async def owner_set_likes(user_id: int, req: OwnerLikeIn, session=Depends(get_session)):
+    """💎 Add/remove likes on ANY user INCLUDING self (owner panel).
+    🔒 Xavfsizlik: _require_owner faqat owner darajasidagi rollarga ruxsat beradi;
+    o'z-o'ziga amal FAQAT ushbu endpoint'da, owner darajasi tekshirilgandan keyin.
+    Oddiy user /likes/{id} orqali o'ziga like bosolmaydi (o'zgarmagan).
+    """
+    async with session() as db:
+        actor = await _require_owner(req.owner_id, db)
+        u = await db.get(OnlineUser, user_id)
+        if not u:
+            raise HTTPException(404, "Foydalanuvchi topilmadi")
+        is_self = user_id == req.owner_id
+        # 🔒 Boshqaga amal: ierarxiya; o'ziga amal: FAQAT main_owner (spec talabi)
+        if not is_self and not _owner_action(actor, u):
+            raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
+        if is_self and actor.role != "main_owner":
+            raise HTTPException(403, "O'ziga like faqat MAIN OWNER uchun")
+        u.likes = max(0, (u.likes or 0) + req.amount)
+        await db.commit()
+        await _broadcast_stats_update(db, user_id)
+        await _modlog(db, actor, "likes", f"❤️ {req.amount:+d} → {_display_name(u)}", target_id=user_id)
+        return {"ok": True, "likes": u.likes or 0}
+
+
 async def _resolve_invite(db, invite_id: int | str, status: str):
     """Find an invite by id across users, set its status, return (invite, owner)."""
     users = (await db.execute(select(OnlineUser))).scalars().all()
@@ -820,6 +881,7 @@ async def global_chat(req: ChatIn, session=Depends(get_session)):
     payload = {
         "type": "chat",
         "room": "global",
+        "msg_id": msg.id,  # unique: frontend idempotent render uchun (duplikatsiz)
         "user_id": req.user_id,
         "name": req.name or "O'yinchi",
         "role": role,
@@ -855,6 +917,7 @@ async def global_chat_history(session=Depends(get_session)):
         for m in reversed(rows):
             meta = await _meta(m.user_id)
             msgs.append({
+                "msg_id": m.id,  # unique: frontend idempotent render uchun
                 "user_id": m.user_id,
                 "name": m.name,
                 "role": meta["role"],
@@ -1164,9 +1227,12 @@ async def owner_broadcast(req: BroadcastIn, session=Depends(get_session)):
 
 @router.get("/owner/users/{user_id}/detail")
 async def owner_user_detail(user_id: int, owner_id: int, session=Depends(get_session)):
-    """Full profile for the panel: stats, block info, friends, personal game history."""
+    """Full profile for the panel: stats, block info, friends, personal game history.
+    READ-ONLY: barcha staff rollar ko'ra oladi (MO/CO/Owner/Moderator/Deputy/Admin).
+    Yozuvchi amallar (block/xp/coins/...) alohida endpointlarda owner-gate bilan himoyalangan,
+    bu yerda faqat `manage` flagi per-target hisoblanadi."""
     async with session() as db:
-        await _require_owner(owner_id, db)
+        actor = await _require_moderator(owner_id, db)  # keyinchalik manage hisobida ishlatiladi
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
@@ -1227,6 +1293,9 @@ async def owner_user_detail(user_id: int, owner_id: int, session=Depends(get_ses
         "xp": u.xp,
         "level": u.level,
         "coins": u.coins or 0,
+        "likes": u.likes or 0,
+        "liked_by_me": str(owner_id) in [str(x) for x in (u.liked_by or [])],
+        "manage": bool(_owner_action(actor, u) or user_id == owner_id),
         "friends": friends,
         "games": games[:20],
     }
@@ -1338,7 +1407,8 @@ async def owner_add_xp(user_id: int, req: XpIn, session=Depends(get_session)):
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        if not (_owner_action(actor, u) or user_id == req.owner_id):
+        # 🔒 O'z-o'ziga amal faqat owner-daraja (MO/CO/Owner) uchun; oddiy userlarga yo'q
+        if user_id != req.owner_id and not _owner_action(actor, u):
             raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.xp = max(0, (u.xp or 0) + req.amount)
         u.level = 1 + (u.xp or 0) // 50
@@ -1361,7 +1431,8 @@ async def owner_add_coins(user_id: int, req: CoinsIn, session=Depends(get_sessio
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        if not (_owner_action(actor, u) or user_id == req.owner_id):
+        # 🔒 O'z-o'ziga amal faqat owner-daraja (MO/CO/Owner) uchun; oddiy userlarga yo'q
+        if user_id != req.owner_id and not _owner_action(actor, u):
             raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.coins = max(0, (u.coins or 0) + req.amount)
         await db.commit()
@@ -1384,7 +1455,8 @@ async def owner_set_level(user_id: int, req: LevelIn, session=Depends(get_sessio
         u = await db.get(OnlineUser, user_id)
         if not u:
             raise HTTPException(404, "Foydalanuvchi topilmadi")
-        if not (_owner_action(actor, u) or user_id == req.owner_id):
+        # 🔒 O'z-o'ziga amal faqat owner-daraja (MO/CO/Owner) uchun; oddiy userlarga yo'q
+        if user_id != req.owner_id and not _owner_action(actor, u):
             raise HTTPException(403, "Bu userga amal qilib bo'lmaydi")
         u.level = level
         u.xp = (level - 1) * 50
@@ -1476,6 +1548,30 @@ async def owner_rooms(owner_id: int, session=Depends(get_session)):
         }
 
 
+@router.delete("/owner/rooms")
+async def owner_close_all_rooms(owner_id: int, session=Depends(get_session)):
+    """Hamma xonani yopish (FULL tozalash) — ichidagilar lobbydan chiqariladi,
+    davom etayotgan o'yinlar ham to'xtatiladi."""
+    from ..models.room import Room
+    async with session() as db:
+        actor = await _require_owner(owner_id, db)
+        rows = (await db.execute(select(Room))).scalars().all()
+        codes = [r.id for r in rows]
+        for r in rows:
+            await db.delete(r)
+        await db.commit()
+        await _modlog(db, actor, "cleanup", f"🧹 Hamma xona yopildi ({len(codes)} ta)")
+    from ..main import manager, games
+    for code in codes:
+        try:
+            await manager.broadcast(code, {"type": "room_closed"})
+        except Exception:
+            pass
+        games.pop(code, None)
+    await _broadcast({"type": "panel_refresh", "scope": "rooms"})
+    return {"ok": True, "closed": len(codes)}
+
+
 @router.delete("/owner/rooms/{code}")
 async def owner_close_room(code: str, owner_id: int, session=Depends(get_session)):
     """Force-close a room and notify everyone inside."""
@@ -1559,9 +1655,10 @@ async def owner_games(owner_id: int, session=Depends(get_session)):
 
 @router.get("/owner/games/{game_id}/detail")
 async def owner_game_detail(game_id: int, owner_id: int, session=Depends(get_session)):
-    """Full game info for the panel: players with places, duration, activity."""
+    """Full game info for the panel: players with places, duration, activity.
+    READ-ONLY: barcha staff rollar ko'ra oladi."""
     async with session() as db:
-        await _require_owner(owner_id, db)
+        await _require_moderator(owner_id, db)
         r = await db.get(GameRecord, game_id)
         if not r:
             raise HTTPException(404, "O'yin topilmadi")

@@ -31,6 +31,11 @@ class Value(str, Enum):
     DRAW_TWO = "draw_two"
     WILD = "wild"
     WILD_DRAW_FOUR = "wild_draw_four"
+    # 🔄 Custom action card: playing it lets the player swap hands with a chosen opponent
+    SWAP = "swap"
+
+# Penalti zanjirini davom ettiruvchi kartalar (stacking mode)
+PENALTY_VALUES = (Value.DRAW_TWO, Value.WILD_DRAW_FOUR)
 
 @dataclass(frozen=True)
 class Card:
