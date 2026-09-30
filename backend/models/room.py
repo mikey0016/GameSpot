@@ -27,8 +27,6 @@ class Room(Base):
     host_id = Column(BigInteger, nullable=False)
     created_at = Column(DateTime, default=now_local)
     status = Column(Enum(RoomStatus), default=RoomStatus.WAITING)
-    # O'yin turi: "uno" (default, eski xonalar) | "mafia"
-    game = Column(String(16), default="uno", nullable=False, index=True)
     max_players = Column(Integer, default=4)
     # JSON list of player telegram ids for quick lookup
     # MutableList wrapper so appends are actually persisted

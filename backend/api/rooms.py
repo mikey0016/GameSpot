@@ -3,7 +3,6 @@
 """REST API for room management.
 - POST /rooms/create       -> creates a new room, returns room code
 - POST /rooms/join/{code}  -> joins a user to an existing room
-- GET  /rooms/open?game=   -> public rooms filtered by game (uno|mafia)
 - GET  /rooms/{code}       -> returns room status (players list, host, etc.)
 - POST /rooms/kick/{code}  -> host removes a player (host only)
 - POST /rooms/leave/{code} -> player leaves; host role passes on, empty room is deleted
@@ -29,20 +28,15 @@ async def get_session():
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
-VALID_GAMES = {"uno", "mafia"}
-
-
 async def _broadcast(code: str, message: dict):
     """Lazy import avoids a circular import with backend.main."""
     from ..main import manager
     await manager.broadcast(code, message)
 
-
 async def _broadcast_global(message: dict):
     """Panel live-refresh uchun global kanalga broadcast."""
     from .social import _broadcast as _gb
     await _gb(message)
-
 
 def _normalize_code(code: str | None) -> str:
     """Xona kodini kanonik ko'rinishga keltirish (strip + upper)."""
@@ -53,28 +47,22 @@ def _generate_code(length: int = 6) -> str:
     alphabet = string.ascii_uppercase + string.digits
     return "".join(random.choice(alphabet) for _ in range(length))
 
-
 class CreateRoomRequest(BaseModel):
     host_id: int
-    game: str = "uno"          # 🆕 "uno" | "mafia"
-    max_players: int = 4       # 2..7 qabul qilinadi
-    password: str | None = None
-    entry_fee: int = 0         # 0 = bepul, >0 = har bir o'yinchi shuncha coin to'laydi, g'olib hammasini oladi
-
+    max_players: int = 4  # 2..7 qabul qilinadi
+    password: str | None = None  # bo'sh bo'lsa ochiq xona
+    entry_fee: int = 0  # 0 = bepul, >0 = har bir o'yinchi shuncha coin to'laydi, g'olib hammasini oladi
 
 class JoinRoomRequest(BaseModel):
     user_id: int
     password: str | None = None
 
-
 class KickRequest(BaseModel):
     host_id: int
     target_id: int
 
-
 class LeaveRequest(BaseModel):
     user_id: int
-
 
 class RoomResponse(BaseModel):
     code: str
@@ -82,7 +70,6 @@ class RoomResponse(BaseModel):
     status: str
     players: list  # [{id, name}] - enriched with names when available
     max_players: int
-    game: str = "uno"          # 🆕 "uno" | "mafia"
     has_password: bool = False
     entry_fee: int = 0
     prize: int = 0
@@ -115,7 +102,7 @@ async def _enrich_players(db, player_ids: list) -> list:
 
 def _norm_ids(player_ids) -> list[int]:
     """player_ids dagi string/None/chiqindilarni tozalab int ro'yxat qaytaradi.
-    Bazada [\"123\"] deb qolgan eski xonalar shu orqali o'qilaveradi."""
+    Bazada ["123"] deb qolgan eski xonalar shu orqali o'qilaveradi."""
     out: list[int] = []
     for p in (player_ids or []):
         try:
@@ -126,18 +113,9 @@ def _norm_ids(player_ids) -> list[int]:
             out.append(v)
     return out
 
-
 @router.post("/create", response_model=RoomResponse)
 async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
     entry_fee = max(0, min(int(req.entry_fee or 0), 500))
-    # 🆕 game turi tekshiriladi (uno default; noto'g'ri qiymat bo'lsa uno)
-    game = (req.game or "uno").strip().lower()
-    if game not in VALID_GAMES:
-        game = "uno"
-    # Mafia max 12 o'yinchi
-    max_players = max(2, min(12, int(req.max_players or 4)))
-    if game == "uno":
-        max_players = min(max_players, 7)
     async with session() as db:
         # coin tekshiruvi: kirish to'lovini host ham to'laydi
         if entry_fee > 0:
@@ -156,8 +134,7 @@ async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
         room = Room(
             id=code,
             host_id=req.host_id,
-            game=game,
-            max_players=max_players,
+            max_players=max(2, min(7, int(req.max_players or 4))),
             status=RoomStatus.WAITING,
             player_ids=[int(req.host_id)],
             password=(req.password or None),
@@ -183,12 +160,10 @@ async def create_room(req: CreateRoomRequest, session=Depends(get_session)):
             status=room.status.value,
             players=await _enrich_players(db, room.player_ids),
             max_players=room.max_players,
-            game=room.game,
             has_password=bool(room.password),
             entry_fee=room.entry_fee or 0,
             prize=room.prize or 0,
         )
-
 
 @router.post("/join/{code}", response_model=RoomResponse)
 async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session)):
@@ -203,10 +178,7 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
             enriched = await _enrich_players(db, room.player_ids)
             return RoomResponse(
                 code=room.id, host_id=room.host_id, status=room.status.value,
-                players=enriched, max_players=room.max_players, game=room.game,
-                has_password=bool(room.password),
-                entry_fee=getattr(room, 'entry_fee', 0) or 0,
-                prize=getattr(room, 'prize', 0) or 0,
+                players=enriched, max_players=room.max_players, has_password=bool(room.password),
             )
         if len(room.player_ids) >= room.max_players:
             raise HTTPException(status_code=400, detail="Room is full")
@@ -240,7 +212,7 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
         enriched = await _enrich_players(db, room.player_ids)
         await _broadcast(code, {
             "type": "player_joined",
-            "room": {"code": room.id, "host_id": room.host_id, "players": enriched, "game": room.game, "entry_fee": getattr(room, 'entry_fee', 0) or 0, "prize": getattr(room, 'prize', 0) or 0},
+            "room": {"code": room.id, "host_id": room.host_id, "players": enriched, "entry_fee": getattr(room, 'entry_fee', 0) or 0, "prize": getattr(room, 'prize', 0) or 0},
         })
         try:
             await _broadcast_global({"type": "panel_refresh", "scope": "rooms"})
@@ -252,12 +224,10 @@ async def join_room(code: str, req: JoinRoomRequest, session=Depends(get_session
             status=room.status.value,
             players=enriched,
             max_players=room.max_players,
-            game=room.game,
             has_password=bool(room.password),
             entry_fee=getattr(room, 'entry_fee', 0) or 0,
             prize=getattr(room, 'prize', 0) or 0,
         )
-
 
 @router.post("/leave/{code}", response_model=RoomResponse)
 async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session)):
@@ -279,7 +249,6 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
                 status=room.status.value,
                 players=await _enrich_players(db, room.player_ids),
                 max_players=room.max_players,
-                game=room.game,
                 has_password=bool(room.password),
                 entry_fee=getattr(room, 'entry_fee', 0) or 0,
                 prize=getattr(room, 'prize', 0) or 0,
@@ -321,7 +290,7 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
         enriched = await _enrich_players(db, room.player_ids)
         await _broadcast(code, {
             "type": "room_left",
-            "room": {"code": room.id, "host_id": room.host_id, "players": enriched, "game": room.game, "entry_fee": getattr(room, 'entry_fee', 0) or 0, "prize": getattr(room, 'prize', 0) or 0},
+            "room": {"code": room.id, "host_id": room.host_id, "players": enriched, "entry_fee": getattr(room, 'entry_fee', 0) or 0, "prize": getattr(room, 'prize', 0) or 0},
         })
         try:
             await _broadcast_global({"type": "panel_refresh", "scope": "rooms"})
@@ -333,12 +302,10 @@ async def leave_room(code: str, req: LeaveRequest, session=Depends(get_session))
             status=room.status.value,
             players=enriched,
             max_players=room.max_players,
-            game=room.game,
             has_password=bool(room.password),
             entry_fee=getattr(room, 'entry_fee', 0) or 0,
             prize=getattr(room, 'prize', 0) or 0,
         )
-
 
 @router.post("/kick/{code}", response_model=RoomResponse)
 async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
@@ -373,7 +340,7 @@ async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
         enriched = await _enrich_players(db, room.player_ids)
         await _broadcast(code, {
             "type": "player_kicked",
-            "room": {"code": room.id, "host_id": room.host_id, "players": enriched, "game": room.game, "entry_fee": getattr(room, 'entry_fee', 0) or 0, "prize": getattr(room, 'prize', 0) or 0},
+            "room": {"code": room.id, "host_id": room.host_id, "players": enriched, "entry_fee": getattr(room, 'entry_fee', 0) or 0, "prize": getattr(room, 'prize', 0) or 0},
             "kicked": req.target_id,
         })
         return RoomResponse(
@@ -382,29 +349,27 @@ async def kick_room(code: str, req: KickRequest, session=Depends(get_session)):
             status=room.status.value,
             players=enriched,
             max_players=room.max_players,
-            game=room.game,
             has_password=bool(room.password),
             entry_fee=getattr(room, 'entry_fee', 0) or 0,
             prize=getattr(room, 'prize', 0) or 0,
         )
 
-
 @router.get("/open", response_model=list[RoomResponse])
-async def open_rooms(session=Depends(get_session), game: str | None = None):
-    """Public lobbies that are joinable (WAITING or READY, not full), last 2 hours.
-    🆕 game param: "uno" yoki "mafia" — faqat shu o'yin xonalari (default: hammasi)."""
+async def open_rooms(session=Depends(get_session)):
+    """Public lobbies that are joinable (WAITING or READY, not full), last 2 hours."""
     from ..models.social import OnlineUser
     cutoff = now_local() - timedelta(hours=2)
-    game_filter = (game or "").strip().lower()
     async with session() as db:
-        q = select(Room).where(
-            Room.status.in_([RoomStatus.WAITING, RoomStatus.READY]),
-            Room.created_at >= cutoff,
-        )
-        if game_filter in VALID_GAMES:
-            q = q.where(Room.game == game_filter)
         rooms = (
-            await db.execute(q.order_by(Room.created_at.desc()).limit(50))
+            await db.execute(
+                select(Room)
+                .where(
+                    Room.status.in_([RoomStatus.WAITING, RoomStatus.READY]),
+                    Room.created_at >= cutoff,
+                )
+                .order_by(Room.created_at.desc())
+                .limit(50)
+            )
         ).scalars().all()
         out = []
         for r in rooms:
@@ -414,7 +379,6 @@ async def open_rooms(session=Depends(get_session), game: str | None = None):
                 status=r.status.value,
                 players=await _enrich_players(db, r.player_ids),
                 max_players=r.max_players,
-                game=r.game,
                 has_password=bool(r.password),
                 entry_fee=getattr(r, 'entry_fee', 0) or 0,
                 prize=getattr(r, 'prize', 0) or 0,
@@ -435,7 +399,6 @@ async def get_room(code: str, session=Depends(get_session)):
             status=room.status.value,
             players=await _enrich_players(db, room.player_ids),
             max_players=room.max_players,
-            game=room.game,
             has_password=bool(room.password),
             entry_fee=getattr(room, 'entry_fee', 0) or 0,
             prize=getattr(room, 'prize', 0) or 0,
