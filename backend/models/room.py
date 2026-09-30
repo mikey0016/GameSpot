@@ -38,6 +38,9 @@ class Room(Base):
     # Entry fee mode: 0 = free, >0 = coins required to join; prize = entry_fee * player_count
     entry_fee = Column(Integer, default=0, nullable=False)
     prize = Column(Integer, default=0, nullable=False)
+    # DB moslik: jadvalda game ustuni NOT NULL — eski kod uni ishlatmaydi,
+    # lekin INSERT buzilmasligi uchun default bilan saqlanadi (har doim 'uno').
+    game = Column(String(16), default="uno", nullable=False)
 
     def __repr__(self):
         return f"<Room {self.id} status={self.status}>"
