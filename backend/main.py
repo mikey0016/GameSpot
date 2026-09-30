@@ -485,7 +485,9 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                     continue
                 if user_id != room.host_id:
                     continue  # only host may start
-                if len(room.player_ids) < 2:
+                # Yolg'iz host botlar bilan boshlay oladi — server bo'sh o'rinlarni to'ldiradi
+                _want_bots_start = bool(data.get("with_bots")) or bool(data.get("fill_bots"))
+                if len(room.player_ids) < 2 and not _want_bots_start:
                     await manager.send_to_user(room_code, user_id, {
                         "type": "error", "message": "Kamida 2 o'yinchi kerak"
                     })
