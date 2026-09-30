@@ -306,9 +306,10 @@ function renderLobby() {
   $('lobby-wait').style.display = isHost ? 'none' : 'block';
 }
 function startGame() {
-  const min = GAMES[G.room?.game || G.game].min;
-  if ((G.room?.players || []).length < min) { toast('Kamida ' + min + ' o\'yinch kerak'); return; }
   const bots = $('lobby-bots').checked;
+  // Botlar yoqilgan bo'lsa yolg'iz host ham boshlay oladi — server bo'sh o'rinlarni to'ldiradi
+  const min = bots ? 1 : GAMES[G.room?.game || G.game].min;
+  if ((G.room?.players || []).length < min) { toast('Kamida ' + min + ' o\'yinch kerak'); return; }
   send({action:'start_game', with_bots: bots});
 }
 async function leaveRoom() {
