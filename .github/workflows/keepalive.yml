@@ -1,0 +1,14 @@
+# .github/workflows/keepalive.yml
+# Render Free 15 daqiqada uxlab qolmasligi uchun har 10 daqiqada /config ni ping qiladi.
+# Bepul (public repo), karta shart emas.
+name: keepalive
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend
+        run: curl -fsS -m 30 https://gamespot-backend.onrender.com/config
