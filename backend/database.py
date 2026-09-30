@@ -161,6 +161,13 @@ async def init_db():
             await conn.execute(text(
                 "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS entry_fee INTEGER DEFAULT 0"
             ))
+            # 🆕 MAFIA: xona o'yin turi (uno | mafia)
+            await conn.execute(text(
+                "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS game VARCHAR(16) DEFAULT 'uno'"
+            ))
+            await conn.execute(text(
+                "UPDATE rooms SET game = 'uno' WHERE game IS NULL"
+            ))
             await conn.execute(text(
                 "ALTER TABLE rooms ADD COLUMN IF NOT EXISTS prize INTEGER DEFAULT 0"
             ))

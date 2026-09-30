@@ -1,0 +1,26 @@
+# render.yaml — Render Blueprint (kartasiz, Free plan).
+# Ishlatish: Render Dashboard → New → Blueprint → shu repo ni tanlang.
+# Kerakli env var larni Render da qo'lda to'ldiring (pastdagi ro'yxat).
+services:
+  - type: web
+    name: gamespot-backend
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "bash render_start.sh"
+    healthCheckPath: /config
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: WEBAPP_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: CHANNEL_URL
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.12.0

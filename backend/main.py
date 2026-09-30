@@ -16,6 +16,7 @@ from .tz import now_local
 
 from .api import rooms_router, social_router, fun_router  # import routers
 from .game.uno import GameState
+from .game.mafia import MafiaGameState, MafiaRole, ROLE_INFO
 from .models.room import Room
 from .api.social import _broadcast as social_broadcast  # noqa: E402  (owner force-leave notifications)
 
@@ -464,6 +465,14 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                             "name": name,
                         })
                         await _send_personalized_state(room_code, state)
+                    # 🆕 MAFIA rejoin: mafia o'yini aktiv bo'lsa uning holatini yuboramiz
+                    mstate = mafia_games.get(room_code)
+                    if mstate and not mstate.winner_team:
+                        try:
+                            await manager.send_to_user(room_code, user_id, {"type": "mafia_started"})
+                            await _mafia_broadcast_state(room_code, mstate)
+                        except Exception:
+                            pass
                 continue
 
             # --- host starts the game: deal cards, create real UNO state ---
@@ -485,6 +494,40 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                 if room_code in games and games[room_code].winner_id is None:
                     await _send_personalized_state(room_code, games[room_code])
                     await manager.broadcast(room_code, {"type": "game_start"})
+                    continue
+                # 🆕 MAFIA o'yin: rol taqsimlash + tun boshlanadi
+                if _mafia_room_game(room) == "mafia":
+                    try:
+                        ids_m = []
+                        for _p in (room.player_ids or []):
+                            try:
+                                ids_m.append(int(_p))
+                            except (TypeError, ValueError):
+                                continue
+                        # 🤖 Mafia botlar: 4 tadan kam bo'lsa to'ldirish
+                        want_bots_m = bool(data.get("with_bots")) or data.get("fill_bots")
+                        if want_bots_m and len(ids_m) < 4:
+                            import random as _r
+                            need = min(4 - len(ids_m), len(MAFIA_BOT_IDS))
+                            for bid in _r.sample(sorted(MAFIA_BOT_IDS.keys()), need):
+                                ids_m.append(bid)
+                                manager.user_names.setdefault(bid, MAFIA_BOT_IDS[bid])
+                        if len(ids_m) < 4:
+                            await manager.send_to_user(room_code, user_id, {
+                                "type": "error", "message": "Mafiyada kamida 4 o'yinchi kerak"
+                            })
+                            continue
+                        mstate = MafiaGameState(player_ids=ids_m)
+                        for pl in mstate.players:
+                            pl.name = manager.user_names.get(pl.user_id) or f"O'yinchi {pl.user_id % 1000}"
+                        mstate.assign_roles()
+                        mstate.start_night()
+                        mafia_games[room_code] = mstate
+                        await manager.broadcast(room_code, {"type": "mafia_start"})
+                        await _mafia_broadcast_state(room_code, mstate)
+                        await _mafia_maybe_bots(room_code, mstate)
+                    except ValueError as e:
+                        await manager.send_to_user(room_code, user_id, {"type": "error", "message": str(e)})
                     continue
                 try:
                     # player_ids dagi eski string ID larni int ga o'tkazamiz
@@ -693,6 +736,44 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
                         })
                 continue
 
+            # ================= MAFIA actions =================
+            mstate = mafia_games.get(room_code)
+
+            if mstate and action == "mafia_night_target" and user_id is not None:
+                try:
+                    tgt = data.get("target_id")
+                    mstate.set_night_target(user_id, int(tgt) if tgt is not None else None)
+                except (ValueError, TypeError) as e:
+                    await manager.send_to_user(room_code, user_id, {"type": "error", "message": str(e)})
+                    continue
+                await _mafia_broadcast_state(room_code, mstate)
+                await _mafia_advance(room_code, mstate)
+                await _mafia_maybe_bots(room_code, mstate)
+                continue
+
+            if mstate and action == "mafia_vote" and user_id is not None:
+                try:
+                    tgt = data.get("target_id")
+                    mstate.cast_vote(user_id, int(tgt) if tgt is not None else None)
+                except (ValueError, TypeError) as e:
+                    await manager.send_to_user(room_code, user_id, {"type": "error", "message": str(e)})
+                    continue
+                await _mafia_broadcast_state(room_code, mstate)
+                await _mafia_advance(room_code, mstate)
+                await _mafia_maybe_bots(room_code, mstate)
+                continue
+
+            if mstate and action == "mafia_trial_vote" and user_id is not None:
+                try:
+                    mstate.cast_trial_vote(user_id, str(data.get("verdict", "innocent")))
+                except ValueError as e:
+                    await manager.send_to_user(room_code, user_id, {"type": "error", "message": str(e)})
+                    continue
+                await _mafia_broadcast_state(room_code, mstate)
+                await _mafia_advance(room_code, mstate)
+                await _mafia_maybe_bots(room_code, mstate)
+                continue
+
             # --- reactions (emoji burst) ---
             if action == "react" and user_id is not None:
                 await manager.broadcast(room_code, {
@@ -750,8 +831,156 @@ async def websocket_endpoint(room_code: str, websocket: WebSocket, token: str = 
 # (single-process deployment; restart clears running games)
 games: dict[str, GameState] = {}
 
+# 🆕 MAFIA: room_code -> MafiaGameState (in-memory, restart clears)
+mafia_games: dict[str, MafiaGameState] = {}
+
+# 🆕 MAFIA botlar: oddiy javob berish uchun (nomlar UNO botlaridan boshqa)
+MAFIA_BOT_IDS = {-9101: "🤖 Vito", -9102: "🤖 Carla", -9103: "🤖 Enzo", -9104: "🤖 Roxy", -9105: "🤖 Luca", -9106: "🤖 Sofia", -9107: "🤖 Marco", -9108: "🤖 Nina", -9109: "🤖 Tony", -9110: "🤖 Rosa", -9111: "🤖 Aldo", -9112: "🤖 Bianca"}
+
+
+def _mafia_room_game(room) -> str:
+    """Room.game qiymatini xavfsiz o'qish (eski bazada ustun yo'q bo'lsa uno)."""
+    return getattr(room, "game", None) or "uno"
+
+
+# =====================================================================
+# ===== MAFIA: tun/kun boshqaruvi =====
+# =====================================================================
+
+async def _mafia_broadcast_state(room_code: str, state: MafiaGameState):
+    """Hammaga public + har bir tirik o'yinchiga personal state."""
+    try:
+        await manager.broadcast(room_code, {"type": "mafia_update", "state": state.public_state()})
+    except Exception:
+        pass
+    for p in state.players:
+        try:
+            if not p.alive:
+                continue
+            payload = {"type": "mafia_personal", "state": state.personal_state(p.user_id)}
+            await manager.send_to_user(room_code, p.user_id, payload)
+        except Exception:
+            pass
+
+
+def _mafia_all_done(state: MafiaGameState) -> bool:
+    if state.phase == "night":
+        return state.all_night_actions_done()
+    if state.phase == "day":
+        return state.all_votes_in()
+    if state.phase == "trial":
+        return state.all_trial_votes_in()
+    return False
+
+
+async def _mafia_advance(room_code: str, state: MafiaGameState):
+    """Faza to'liq bo'lsa keyingi bosqichga o'tish (tun→kun→sud→tun...).
+    Recursion: sud yakunida yangi tun ochiladi."""
+    import asyncio as _a
+    if state.winner_team:
+        await _finish_game(room_code, state)
+        return
+    if state.phase == "night" and state.all_night_actions_done():
+        events = state.resolve_night()
+        await manager.broadcast(room_code, {"type": "mafia_night_result", "events": events})
+        await _mafia_broadcast_state(room_code, state)
+        await _asyncio_sleep(2.0)
+        # kun: ovoz ochiladi
+        if not state.winner_team:
+            state.phase = "day"
+            state.votes = {}
+            state.add_log(f"☀️ {state.day_number}-KUN — ovoz berish boshlandi!")
+            await manager.broadcast(room_code, {"type": "mafia_day", "day": state.day_number})
+            await _mafia_broadcast_state(room_code, state)
+            await _mafia_maybe_bots(room_code, state)
+        return
+    if state.phase == "day" and state.all_votes_in():
+        res = state.resolve_votes()
+        await manager.broadcast(room_code, {"type": "mafia_vote_result", "result": res})
+        await _mafia_broadcast_state(room_code, state)
+        if res and res.get("defendant_id") is not None:
+            await _asyncio_sleep(2.0)
+            await _mafia_maybe_bots(room_code, state)
+        elif res:  # skipped/tie → yangi tun
+            await _asyncio_sleep(1.5)
+            state.start_night()
+            await manager.broadcast(room_code, {"type": "mafia_night", "day": state.day_number})
+            await _mafia_broadcast_state(room_code, state)
+            await _mafia_maybe_bots(room_code, state)
+        return
+    if state.phase == "trial" and state.all_trial_votes_in():
+        res = state.resolve_trial()
+        await manager.broadcast(room_code, {"type": "mafia_trial_result", "result": res})
+        await _mafia_broadcast_state(room_code, state)
+        await _asyncio_sleep(2.5)
+        if not state.winner_team:
+            state.start_night()
+            await manager.broadcast(room_code, {"type": "mafia_night", "day": state.day_number})
+            await _mafia_broadcast_state(room_code, state)
+            await _mafia_maybe_bots(room_code, state)
+        return
+
+
+async def _asyncio_sleep(sec: float):
+    import asyncio as _a
+    await _a.sleep(sec)
+
+
+async def _mafia_maybe_bots(room_code: str, state: MafiaGameState):
+    """Bot o'yinchilar javobi: tunda tasodifiy nishon, kunda tasodifiy ovoz."""
+    import asyncio as _a, random as _r
+
+    async def _bot_loop():
+        await _a.sleep(1.0)
+        if mafia_games.get(room_code) is not state or state.winner_team:
+            return
+        changed = False
+        if state.phase == "night":
+            for p in state.alive_players():
+                if p.user_id not in MAFIA_BOT_IDS:
+                    continue
+                if not state.can_night_act(p.user_id):
+                    continue
+                if p.role == MafiaRole.VIGILANTE and p.vigilante_rest:
+                    continue
+                if p.user_id in state.night_actions:
+                    continue
+                targets = [t.user_id for t in state.alive_players() if t.user_id != p.user_id]
+                # mafia boshqa mafiyachini o'ldirmasligi kerak
+                if state._is_mafia_team(p.role):
+                    targets = [t for t in targets if not state.is_mafia(t)]
+                # shifokor o'zini davolashi mumkin
+                if not targets:
+                    continue
+                tgt = _r.choice(targets)
+                guard_self = (p.role == MafiaRole.VETERAN and not p.guard_used and _r.random() < 0.35)
+                state.set_night_target(p.user_id, p.user_id if guard_self else tgt)
+                changed = True
+        elif state.phase == "day":
+            for p in state.alive_players():
+                if p.user_id not in MAFIA_BOT_IDS or p.user_id in state.votes:
+                    continue
+                targets = [t.user_id for t in state.alive_players() if t.user_id != p.user_id]
+                if not targets:
+                    continue
+                state.cast_vote(p.user_id, _r.choice(targets))
+                changed = True
+        elif state.phase == "trial":
+            for p in state.alive_players():
+                if p.user_id not in MAFIA_BOT_IDS or p.user_id in state.trial_votes:
+                    continue
+                state.cast_trial_vote(p.user_id, _r.choice(["guilty", "innocent"]))
+                changed = True
+        if changed:
+            await _mafia_broadcast_state(room_code, state)
+        await _mafia_advance(room_code, state)
+
+    _a.ensure_future(_bot_loop())
+
+
 # Rooms whose game_over has already been recorded (double-count guard)
 _finished_rooms: set[str] = set()
+_mafia_finished_rooms: set[str] = set()
 
 # 🆕 RECONNECT WINDOW: (room_code, user_id) -> asyncio.TimerHandle
 # Player WS dan uzilganda 5 daqiqa reconnect muddati; bu vaqt ichida game uni o'yindan chiqarmaydi.
@@ -778,6 +1007,16 @@ def _schedule_disconnect(room_code: str, user_id: int) -> None:
         old.cancel()
     state = games.get(room_code)
     if not state or state.winner_id:
+        # 🆕 MAFIA: mafia o'yini aktiv bo'lsa ham reconnect window ochiladi
+        mstate = mafia_games.get(room_code)
+        if mstate and not mstate.winner_team:
+            mp = mstate._find(user_id)
+            if mp and mp.alive:
+                loop = _asyncio.get_event_loop()
+                _disconnect_timers[key] = loop.call_later(
+                    RECONNECT_WINDOW_SECONDS,
+                    lambda: _asyncio.ensure_future(_reconnect_timeout(room_code, user_id)),
+                )
         return
     if user_id not in state.active_player_ids():
         return  # allaqachon tugatgan/chiqib ketgan — window kerak emas
@@ -792,6 +1031,25 @@ async def _reconnect_timeout(room_code: str, user_id: int) -> None:
     """🆕 5 daqiqa ichida qaytalmagan player o'yinni tark etadi (placement oladi).
     Idempotent: withdraw_player ikki marta chaqirilsa zarar yetkazmaydi."""
     _disconnect_timers.pop((room_code, user_id), None)
+    # 🆕 MAFIA: qaytmagan o'yinchi o'lik deb belgilanadi
+    mstate = mafia_games.get(room_code)
+    if mstate and not mstate.winner_team:
+        mp = mstate._find(user_id)
+        if mp and mp.alive:
+            mp.alive = False
+            mp.died_at_phase = mstate.phase
+            info = await _user_info(user_id)
+            await manager.broadcast(room_code, {
+                "type": "player_left", "user_id": user_id, "name": info["name"],
+                "reason": "reconnect_timeout",
+                "message": f"⏰ {info['name']} o'yinga qaytmadi",
+            })
+            mstate._check_win()
+            await manager.broadcast(room_code, {"type": "game_update"})
+            await _mafia_broadcast_state(room_code, mstate)
+            if mstate.winner_team:
+                await _finish_game(room_code, mstate)
+        return
     state = games.get(room_code)
     if not state or state.winner_id:
         return
@@ -816,10 +1074,17 @@ async def _finish_game(room_code: str, state: GameState):
     — playerlar ketma-ket tugatadi va game oxirgi active player qolganda finalize bo'ladi.
     🆕 Game tugaganda barcha blitz/reconnect timerlari bekor qilinadi.
     """
-    if room_code in _finished_rooms:
+    is_mafia = isinstance(state, MafiaGameState)
+    if is_mafia:
+        if room_code in _mafia_finished_rooms:
+            return
+        _mafia_finished_rooms.add(room_code)
+    elif room_code in _finished_rooms:
         return
-    _finished_rooms.add(room_code)
+    else:
+        _finished_rooms.add(room_code)
     games.pop(room_code, None)
+    mafia_games.pop(room_code, None)
     # 🆕 barcha reconnect window timerlarini bekor qilish (game tugadi)
     for key in [k for k in _disconnect_timers if k[0] == room_code]:
         handle = _disconnect_timers.pop(key, None)
@@ -828,7 +1093,12 @@ async def _finish_game(room_code: str, state: GameState):
 
     # 🆕 Placements: finish_order to'liq tartibni beradi (withdrawn oxirida bo'lishi mumkin).
     # Xavfsizlik uchun: finish_order'da yo'q playerlar qo'shiladi (idempotent).
-    placement_ids = list(state.finish_order)
+    # 🆕 MAFIA: g'olib jamoa a'zolari 1-o'rinda, mag'lublar keyin.
+    if is_mafia:
+        winners = [p.user_id for p in state.players if state._is_mafia_team(p.role) == (state.winner_team == "mafia")]
+        placement_ids = winners + [p.user_id for p in state.players if p.user_id not in winners]
+    else:
+        placement_ids = list(state.finish_order)
     for p in state.players:
         if p.user_id not in placement_ids:
             placement_ids.append(p.user_id)
@@ -839,7 +1109,8 @@ async def _finish_game(room_code: str, state: GameState):
             "place": i + 1,
             "user_id": uid,
             "name": info["name"],
-            "cards_left": next((len(p.hand) for p in state.players if p.user_id == uid), 0),
+            "cards_left": next((len(getattr(p, "hand", [])) for p in state.players if p.user_id == uid), 0),
+            "role": next((getattr(pp, "role", None) for pp in state.players if pp.user_id == uid), None) if is_mafia else None,
         })
     winner = standings[0] if standings else None
     # Rejimli xona prize: g'olib hammasini oladi

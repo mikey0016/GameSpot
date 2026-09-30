@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+     <!DOCTYPE html>
 <!-- BUILD 2026-09-23-v7 BOSHQA STYLE - GOLD MODERN -->
 <html lang="uz">
 <head>
@@ -1729,8 +1729,16 @@
 
         <div class="glass-panel">
             <div class="input-group">
+                <label>🎮 O'yin turi</label>
+                <div style="display:flex; gap:8px; justify-content:center;">
+                    <button class="btn btn-primary mp-btn" onclick="setCreateGame('uno')" id="gt-uno" style="min-width:110px;">🎴 UNO</button>
+                    <button class="btn btn-outline mp-btn" onclick="setCreateGame('mafia')" id="gt-mafia" style="min-width:110px;">🕵️ Mafia</button>
+                </div>
+                <p class="invite-hint" id="create-game-hint" style="margin-top:6px;">UNO — klassik karta o'yini (2–7)</p>
+            </div>
+            <div class="input-group">
                 <label>Maksimal o'yinchilar</label>
-                <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;" id="mp-buttons">
                     <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(2)" id="mp-2">2</button>
                     <button class="btn btn-outline mp-btn" onclick="setMaxPlayers(3)" id="mp-3">3</button>
                     <button class="btn btn-primary mp-btn" onclick="setMaxPlayers(4)" id="mp-4">4</button>
@@ -2049,6 +2057,13 @@
             <div class="logo">LOBBYLAR</div>
             <div class="subtitle">Ochiq xonalar — kirib o'ynang</div>
         </div>
+        <div class="glass-panel">
+            <div style="display:flex; gap:8px; justify-content:center; margin-bottom:10px;">
+                <button class="btn btn-primary mp-btn" onclick="setOpenRoomsFilter('')" id="orf-all">Hammasi</button>
+                <button class="btn btn-outline mp-btn" onclick="setOpenRoomsFilter('uno')" id="orf-uno">🎴 UNO</button>
+                <button class="btn btn-outline mp-btn" onclick="setOpenRoomsFilter('mafia')" id="orf-mafia">🕵️ Mafia</button>
+            </div>
+        </div>
         <div class="glass-panel" id="open-rooms-list">
             <p class="invite-hint">Yuklanmoqda...</p>
         </div>
@@ -2083,6 +2098,10 @@
                 <div>
                     <div class="label">Xona kodi</div>
                     <div class="room-code" id="lobby-code" onclick="copyRoomCode()">------</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="label">O'yin</div>
+                    <div id="lobby-game-badge" style="font-size:0.95rem; font-weight:800; color:var(--cyan);">🎴 UNO</div>
                 </div>
                 <button class="icon-btn" onclick="copyRoomCode()" title="Nusxa olish">📋</button>
             </div>
@@ -2247,6 +2266,76 @@
         </div>
 
         <button class="uno-btn" id="uno-float-btn" onclick="callUno()">UNO!</button>
+    </div>
+
+    <!-- ===== 🕵️ MAFIA GAME SCREEN ===== -->
+    <div id="screen-mafia" class="screen">
+        <div class="game-area">
+            <div class="game-top-bar">
+                <span class="game-code-chip" id="mafia-room-code">---</span>
+                <span class="turn-banner wait" id="mafia-phase-label">⏳ Lobby...</span>
+                <span class="direction" id="mafia-day-icon">🌃</span>
+            </div>
+
+            <!-- Rol kartochkasi -->
+            <div class="glass-panel" id="mafia-role-card" style="max-width:400px; width:100%;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div id="mafia-role-emoji" style="font-size:2rem;">❔</div>
+                    <div style="flex:1;">
+                        <div id="mafia-role-name" style="font-weight:800; font-size:0.95rem;">Rol kutilmoqda...</div>
+                        <div id="mafia-role-desc" style="font-size:0.68rem; color:var(--text-dim);"></div>
+                    </div>
+                </div>
+                <div id="mafia-teammates" style="margin-top:6px; font-size:0.7rem; color:var(--magenta);"></div>
+                <div id="mafia-investigation" style="margin-top:4px; font-size:0.7rem; color:var(--yellow);"></div>
+            </div>
+
+            <!-- O'yinchilar ro'yxati -->
+            <div class="glass-panel" style="max-width:400px; width:100%;">
+                <div class="panel-head"><span>Shar shahri</span><span class="muted" id="mafia-alive-count">0</span></div>
+                <div id="mafia-players" style="display:flex; flex-direction:column; gap:6px;"></div>
+                <div class="lobby-status" id="mafia-status-hint">⏳ O'yin boshlanishi kutilmoqda</div>
+            </div>
+
+            <!-- Tun harakati tugmalari (faqat kerakli rollarda ko'rinadi) -->
+            <div id="mafia-actions" style="width:100%; max-width:400px; display:none; flex-direction:column; gap:8px;">
+                <button class="btn btn-primary" id="mafia-skip-btn" onclick="mafiaSkipNight()" style="font-size:0.8rem;">⏭️ Bu tun harakat qilmaslik</button>
+            </div>
+
+            <!-- Sud ovozlari -->
+            <div id="mafia-trial-actions" style="width:100%; max-width:400px; display:none; gap:10px;">
+                <button class="btn btn-primary" onclick="mafiaTrialVote('guilty')" style="flex:1; font-size:0.8rem;">⚖️ Aybdor</button>
+                <button class="btn btn-outline" onclick="mafiaTrialVote('innocent')" style="flex:1; font-size:0.8rem;">🕊️ Aybsiz</button>
+            </div>
+
+            <!-- Log -->
+            <div class="glass-panel" style="max-width:400px; width:100%;">
+                <div class="panel-head"><span>📜 Voqealar</span></div>
+                <div class="chat-box" id="mafia-log-box" style="height:130px; font-size:0.72rem;"></div>
+            </div>
+
+            <!-- Chat -->
+            <div class="glass-panel" style="max-width:400px; width:100%;">
+                <div class="panel-head"><span>💬 Chat</span></div>
+                <div class="chat-box" id="mafia-chat-box" style="height:110px;"></div>
+                <div class="chat-input-row">
+                    <input type="text" class="input-field" id="mafia-chat-input"
+                           placeholder="Faqat kunduzi gapirish erkin..." maxlength="300"
+                           onkeydown="if(event.key==='Enter')sendGameChat()">
+                    <button class="chat-send" onclick="sendGameChat()">➤</button>
+                </div>
+            </div>
+
+            <!-- Reactions -->
+            <div class="reaction-bar">
+                <button class="react-btn" onclick="sendReaction('👍')">👍</button>
+                <button class="react-btn" onclick="sendReaction('😂')">😂</button>
+                <button class="react-btn" onclick="sendReaction('🤔')">🤔</button>
+                <button class="react-btn" onclick="sendReaction('😱')">😱</button>
+                <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
+                <button class="react-btn" onclick="sendReaction('🎉')">🎉</button>
+            </div>
+        </div>
     </div>
 
     <!-- ===== PROFILE SCREEN ===== -->
@@ -2416,11 +2505,17 @@
         // ===== Configuration =====
         // Nginx proxies /rooms, /ws and /config to the backend (same origin).
         // For local dev on :3000 without proxy, fall back to :8000.
-        const API_BASE = (['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port === '3000')
-            ? window.location.origin.replace(':3000', ':8000')
-            : window.location.origin;
+        // For split hosting (frontend on Vercel, backend on Render): set
+        // window.GAMESPOT_API_URL or ?api=https://<backend> in the URL.
+        const _apiOverride = window.GAMESPOT_API_URL
+            || (new URLSearchParams(window.location.search).get('api') || '').replace(/\/$/, '');
+        const API_BASE = _apiOverride
+            || ((['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port === '3000')
+                ? window.location.origin.replace(':3000', ':8000')
+                : window.location.origin);
         let currentRoom = null;
         let maxPlayers = 4;
+        let roomGame = 'uno'; // 🆕 xona o'yin turi: "uno" | "mafia"
         let ws = null;
         let pollTimer = null;
         let backHandler = null;
@@ -2625,8 +2720,10 @@
         // Xona chatini to'g'ri joyga yozish (duplikatsiz): true -> bajarildi
         function handleRoomChat(data) {
             const gameActive = document.getElementById('screen-game')?.classList.contains('active');
+            const mafiaActive = document.getElementById('screen-mafia')?.classList.contains('active');
             const lobbyActive = document.getElementById('screen-lobby')?.classList.contains('active');
             if (gameActive) { appendGameChatMsg(data); return true; }
+            if (mafiaActive) { appendChatMsg('mafia-chat-box', data); appendChatMsg('lobby-chat-box', data, true); return true; }
             if (lobbyActive) { appendChatMsg('lobby-chat-box', data); return true; }
             return false;
         }
@@ -2702,6 +2799,22 @@
 
         let roomLocked = false;
         let entryFee = 0;
+        let createGameType = 'uno'; // 🆕 "uno" | "mafia"
+        function setCreateGame(t) {
+            createGameType = t;
+            const uno = document.getElementById('gt-uno');
+            const mafia = document.getElementById('gt-mafia');
+            if (uno) uno.className = t === 'uno' ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
+            if (mafia) mafia.className = t === 'mafia' ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
+            // Mafia 4 o'yinchidan boshlanadi; UNO slotlarini tiklaymiz
+            const mpWrap = document.getElementById('mp-buttons');
+            if (mpWrap) mpWrap.style.opacity = t === 'mafia' ? '0.35' : '1';
+            if (t === 'mafia' && maxPlayers < 4) setMaxPlayers(4);
+            const hint = document.getElementById('create-game-hint');
+            if (hint) hint.textContent = t === 'mafia'
+                ? 'Mafia — tun/kun ovozlari, 9 rol, min 4 o\'yinchi'
+                : 'UNO — klassik karta o\'yini (2–7)';
+        }
         function setRoomPrivacy(locked) {
             roomLocked = locked;
             const open = document.getElementById('pw-open');
@@ -2734,13 +2847,14 @@
                 const resp = await fetch(API_BASE + '/rooms/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ host_id: userId || 1, max_players: maxPlayers, password: pw || null, entry_fee: entryFee })
+                    body: JSON.stringify({ host_id: userId || 1, game: createGameType, max_players: maxPlayers, password: pw || null, entry_fee: entryFee })
                 });
                 if (!resp.ok) throw new Error('Server xatosi');
                 const data = await resp.json();
                 currentRoom = data.code || data.room_code;
                 maxPlayers = data.max_players || maxPlayers;
                 lobbyHostId = data.host_id ?? userId;
+                roomGame = createGameType;
                 showLobby(currentRoom, [{ id: userId, name: myName() }], data.host_id, data.entry_fee || 0, data.prize || 0);
                 showScreen('lobby');
                 playSfx('join');
@@ -2776,6 +2890,7 @@
                 currentRoom = code;
                 maxPlayers = data.max_players || maxPlayers;
                 lobbyHostId = data.host_id;
+                roomGame = data.game || 'uno';
                 showLobby(code, data.players || [], data.host_id, data.entry_fee || 0, data.prize || 0);
                 showScreen('lobby');
                 playSfx('join');
@@ -2786,10 +2901,21 @@
         }
 
         // ===== Open lobbies (public rooms) =====
+        let openRoomsFilter = '';
+        function setOpenRoomsFilter(g) {
+            openRoomsFilter = g;
+            ['orf-all', 'orf-uno', 'orf-mafia'].forEach(id => {
+                const b = document.getElementById(id);
+                if (!b) return;
+                const on = (g === '' && id === 'orf-all') || (g === 'uno' && id === 'orf-uno') || (g === 'mafia' && id === 'orf-mafia');
+                b.className = on ? 'btn btn-primary mp-btn' : 'btn btn-outline mp-btn';
+            });
+            loadOpenRooms();
+        }
         async function loadOpenRooms(manual) {
             const box = document.getElementById('open-rooms-list');
             try {
-                const resp = await fetch(API_BASE + '/rooms/open');
+                const resp = await fetch(API_BASE + '/rooms/open' + (openRoomsFilter ? '?game=' + openRoomsFilter : ''));
                 if (!resp.ok) throw new Error();
                 const rooms = await resp.json();
                 const others = (rooms || []).filter(r => r.host_id !== userId);
@@ -2806,10 +2932,13 @@
                     const fee = r.entry_fee || 0;
                     const prize = r.prize || (fee * (r.players || []).length);
                     const mode = fee ? `💰 ${fee}🪙 · 🎁 ${prize}🪙` : '🆓 Bepul';
+                    const g = (r.game || 'uno') === 'mafia';
+                    const gBadge = g ? '<span style="font-size:0.62rem; font-weight:800; color:#ff4d6d; border:1px solid rgba(255,77,109,0.5); border-radius:8px; padding:1px 6px; margin-left:6px;">🕵️ MAFIA</span>'
+                                     : '<span style="font-size:0.62rem; font-weight:800; color:var(--cyan); border:1px solid rgba(0,234,255,0.4); border-radius:8px; padding:1px 6px; margin-left:6px;">🎴 UNO</span>';
                     return `
                     <div class="open-room">
                         <div class="or-info">
-                            <div class="or-code">${locked ? '🔒' : ''} ${esc(r.code)}</div>
+                            <div class="or-code">${locked ? '🔒' : ''} ${esc(r.code)}${gBadge}</div>
                             <div class="or-meta">
                                 👑 ${esc(host)}${members.length ? ' · ' + members.map(n => esc(n)).join(', ') : ''}
                             </div>
@@ -2877,6 +3006,8 @@
         function showLobby(code, players, hostId, entryFee, prize) {
             document.getElementById('lobby-code').textContent = code;
             document.getElementById('lobby-chat-box').innerHTML = '';
+            const lgBadge = document.getElementById('lobby-game-badge');
+            if (lgBadge) lgBadge.textContent = (roomGame === 'mafia' ? '🕵️ MAFIA' : '🎴 UNO');
             lobbyEntryFee = entryFee || 0;
             lobbyPrize = prize || 0;
             updateLobbyPrize(lobbyEntryFee, lobbyPrize);
@@ -3110,6 +3241,9 @@
             myHand = [];
             topCard = null;
             myTurn = false;
+            mafiaState = null;
+            mafiaPickMode = null;
+            roomGame = 'uno';
             showScreen('home');
         }
 
@@ -3224,6 +3358,47 @@
             if (data.type === 'game_over') {
                 showResult(data.winner, data.standings, data.prize);
             }
+
+            // ================= 🕵️ MAFIA =================
+            if (data.type === 'mafia_started') {
+                // Reconnect: mafia o'yini davom etyapti
+                showScreen('mafia');
+            }
+            if (data.type === 'mafia_start') {
+                stopPolling();
+                showScreen('mafia');
+                if (currentRoom) document.getElementById('mafia-room-code').textContent = currentRoom;
+                document.getElementById('mafia-status-hint').textContent = '🌙 Rollar tarqatildi — 1-tun boshlandi';
+            }
+            if (data.type === 'mafia_update' && data.state) {
+                mafiaRender(data.state);
+            }
+            if (data.type === 'mafia_personal' && data.state) {
+                mafiaRender(data.state);
+            }
+            if (data.type === 'mafia_night_result' && data.events) {
+                data.events.forEach(ev => {
+                    if (ev.text) showToast(ev.text);
+                });
+            }
+            if (data.type === 'mafia_day' && data.day) {
+                showToast('☀️ ' + data.day + '-KUN — ovoz berish boshlandi!');
+            }
+            if (data.type === 'mafia_night' && data.day) {
+                showToast('🌙 ' + data.day + '-TUN boshlandi');
+            }
+            if (data.type === 'mafia_vote_result' && data.result) {
+                const r = data.result;
+                if (r.skipped) showToast('📵 Hech kim ovoz bermadi');
+                else if (r.tie) showToast('⚖️ Teng ovoz — hech kim sudga chiqmadi');
+                else if (r.defendant_name) showToast('⚖️ ' + r.defendant_name + ' sudga chiqdi!');
+            }
+            if (data.type === 'mafia_trial_result' && data.result) {
+                const r = data.result;
+                showToast(r.executed
+                    ? ('⚖️ ' + r.defendant_name + ' osildi — rol: ' + (r.role || '?'))
+                    : ('🕊️ ' + r.defendant_name + ' aybsiz deb topildi'));
+            }
             // (chat yuqorida handleRoomChat orqali bir marta ishlanadi)
         }
 
@@ -3235,6 +3410,168 @@
                 showToast('🎮 O\'yin boshlanmoqda...');
             } else {
                 showToast('⏳ Ulanish kutilmoqda — bir soniya kuting');
+            }
+        }
+
+        // ================= 🕵️ MAFIA CLIENT =================
+        let mafiaState = null;      // oxirgi personal/public state
+        let mafiaPickMode = null;   // null | 'night' | 'vote'
+
+        const MAFIA_PHASE_LABEL = {
+            lobby:    ['⏳ Lobby', 'wait'],
+            night:    ['🌙 TUN — harakat qiling', 'my'],
+            day:      ['☀️ KUN — ovoz bering', 'my'],
+            trial:    ['⚖️ SUD — aybdor/aybsiz?', 'my'],
+            ended:    ['🏁 O\'yin tugadi', 'wait'],
+        };
+
+        function mafiaSend(payload) {
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
+            else showToast('⏳ Ulanish kutilmoqda...');
+        }
+
+        function mafiaSkipNight() {
+            mafiaSend({ action: 'mafia_night_target', target_id: null });
+            mafiaPickMode = null;
+        }
+
+        function mafiaTrialVote(verdict) {
+            mafiaSend({ action: 'mafia_trial_vote', verdict });
+        }
+
+        function mafiaTapPlayer(targetId) {
+            const st = mafiaState;
+            if (!st || !st.me) return;
+            if (st.phase === 'night' && st.me.can_night_act) {
+                if (targetId === userId) {
+                    // faqat veteran o'zini guard qiladi
+                    if ((st.me.role_info || {}).night_action !== 'guard') { showToast('🚫 O\'zingizni tanlay olmaysiz'); return; }
+                }
+                mafiaSend({ action: 'mafia_night_target', target_id: targetId });
+            } else if (st.phase === 'day' && !st.me.voted) {
+                if (targetId === userId) { showToast('🚫 O\'zingizga ovoz bera olmaysiz'); return; }
+                mafiaSend({ action: 'mafia_vote', target_id: targetId });
+            }
+        }
+
+        function mafiaRender(state) {
+            mafiaState = state;
+            const me = state.me || null;
+            const screenOpen = document.getElementById('screen-mafia')?.classList.contains('active');
+            if (!screenOpen) showScreen('mafia');
+
+            // --- phase label ---
+            const pl = document.getElementById('mafia-phase-label');
+            const di = document.getElementById('mafia-day-icon');
+            const meta = MAFIA_PHASE_LABEL[state.phase] || MAFIA_PHASE_LABEL.lobby;
+            if (pl) { pl.textContent = meta[0] + (state.day_number ? ' · ' + state.day_number + '-kun' : ''); pl.className = 'turn-banner ' + meta[1]; }
+            if (di) di.textContent = state.phase === 'day' || state.phase === 'trial' ? '☀️' : (state.phase === 'ended' ? '🏁' : '🌃');
+
+            // --- role card ---
+            const rEmoji = document.getElementById('mafia-role-emoji');
+            const rName = document.getElementById('mafia-role-name');
+            const rDesc = document.getElementById('mafia-role-desc');
+            const tmBox = document.getElementById('mafia-teammates');
+            const invBox = document.getElementById('mafia-investigation');
+            if (me && me.role_info) {
+                if (rEmoji) { rEmoji.textContent = me.role_info.emoji || '❔'; rEmoji.style.color = me.role_info.color || 'var(--text)'; }
+                if (rName) { rName.textContent = (me.role_info.name || '?') + (me.alive ? '' : ' 💀'); rName.style.color = me.role_info.color || 'var(--text)'; }
+                if (rDesc) rDesc.textContent = me.role_info.desc || '';
+                if (tmBox) {
+                    tmBox.innerHTML = (me.teammates || []).map(t => `🤝 Jamoangiz: <b>${esc(t.name)}</b> (${esc(t.role)})`).join('<br>');
+                }
+                if (invBox) {
+                    invBox.innerHTML = me.investigation
+                        ? `🔍 Tekshiruv: <b>${esc(me.investigation.target_name)}</b> → ${esc(me.investigation.role_shown)}`
+                        : '';
+                }
+            }
+
+            // --- players ---
+            const list = document.getElementById('mafia-players');
+            const aliveCnt = (state.players || []).filter(p => p.alive).length;
+            const ac = document.getElementById('mafia-alive-count');
+            if (ac) ac.textContent = aliveCnt + ' tirik';
+            if (list) {
+                const canPick = (state.phase === 'night' && me && me.can_night_act) || (state.phase === 'day' && me && me.alive && !me.voted);
+                const votes = state.votes || {};
+                list.innerHTML = (state.players || []).map(p => {
+                    const isMe = p.user_id === userId;
+                    const dead = !p.alive;
+                    const roleTag = (!dead && me && (me.teammates || []).some(t => t.user_id === p.user_id))
+                        ? ` <span style="font-size:0.6rem; color:var(--magenta);">🤝</span>` : '';
+                    const votedFor = Object.entries(votes).filter(([, t]) => t === p.user_id).length;
+                    const voteTag = votedFor ? ` <span style="font-size:0.62rem; color:var(--yellow);">🗳️ ${votedFor}</span>` : '';
+                    const deadTag = dead && p.role ? ` <span style="font-size:0.62rem; color:var(--text-dim);">(${esc(p.role)})</span>` : '';
+                    const clickable = canPick && !dead && !isMe;
+                    return `
+                    <div class="slot filled ${isMe ? 'me' : ''}" ${dead ? 'style="opacity:0.45;"' : ''}
+                         ${clickable ? `onclick="mafiaTapPlayer(${p.user_id})" style="cursor:pointer;"` : ''}>
+                        <span class="slot-dot" style="background:${dead ? 'var(--magenta)' : 'var(--green)'};"></span>
+                        <span class="slot-name">${esc(p.name || 'O\'yinchi')}${isMe ? ' <span class="you-badge">siz</span>' : ''}${roleTag}${voteTag}${deadTag}${dead ? ' 💀' : ''}</span>
+                        ${canPick && clickable ? '<span style="font-size:0.65rem; color:var(--cyan); margin-left:auto;">tanlash ›</span>' : ''}
+                    </div>`;
+                }).join('');
+            }
+
+            // --- status hint + actions ---
+            const hint = document.getElementById('mafia-status-hint');
+            const actWrap = document.getElementById('mafia-actions');
+            const skipBtn = document.getElementById('mafia-skip-btn');
+            const trialWrap = document.getElementById('mafia-trial-actions');
+            if (me && !me.alive && state.phase !== 'ended') {
+                if (hint) hint.textContent = '👻 Siz o\'ldingiz — o\'yinni kuzatmoqdasiz';
+            }
+            if (state.phase === 'night') {
+                if (me && me.alive && me.can_night_act) {
+                    if (me.vigilante_rest) {
+                        if (hint) hint.textContent = '⭐ Sheriff dam olyapti — bu tun harakat yo\'q';
+                        if (actWrap) actWrap.style.display = 'none';
+                    } else if (me.night_action_done) {
+                        if (hint) hint.textContent = '✅ Harakatingiz qayd etdi — boshqalar kutilmoqda...';
+                        if (actWrap) actWrap.style.display = 'none';
+                    } else {
+                        const act = (me.role_info || {}).night_action;
+                        const verbs = { kill: '🔪 O\'ldirish uchun o\'yinchini bosing', heal: '🩺 Davolash uchun o\'yinchini bosing', investigate: '🔍 Tekshirish uchun o\'yinchini bosing', witness: '👁 Don\'ni tekshirish uchun bosing', vigilante_kill: '⭐ Hujum uchun o\'yinchini bosing', guard: '🛡️ O\'zingizni himoya qilish uchun bosing' };
+                        if (hint) hint.textContent = verbs[act] || 'Nishonni tanlang';
+                        if (actWrap) {
+                            actWrap.style.display = 'flex';
+                            if (skipBtn) skipBtn.style.display = (act === 'guard') ? 'none' : 'block';
+                        }
+                    }
+                } else {
+                    if (hint && (!me || me.alive)) hint.textContent = '🌙 Tun — rollar harakat qilmoqda...';
+                    if (actWrap) actWrap.style.display = 'none';
+                }
+            } else if (state.phase === 'day') {
+                if (me && me.alive) {
+                    if (me.voted) {
+                        if (hint) hint.textContent = '🗳️ Ovozingiz qabul qilindi — boshqalar kutilmoqda...';
+                    } else {
+                        if (hint) hint.textContent = '🗳️ Kimni gumon qilyapsiz? O\'yinchini bosing';
+                    }
+                }
+                if (actWrap) actWrap.style.display = 'none';
+            } else if (state.phase === 'trial') {
+                if (actWrap) actWrap.style.display = 'none';
+                if (me && me.alive && !me.trial_voted) {
+                    if (hint) hint.textContent = '⚖️ Sud: aybdor deb hisoblaysizmi?';
+                    if (trialWrap) trialWrap.style.display = 'flex';
+                } else {
+                    if (hint) hint.textContent = '⚖️ Sud ovozlari kutilmoqda...';
+                    if (trialWrap) trialWrap.style.display = 'none';
+                }
+            } else if (state.phase === 'ended') {
+                if (hint) hint.textContent = state.winner_team === 'mafia' ? '🔪 MAFIYA g\'olib bo\'ldi!' : '🎉 SHAHAR g\'olib bo\'ldi!';
+                if (actWrap) actWrap.style.display = 'none';
+                if (trialWrap) trialWrap.style.display = 'none';
+            }
+
+            // --- log ---
+            const logBox = document.getElementById('mafia-log-box');
+            if (logBox && Array.isArray(state.log)) {
+                logBox.innerHTML = state.log.slice().reverse().map(l => `<div style="padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.05);">${esc(l)}</div>`).join('');
+                logBox.scrollTop = 0;
             }
         }
 
@@ -4500,14 +4837,19 @@
 
         // ---------- In-game chat ----------
         function appendGameChatMsg(m) {
-            // Per-box dedupe orqali: xabar game + lobby box'lariga alohida-alohida yoziladi
+            // Per-box dedupe orqali: xabar game + lobby + mafia box'lariga alohida-alohida yoziladi
             appendChatMsg('game-chat-box', m);
             appendChatMsg('lobby-chat-box', m, true);
+            appendChatMsg('mafia-chat-box', m, true);
         }
 
         let _clientMsgSeq = Date.now(); // xona chat'i uchun client-side unique id (dedupe)
+        function _activeChatInputId() {
+            if (document.getElementById('screen-mafia')?.classList.contains('active')) return 'mafia-chat-input';
+            return 'game-chat-input';
+        }
         function sendGameChat() {
-            const input = document.getElementById('game-chat-input');
+            const input = document.getElementById(_activeChatInputId());
             const text = input.value.trim();
             if (myBlocked) { showToast('🚫 Siz bloklangansiz'); input.value = ''; return; }
             if (myMuted) { showToast('🔇 Siz mute qilingansiz — chat yopiq'); return; }
